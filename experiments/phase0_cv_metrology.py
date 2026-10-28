@@ -10,7 +10,14 @@ If failed within 4 hours:
 - Activate Fallback 1A: Single top-down view for (L,W) + category aspect prior + mandatory UI slider review.
 """
 
+import os
+import sys
 import time
+from pathlib import Path
+
+# Add project root directory to sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import numpy as np
 
 

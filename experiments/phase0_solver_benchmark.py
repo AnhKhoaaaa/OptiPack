@@ -9,6 +9,13 @@ If failed within 3.5 hours:
 - Activate Fallback 3A: Immediate fallback to Tier 1 Extreme-Point Heuristic (< 30ms).
 """
 
+import os
+import sys
+from pathlib import Path
+
+# Add project root directory to sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import time
 from backend.app.schemas.contracts import (
     Dimensions3D,

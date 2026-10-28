@@ -10,7 +10,13 @@ If failed within 3 hours:
 """
 
 import os
+import sys
 import time
+from pathlib import Path
+
+# Add project root directory to sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from backend.app.ai.meta_client import extract_item_semantics_muse
 
 

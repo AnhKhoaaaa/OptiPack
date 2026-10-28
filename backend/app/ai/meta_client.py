@@ -8,7 +8,7 @@ Includes timeout handling, retries, and offline mock fallback.
 
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import httpx
 from backend.app.ai.cache import compute_image_sha256, get_cached_response, store_cached_response
 from backend.app.ai.sanitizer import sanitize_physical_attributes

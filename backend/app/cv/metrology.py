@@ -4,7 +4,7 @@ Calculates integer millimeter bounding box dimensions (L, W, H) and uncertainty
 margins using camera intrinsics, ArUco table plane raycast, and dual-view triangulation.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import numpy as np
 from backend.app.schemas.contracts import (
     Dimensions3D,
