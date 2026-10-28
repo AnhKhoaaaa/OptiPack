@@ -1,0 +1,32 @@
+{
+  "contract_version": "1.0.0",
+  "analysis_id": "ord_20261027_001",
+  "solver_config": {
+    "mode": "cpsat_with_heuristic_fallback",
+    "time_limit_ms": 3000,
+    "apply_uncertainty_margin": true,
+    "min_support_ratio": 0.60,
+    "allow_multi_carton_split": true
+  },
+  "items": [
+    {
+      "item_id": "item_01",
+      "display_name": "Wireless Headphones Retail Box",
+      "quantity": 1,
+      "dimensions_mm": {
+        "length_mm": 210,
+        "width_mm": 165,
+        "height_mm": 95
+      },
+      "safety_margin_mm": 5,
+      "weight_g": 480,
+      "weight_assumed": false,
+      "fragility_class": "medium",
+      "keep_upright": false,
+      "stackable": true,
+      "max_top_load_g": 2000,
+      "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
+      "display_color_hex": "#3B82F6"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "carton_id": "BOX-S",
+    "display_name": "Small Mailer Box",
+    "internal_dimensions_mm": {
+      "length_mm": 200,
+      "width_mm": 150,
+      "height_mm": 100
+    },
+    "internal_volume_cm3": 3000,
+    "tare_weight_g": 85,
+    "max_payload_g": 3000,
+    "box_cost_usd": 0.45,
+    "dim_weight_kg": 0.60
+  },
+  {
+    "carton_id": "BOX-M",
+    "display_name": "Medium Standard Carton",
+    "internal_dimensions_mm": {
+      "length_mm": 300,
+      "width_mm": 220,
+      "height_mm": 150
+    },
+    "internal_volume_cm3": 9900,
+    "tare_weight_g": 160,
+    "max_payload_g": 8000,
+    "box_cost_usd": 0.85,
+    "dim_weight_kg": 1.98
+  },
+  {
+    "carton_id": "BOX-L",
+    "display_name": "Large E-Commerce Carton",
+    "internal_dimensions_mm": {
+      "length_mm": 400,
+      "width_mm": 300,
+      "height_mm": 200
+    },
+    "internal_volume_cm3": 24000,
+    "tare_weight_g": 280,
+    "max_payload_g": 15000,
+    "box_cost_usd": 1.40,
+    "dim_weight_kg": 4.80
+  },
+  {
+    "carton_id": "BOX-XL",
+    "display_name": "Extra-Large Fulfillment Box",
+    "internal_dimensions_mm": {
+      "length_mm": 500,
+      "width_mm": 350,
+      "height_mm": 250
+    },
+    "internal_volume_cm3": 43750,
+    "tare_weight_g": 420,
+    "max_payload_g": 20000,
+    "box_cost_usd": 2.10,
+    "dim_weight_kg": 8.75
+  },
+  {
+    "carton_id": "BOX-XXL",
+    "display_name": "Heavy Bulk Master Carton",
+    "internal_dimensions_mm": {
+      "length_mm": 600,
+      "width_mm": 400,
+      "height_mm": 350
+    },
+    "internal_volume_cm3": 84000,
+    "tare_weight_g": 650,
+    "max_payload_g": 25000,
+    "box_cost_usd": 3.20,
+    "dim_weight_kg": 16.80
+  }
+]

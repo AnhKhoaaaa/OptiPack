@@ -1,0 +1,101 @@
+{
+  "contract_version": "1.0.0",
+  "status": "OPTIMAL",
+  "solver_used": "ortools_cpsat",
+  "solve_time_ms": 412,
+  "single_carton_feasible": true,
+  "primary_plan": {
+    "plan_index": 1,
+    "carton": {
+      "carton_id": "BOX-M",
+      "display_name": "Medium Standard Carton",
+      "internal_dimensions_mm": {
+        "length_mm": 300,
+        "width_mm": 220,
+        "height_mm": 150
+      },
+      "tare_weight_g": 160,
+      "max_payload_g": 8000,
+      "box_cost_usd": 0.85
+    },
+    "metrics": {
+      "volume_utilization_pct": 68.4,
+      "total_items_packed": 3,
+      "actual_gross_weight_kg": 1.42,
+      "dim_weight_kg": 1.98,
+      "billable_weight_kg": 2.00,
+      "box_cost_usd": 0.85,
+      "void_fill_cost_usd": 0.12,
+      "shipping_cost_usd": 5.90,
+      "total_estimated_cost_usd": 6.87,
+      "center_of_mass_mm": {
+        "x": 142.0,
+        "y": 108.0,
+        "z": 54.0
+      }
+    },
+    "placements": [
+      {
+        "step_number": 1,
+        "item_id": "item_01",
+        "display_name": "Wireless Headphones Retail Box",
+        "rotation_code": "LWH",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "placed_dimensions_mm": {
+          "dx": 215,
+          "dy": 170,
+          "dz": 100
+        },
+        "nominal_dimensions_mm": {
+          "dx": 210,
+          "dy": 165,
+          "dz": 95
+        },
+        "support_ratio": 1.0,
+        "supported_by_item_ids": [
+          "CARTON_FLOOR"
+        ],
+        "display_color_hex": "#3B82F6"
+      }
+    ],
+    "validation": {
+      "is_valid": true,
+      "boundary_check_passed": true,
+      "overlap_check_passed": true,
+      "rotation_check_passed": true,
+      "support_check_passed": true,
+      "fragility_check_passed": true,
+      "weight_check_passed": true,
+      "violations": [],
+      "warnings": []
+    }
+  },
+  "overflow_plans": [],
+  "unpacked_item_ids": [],
+  "infeasibility_diagnostics": null,
+  "candidate_carton_comparison": [
+    {
+      "carton_id": "BOX-S",
+      "feasible": false,
+      "rejection_reason": "Total item volume (6,770 cm3) exceeds BOX-S internal volume (3,000 cm3)."
+    },
+    {
+      "carton_id": "BOX-M",
+      "feasible": true,
+      "total_estimated_cost_usd": 6.87,
+      "volume_utilization_pct": 68.4,
+      "selected": true
+    },
+    {
+      "carton_id": "BOX-L",
+      "feasible": true,
+      "total_estimated_cost_usd": 10.69,
+      "volume_utilization_pct": 28.2,
+      "selected": false
+    }
+  ]
+}
