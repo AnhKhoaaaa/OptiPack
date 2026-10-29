@@ -258,6 +258,21 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
       controls.dispose();
+
+      // Professional GPU Memory Cleanup: dispose all meshes, geometries, and materials
+      scene.traverse((obj) => {
+        if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
+          if (obj.geometry) {
+            obj.geometry.dispose();
+          }
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => m.dispose());
+          } else if (obj.material) {
+            obj.material.dispose();
+          }
+        }
+      });
+
       renderer.dispose();
       if (container) container.innerHTML = "";
     };

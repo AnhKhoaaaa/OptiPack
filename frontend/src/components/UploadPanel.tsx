@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { OrderAnalysisResponse, PackingSolutionResponse } from "../types/contract";
+import { OptiPackClient } from "../api/optipackClient";
 import orderAnalysisSample from "../mocks/orderAnalysisSample.json";
 import preset2UncertainReview from "../mocks/preset2UncertainReview.json";
 import preset3OrderAnalysis from "../mocks/preset3OrderAnalysis.json";
@@ -25,12 +26,20 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const [obliquePreview, setObliquePreview] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<number>(1);
 
+  // Clean up object URLs to prevent browser memory leaks
+  useEffect(() => {
+    return () => {
+      if (topPreview) URL.revokeObjectURL(topPreview);
+      if (obliquePreview) URL.revokeObjectURL(obliquePreview);
+    };
+  }, [topPreview, obliquePreview]);
+
   const handleTopFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setTopFile(file);
+    if (topPreview) URL.revokeObjectURL(topPreview);
     if (file) {
-      const url = URL.createObjectURL(file);
-      setTopPreview(url);
+      setTopPreview(URL.createObjectURL(file));
     } else {
       setTopPreview(null);
     }
@@ -39,9 +48,9 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const handleObliqueFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setObliqueFile(file);
+    if (obliquePreview) URL.revokeObjectURL(obliquePreview);
     if (file) {
-      const url = URL.createObjectURL(file);
-      setObliquePreview(url);
+      setObliquePreview(URL.createObjectURL(file));
     } else {
       setObliquePreview(null);
     }
@@ -80,16 +89,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     formData.append("capture_mode", obliqueFile ? "dual_photo" : "single_top_photo");
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/orders/analyze", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data: OrderAnalysisResponse = await res.json();
+      const data = await OptiPackClient.analyzeOrder(formData);
       onAnalysisLoaded(data);
-    } catch (err) {
-      console.warn("Backend not reached, falling back to local golden fixture.", err);
-      onAnalysisLoaded(orderAnalysisSample as unknown as OrderAnalysisResponse);
     } finally {
       setLoading(false);
     }

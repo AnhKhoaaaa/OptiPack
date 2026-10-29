@@ -193,7 +193,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                       onChange={(e) =>
                         onUpdateItem(idx, {
                           ...item,
-                          fragility_class: e.target.value as any,
+                          fragility_class: e.target.value as PackableItem["fragility_class"],
                           stackable: e.target.value !== "high",
                           max_top_load_g: e.target.value === "high" ? 0 : 3000,
                         })

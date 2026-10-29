@@ -9,6 +9,7 @@ import { UploadPanel } from "./components/UploadPanel";
 import { ExtendedPackableItem, ManifestTable } from "./components/ManifestTable";
 import { PackingViewer3D } from "./components/PackingViewer3D";
 import { CostScorecard } from "./components/CostScorecard";
+import { OptiPackClient } from "./api/optipackClient";
 import orderAnalysisSample from "./mocks/orderAnalysisSample.json";
 import packingSolutionSample from "./mocks/packingSolutionSample.json";
 
@@ -141,18 +142,8 @@ export const App: React.FC = () => {
     };
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/orders/pack", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req),
-      });
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const data: PackingSolutionResponse = await res.json();
+      const data = await OptiPackClient.packOrder(req);
       setSolution(data);
-      setActivePlanIndex(1);
-    } catch (err) {
-      console.warn("Backend not reached, falling back to mock solution.", err);
-      setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
       setActivePlanIndex(1);
     } finally {
       setPackingLoading(false);
