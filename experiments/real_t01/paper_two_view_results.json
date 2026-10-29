@@ -1,0 +1,342 @@
+{
+  "status": "EXPLORATORY_NOT_AUTONOMOUS_T01",
+  "source_paper": "CubeSLAM Yang & Scherer 2019",
+  "intrinsics": "estimated from same 8 images, not independent",
+  "localization": "manual ROI + GrabCut",
+  "height": "two-view cuboid fit (no ground truth as optimizer input)",
+  "pair_results": {
+    "Trial01": {
+      "images": [
+        "Trial01_topdown.JPG",
+        "Trial01_Oblique.JPG"
+      ],
+      "xy_mae_mm": 10.516546937679516,
+      "h_mae_mm": 5.696566564417779,
+      "time_ms_five_objects": 7741.102900006808,
+      "items": [
+        {
+          "item_id": "white",
+          "predicted_LWH_mm": [
+            159.27638608763874,
+            15.0,
+            56.42579888267259
+          ],
+          "ground_truth_LWH_mm": [
+            135.0,
+            45.0,
+            65.0
+          ],
+          "absolute_errors_mm": [
+            24.27638608763874,
+            30.0,
+            8.574201117327412
+          ],
+          "edge_cost": 3348.5672581618073
+        },
+        {
+          "item_id": "gocheck",
+          "predicted_LWH_mm": [
+            73.66166714103788,
+            61.46425579458721,
+            37.43024301265153
+          ],
+          "ground_truth_LWH_mm": [
+            65.0,
+            65.0,
+            30.0
+          ],
+          "absolute_errors_mm": [
+            8.661667141037881,
+            3.53574420541279,
+            7.43024301265153
+          ],
+          "edge_cost": 1733.5740980534802
+        },
+        {
+          "item_id": "black",
+          "predicted_LWH_mm": [
+            144.25610492940828,
+            57.64168718986291,
+            62.031632871022225
+          ],
+          "ground_truth_LWH_mm": [
+            140.0,
+            45.0,
+            70.0
+          ],
+          "absolute_errors_mm": [
+            4.256104929408281,
+            12.641687189862907,
+            7.968367128977775
+          ],
+          "edge_cost": 622.7270328347767
+        },
+        {
+          "item_id": "paper",
+          "predicted_LWH_mm": [
+            146.7759162688755,
+            86.58047430547609,
+            52.437014708709015
+          ],
+          "ground_truth_LWH_mm": [
+            140.0,
+            80.0,
+            50.0
+          ],
+          "absolute_errors_mm": [
+            6.7759162688755055,
+            6.580474305476088,
+            2.4370147087090146
+          ],
+          "edge_cost": 267.6504671767063
+        },
+        {
+          "item_id": "wood",
+          "predicted_LWH_mm": [
+            82.54569110372938,
+            45.89179814535358,
+            37.07300685442316
+          ],
+          "ground_truth_LWH_mm": [
+            75.0,
+            45.0,
+            35.0
+          ],
+          "absolute_errors_mm": [
+            7.545691103729382,
+            0.891798145353583,
+            2.073006854423163
+          ],
+          "edge_cost": 2883.4646111644943
+        }
+      ],
+      "marker_reprojection_rmse_px": [
+        1.009361339586066,
+        1.9298797274400847
+      ]
+    },
+    "Trial02": {
+      "images": [
+        "Trial02_topdown.JPG",
+        "Trial02_Oblique.JPG"
+      ],
+      "xy_mae_mm": 16.48245205611128,
+      "h_mae_mm": 9.184815327892775,
+      "time_ms_five_objects": 17872.8681000066,
+      "items": [
+        {
+          "item_id": "white",
+          "predicted_LWH_mm": [
+            147.8565061800436,
+            15.0,
+            53.468528385064204
+          ],
+          "ground_truth_LWH_mm": [
+            135.0,
+            45.0,
+            65.0
+          ],
+          "absolute_errors_mm": [
+            12.856506180043596,
+            30.0,
+            11.531471614935796
+          ],
+          "edge_cost": 5885.828922244541
+        },
+        {
+          "item_id": "gocheck",
+          "predicted_LWH_mm": [
+            79.83311835861811,
+            35.433869725163746,
+            19.337954197600606
+          ],
+          "ground_truth_LWH_mm": [
+            65.0,
+            65.0,
+            30.0
+          ],
+          "absolute_errors_mm": [
+            14.833118358618108,
+            29.566130274836254,
+            10.662045802399394
+          ],
+          "edge_cost": 3656.9924642928922
+        },
+        {
+          "item_id": "black",
+          "predicted_LWH_mm": [
+            142.91628240691702,
+            70.31869872980414,
+            68.48069546971362
+          ],
+          "ground_truth_LWH_mm": [
+            140.0,
+            45.0,
+            70.0
+          ],
+          "absolute_errors_mm": [
+            2.91628240691702,
+            25.31869872980414,
+            1.5193045302863766
+          ],
+          "edge_cost": 4788.748948763454
+        },
+        {
+          "item_id": "paper",
+          "predicted_LWH_mm": [
+            146.9944189971278,
+            87.91815674838044,
+            53.62426793590792
+          ],
+          "ground_truth_LWH_mm": [
+            140.0,
+            80.0,
+            50.0
+          ],
+          "absolute_errors_mm": [
+            6.994418997127809,
+            7.91815674838044,
+            3.6242679359079233
+          ],
+          "edge_cost": 1209.3567139387283
+        },
+        {
+          "item_id": "wood",
+          "predicted_LWH_mm": [
+            84.52684168055464,
+            69.89436718483081,
+            16.41301324406561
+          ],
+          "ground_truth_LWH_mm": [
+            75.0,
+            45.0,
+            35.0
+          ],
+          "absolute_errors_mm": [
+            9.52684168055464,
+            24.894367184830813,
+            18.58698675593439
+          ],
+          "edge_cost": 5812.986232322021
+        }
+      ],
+      "marker_reprojection_rmse_px": [
+        0.9225200882593129,
+        2.4317939809720865
+      ]
+    },
+    "Trial03": {
+      "images": [
+        "Trial03_topdown.JPG",
+        "Trial03_Oblique.JPG"
+      ],
+      "xy_mae_mm": 10.166092238859742,
+      "h_mae_mm": 11.753859261068229,
+      "time_ms_five_objects": 8422.321699996246,
+      "items": [
+        {
+          "item_id": "white",
+          "predicted_LWH_mm": [
+            132.90234246717463,
+            32.80250442328451,
+            80.10258688997128
+          ],
+          "ground_truth_LWH_mm": [
+            135.0,
+            45.0,
+            65.0
+          ],
+          "absolute_errors_mm": [
+            2.097657532825366,
+            12.19749557671549,
+            15.102586889971278
+          ],
+          "edge_cost": 7160.853593056008
+        },
+        {
+          "item_id": "gocheck",
+          "predicted_LWH_mm": [
+            71.89062554678851,
+            63.18766312124825,
+            35.325184299112216
+          ],
+          "ground_truth_LWH_mm": [
+            65.0,
+            65.0,
+            30.0
+          ],
+          "absolute_errors_mm": [
+            6.890625546788513,
+            1.8123368787517506,
+            5.325184299112216
+          ],
+          "edge_cost": 2008.301316550463
+        },
+        {
+          "item_id": "black",
+          "predicted_LWH_mm": [
+            149.42277766382168,
+            52.07100976929212,
+            65.6027228899317
+          ],
+          "ground_truth_LWH_mm": [
+            140.0,
+            45.0,
+            70.0
+          ],
+          "absolute_errors_mm": [
+            9.422777663821677,
+            7.071009769292118,
+            4.397277110068302
+          ],
+          "edge_cost": 4744.512728829142
+        },
+        {
+          "item_id": "paper",
+          "predicted_LWH_mm": [
+            149.56833158139767,
+            79.15902972375866,
+            51.07675259929939
+          ],
+          "ground_truth_LWH_mm": [
+            140.0,
+            80.0,
+            50.0
+          ],
+          "absolute_errors_mm": [
+            9.568331581397672,
+            0.840970276241336,
+            1.0767525992993896
+          ],
+          "edge_cost": 1119.7555602159405
+        },
+        {
+          "item_id": "wood",
+          "predicted_LWH_mm": [
+            96.75971756276348,
+            15.0,
+            67.86749540688996
+          ],
+          "ground_truth_LWH_mm": [
+            75.0,
+            45.0,
+            35.0
+          ],
+          "absolute_errors_mm": [
+            21.759717562763484,
+            30.0,
+            32.86749540688996
+          ],
+          "edge_cost": 8444.067810056154
+        }
+      ],
+      "marker_reprojection_rmse_px": [
+        0.7916592754313516,
+        2.663798295863456
+      ]
+    }
+  },
+  "total_runtime_ms": 34039.66720000608,
+  "all_pairs_xy_mae_mm": 12.388363744216846,
+  "all_pairs_h_mae_mm": 8.878413717792927
+}

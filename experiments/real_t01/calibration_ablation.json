@@ -1,0 +1,191 @@
+{
+  "none": {
+    "in_sample_RMS_px": 2.139112428610893,
+    "mean_leave_one_out_px": 2.1285577937960625,
+    "max_leave_one_out_px": 3.4308018684387207,
+    "K": [
+      [
+        3093.5760894309387,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3107.979425541705,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist": [
+      0.03160182149996465,
+      -0.04781727011276658,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "views": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.9514832496643066
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.096271276473999
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.528900146484375
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 3.4308018684387207
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.886234998703003
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.1899341344833374
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 3.1598737239837646
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 0.7849629521369934
+      }
+    ]
+  },
+  "subpix": {
+    "in_sample_RMS_px": 1.8603086910141742,
+    "mean_leave_one_out_px": 1.8383723944425583,
+    "max_leave_one_out_px": 2.9055428504943848,
+    "K": [
+      [
+        3099.284584261454,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3113.036862940002,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist": [
+      0.03652916372333772,
+      -0.054947074235675526,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "views": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.9506219625473022
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.0407366752624512
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.869618535041809
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.836656332015991
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.3650362491607666
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 0.9323456287384033
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.9055428504943848
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 0.8064209222793579
+      }
+    ]
+  },
+  "contour": {
+    "in_sample_RMS_px": 2.020680786962177,
+    "mean_leave_one_out_px": 2.019552543759346,
+    "max_leave_one_out_px": 3.0236122608184814,
+    "K": [
+      [
+        3090.39398358983,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3104.900445414389,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist": [
+      0.026140954982262155,
+      -0.04278722099655091,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "views": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.0998945236206055
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.2067807912826538
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.0470802783966064
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 3.0236122608184814
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.7886197566986084
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.087377667427063
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "leave_one_out_reprojection_rmse_px": 2.8719780445098877
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "leave_one_out_reprojection_rmse_px": 1.0310770273208618
+      }
+    ]
+  }
+}

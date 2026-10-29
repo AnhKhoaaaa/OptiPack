@@ -88,6 +88,8 @@ Before full integration, each team member runs and iterates on their Phase 0 fea
    python experiments/phase0_cv_metrology.py
    ```
    - *Target:* Reprojection error $\le 2.5\text{ px}$, Footprint MAE $\le 8\text{ mm}$, Height MAE $\le 12\text{ mm}$.
+   - *Real captures:* [`experiments/real_t01/REPORT.md`](experiments/real_t01/REPORT.md) documents eight RGB photos and five ground-truth items. Real T01 gate is **NOT PASSED**; this script now audits both synthetic and real data by default. Select `--dataset synthetic` or `--dataset real` to run one.
+   - *Paper & method:* [`RESEARCH_DECISION.md`](experiments/real_t01/RESEARCH_DECISION.md) explains the CubeSLAM-inspired edge-constrained cuboid fit, official paper/code sources, provenance, and limits; [`real_t01/README.md`](experiments/real_t01/README.md) contains reproducible commands. Best exploratory **two-view** means: L/W 12.39 mm and H 8.88 mm, both with **manual ROIs** and provisional intrinsics, so not production results.
 
 2. **Member 2 (AI & Meta API):**
    ```bash

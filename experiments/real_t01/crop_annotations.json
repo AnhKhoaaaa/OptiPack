@@ -1,0 +1,482 @@
+[
+  {
+    "file": "Trial01_Oblique.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      983,
+      263,
+      1537,
+      1280
+    ],
+    "crop_file": "crops/Trial01_Oblique__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_Oblique.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      1659,
+      245,
+      2302,
+      1473
+    ],
+    "crop_file": "crops/Trial01_Oblique__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_Oblique.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      2302,
+      789,
+      2806,
+      1437
+    ],
+    "crop_file": "crops/Trial01_Oblique__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_Oblique.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      2264,
+      1455,
+      2856,
+      2393
+    ],
+    "crop_file": "crops/Trial01_Oblique__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_Oblique.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      1684,
+      2034,
+      2402,
+      3296
+    ],
+    "crop_file": "crops/Trial01_Oblique__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_topdown.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      714,
+      254,
+      1126,
+      1183
+    ],
+    "crop_file": "crops/Trial01_topdown__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_topdown.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      1520,
+      184,
+      2016,
+      1499
+    ],
+    "crop_file": "crops/Trial01_topdown__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_topdown.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      2297,
+      508,
+      2927,
+      1341
+    ],
+    "crop_file": "crops/Trial01_topdown__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_topdown.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      2218,
+      1245,
+      2814,
+      2437
+    ],
+    "crop_file": "crops/Trial01_topdown__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial01_topdown.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      1470,
+      1981,
+      2171,
+      3120
+    ],
+    "crop_file": "crops/Trial01_topdown__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_leftside.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      1590,
+      1223,
+      2134,
+      1972
+    ],
+    "crop_file": "crops/Trial02_leftside__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_leftside.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      465,
+      434,
+      1361,
+      1157
+    ],
+    "crop_file": "crops/Trial02_leftside__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_leftside.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      2027,
+      1860,
+      2912,
+      2787
+    ],
+    "crop_file": "crops/Trial02_leftside__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_leftside.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      67,
+      1012,
+      997,
+      2373
+    ],
+    "crop_file": "crops/Trial02_leftside__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_leftside.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      1417,
+      401,
+      2206,
+      1256
+    ],
+    "crop_file": "crops/Trial02_leftside__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_Oblique.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      1098,
+      1315,
+      1803,
+      1736
+    ],
+    "crop_file": "crops/Trial02_Oblique__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_Oblique.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      1932,
+      375,
+      2890,
+      855
+    ],
+    "crop_file": "crops/Trial02_Oblique__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_Oblique.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      73,
+      1466,
+      1131,
+      2229
+    ],
+    "crop_file": "crops/Trial02_Oblique__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_Oblique.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      935,
+      421,
+      2038,
+      1183
+    ],
+    "crop_file": "crops/Trial02_Oblique__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_Oblique.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      1988,
+      730,
+      3293,
+      1519
+    ],
+    "crop_file": "crops/Trial02_Oblique__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_rightside.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      1814,
+      999,
+      2430,
+      1420
+    ],
+    "crop_file": "crops/Trial02_rightside__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_rightside.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      3002,
+      1387,
+      4004,
+      2432
+    ],
+    "crop_file": "crops/Trial02_rightside__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_rightside.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      1383,
+      401,
+      1971,
+      1118
+    ],
+    "crop_file": "crops/Trial02_rightside__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_rightside.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      2425,
+      72,
+      3259,
+      1486
+    ],
+    "crop_file": "crops/Trial02_rightside__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_rightside.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      1949,
+      1262,
+      2946,
+      2413
+    ],
+    "crop_file": "crops/Trial02_rightside__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_topdown.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      1176,
+      1157,
+      1775,
+      1782
+    ],
+    "crop_file": "crops/Trial02_topdown__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_topdown.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      1960,
+      197,
+      2834,
+      973
+    ],
+    "crop_file": "crops/Trial02_topdown__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_topdown.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      588,
+      1565,
+      1266,
+      2406
+    ],
+    "crop_file": "crops/Trial02_topdown__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_topdown.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      896,
+      309,
+      1876,
+      993
+    ],
+    "crop_file": "crops/Trial02_topdown__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial02_topdown.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      2010,
+      901,
+      2974,
+      1709
+    ],
+    "crop_file": "crops/Trial02_topdown__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_Oblique.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      1159,
+      933,
+      2072,
+      1604
+    ],
+    "crop_file": "crops/Trial03_Oblique__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_Oblique.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      1966,
+      177,
+      3158,
+      881
+    ],
+    "crop_file": "crops/Trial03_Oblique__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_Oblique.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      336,
+      782,
+      1221,
+      1427
+    ],
+    "crop_file": "crops/Trial03_Oblique__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_Oblique.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      2044,
+      723,
+      3500,
+      1617
+    ],
+    "crop_file": "crops/Trial03_Oblique__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_Oblique.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      0,
+      151,
+      1663,
+      1006
+    ],
+    "crop_file": "crops/Trial03_Oblique__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_topdown.JPG",
+    "item_id": "wood",
+    "bbox_xyxy_px": [
+      1456,
+      1150,
+      2223,
+      1755
+    ],
+    "crop_file": "crops/Trial03_topdown__wood.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_topdown.JPG",
+    "item_id": "white",
+    "bbox_xyxy_px": [
+      2117,
+      164,
+      3461,
+      960
+    ],
+    "crop_file": "crops/Trial03_topdown__white.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_topdown.JPG",
+    "item_id": "gocheck",
+    "bbox_xyxy_px": [
+      706,
+      1137,
+      1478,
+      1670
+    ],
+    "crop_file": "crops/Trial03_topdown__gocheck.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_topdown.JPG",
+    "item_id": "black",
+    "bbox_xyxy_px": [
+      2066,
+      1065,
+      3674,
+      1657
+    ],
+    "crop_file": "crops/Trial03_topdown__black.jpg",
+    "label_source": "manual_from_visual_inspection"
+  },
+  {
+    "file": "Trial03_topdown.JPG",
+    "item_id": "paper",
+    "bbox_xyxy_px": [
+      0,
+      151,
+      1926,
+      1032
+    ],
+    "crop_file": "crops/Trial03_topdown__paper.jpg",
+    "label_source": "manual_from_visual_inspection"
+  }
+]

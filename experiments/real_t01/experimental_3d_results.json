@@ -1,0 +1,112 @@
+{
+  "status": "EXPERIMENTAL_NOT_GATE_EVIDENCE",
+  "views": [
+    "Trial02_topdown.JPG",
+    "Trial02_Oblique.JPG",
+    "Trial02_leftside.JPG",
+    "Trial02_rightside.JPG"
+  ],
+  "metrics_exploratory_only": [
+    {
+      "item_id": "white",
+      "fitted_LWH_mm": [
+        142.94653357094302,
+        56.749790999453474,
+        51.75256494959556
+      ],
+      "ground_truth_LWH_mm": [
+        135.0,
+        45.0,
+        65.0
+      ],
+      "abs_errors_mm": [
+        7.946533570943018,
+        11.749790999453474,
+        13.247435050404441
+      ],
+      "pixel_bbox_rms_error_px": 46.2678003140637,
+      "method": "manual ROI seeded GrabCut + multi-view cuboid bbox fit, exploratory"
+    },
+    {
+      "item_id": "gocheck",
+      "fitted_LWH_mm": [
+        80.5592346459891,
+        62.94624470171338,
+        38.49717274902569
+      ],
+      "ground_truth_LWH_mm": [
+        65.0,
+        65.0,
+        30.0
+      ],
+      "abs_errors_mm": [
+        15.559234645989093,
+        2.0537552982866174,
+        8.497172749025687
+      ],
+      "pixel_bbox_rms_error_px": 87.41005428992052,
+      "method": "manual ROI seeded GrabCut + multi-view cuboid bbox fit, exploratory"
+    },
+    {
+      "item_id": "black",
+      "fitted_LWH_mm": [
+        155.22413514728999,
+        62.28225313169671,
+        102.76396165685593
+      ],
+      "ground_truth_LWH_mm": [
+        140.0,
+        45.0,
+        70.0
+      ],
+      "abs_errors_mm": [
+        15.224135147289985,
+        17.282253131696713,
+        32.763961656855926
+      ],
+      "pixel_bbox_rms_error_px": 94.79511478708714,
+      "method": "manual ROI seeded GrabCut + multi-view cuboid bbox fit, exploratory"
+    },
+    {
+      "item_id": "paper",
+      "fitted_LWH_mm": [
+        131.36752786139564,
+        91.51307747046346,
+        63.55874437502458
+      ],
+      "ground_truth_LWH_mm": [
+        140.0,
+        80.0,
+        50.0
+      ],
+      "abs_errors_mm": [
+        8.632472138604356,
+        11.513077470463458,
+        13.558744375024581
+      ],
+      "pixel_bbox_rms_error_px": 61.34625581659974,
+      "method": "manual ROI seeded GrabCut + multi-view cuboid bbox fit, exploratory"
+    },
+    {
+      "item_id": "wood",
+      "fitted_LWH_mm": [
+        91.94395417940908,
+        62.660649519980595,
+        17.45230457103448
+      ],
+      "ground_truth_LWH_mm": [
+        75.0,
+        45.0,
+        35.0
+      ],
+      "abs_errors_mm": [
+        16.943954179409076,
+        17.660649519980595,
+        17.54769542896552
+      ],
+      "pixel_bbox_rms_error_px": 54.41265252548868,
+      "method": "manual ROI seeded GrabCut + multi-view cuboid bbox fit, exploratory"
+    }
+  ],
+  "provenance": "GT excluded from optimizer; ROI human seeded; camera K estimated in-sample"
+}
