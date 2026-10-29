@@ -1,0 +1,126 @@
+{
+  "timestamp_utc": "2026-10-29T00:39:20Z",
+  "member": "Member 3 (OR & 3D Packing Solver)",
+  "phase": "Phase 0 Feasibility Gate",
+  "overall_verdict": "GATE_PASSED",
+  "scenarios": {
+    "S1": {
+      "status": "OPTIMAL",
+      "solver_used": "ortools_cpsat",
+      "solve_time_ms": 30.78,
+      "single_carton_feasible": true,
+      "cartons_used": 1,
+      "primary_carton": "BOX-S",
+      "total_estimated_cost_usd": 5.24,
+      "volume_utilization_pct": 23.7,
+      "is_valid": true,
+      "gate_passed": true,
+      "notes": [
+        "Carton: BOX-S, Cost: $5.24, Time: 30.78ms"
+      ]
+    },
+    "S2": {
+      "status": "OPTIMAL",
+      "solver_used": "ortools_cpsat",
+      "solve_time_ms": 112.5,
+      "single_carton_feasible": true,
+      "cartons_used": 1,
+      "primary_carton": "BOX-M",
+      "total_estimated_cost_usd": 8.22,
+      "volume_utilization_pct": 32.6,
+      "is_valid": true,
+      "gate_passed": true,
+      "notes": [
+        "Carton: BOX-M, Cost: $8.22, Time: 112.5ms"
+      ]
+    },
+    "S3": {
+      "status": "OPTIMAL",
+      "solver_used": "ortools_cpsat",
+      "solve_time_ms": 1021.78,
+      "single_carton_feasible": true,
+      "cartons_used": 1,
+      "primary_carton": "BOX-L",
+      "total_estimated_cost_usd": 11.8,
+      "volume_utilization_pct": 68.8,
+      "is_valid": true,
+      "gate_passed": true,
+      "notes": [
+        "Carton: BOX-L, Cost: $11.80, Time: 1021.78ms"
+      ]
+    },
+    "S4": {
+      "status": "OPTIMAL",
+      "solver_used": "ortools_cpsat",
+      "solve_time_ms": 24.24,
+      "single_carton_feasible": true,
+      "cartons_used": 1,
+      "primary_carton": "BOX-L",
+      "total_estimated_cost_usd": 17.16,
+      "volume_utilization_pct": 10.5,
+      "is_valid": true,
+      "gate_passed": true,
+      "notes": [
+        "BOX-S payload reject: True, BOX-M payload reject: True, Picked: BOX-L"
+      ]
+    },
+    "S5": {
+      "status": "FEASIBLE",
+      "solver_used": "multi_carton_split_heuristic",
+      "solve_time_ms": 1.16,
+      "single_carton_feasible": false,
+      "cartons_used": 4,
+      "primary_carton": "BOX-XXL",
+      "total_estimated_cost_usd": 114.87,
+      "volume_utilization_pct": 62.3,
+      "is_valid": true,
+      "gate_passed": true,
+      "notes": [
+        "Multi-carton split: 4 cartons, Unpacked remaining: 0"
+      ]
+    }
+  },
+  "corrupted_validation_tests": [
+    {
+      "test_name": "C1_Pairwise_Overlap",
+      "expected_caught": true,
+      "actually_caught": true,
+      "violations": [
+        "Pairwise collision between item 'box_base' and item 'box_other'."
+      ]
+    },
+    {
+      "test_name": "C2_Out_Of_Bounds",
+      "expected_caught": true,
+      "actually_caught": true,
+      "violations": [
+        "Item 'box_base' exceeds carton boundaries: span=[250..350, 0..100, 0..60] vs carton=[300, 220, 150]."
+      ]
+    },
+    {
+      "test_name": "C3_Floating_Box",
+      "expected_caught": true,
+      "actually_caught": true,
+      "violations": [
+        "Item 'box_base' at z=50 has insufficient vertical support: 0.0% < 60.0%."
+      ]
+    },
+    {
+      "test_name": "C4_Crushed_Fragile_Box",
+      "expected_caught": true,
+      "actually_caught": true,
+      "violations": [
+        "Item 'box_base' placed on top of non-stackable item 'box_fragile'.",
+        "Non-fragile item 'box_base' stacked atop highly fragile item 'box_fragile'."
+      ]
+    },
+    {
+      "test_name": "C5_Disallowed_Rotation",
+      "expected_caught": true,
+      "actually_caught": true,
+      "violations": [
+        "Item 'box_base' rotated with unpermitted code 'RotationCode.HWL'."
+      ]
+    }
+  ]
+}
