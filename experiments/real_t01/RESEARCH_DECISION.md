@@ -63,9 +63,12 @@ The target is **3 paired RGB captures / 5 physical objects** with
 and CPU <=800ms per pair**.
 
 Consult `REPORT.md` and result JSONs for exact measured values.
-Four-view on one trial can beat the XY/H thresholds, but is NOT the
-prescribed two-view experiment; the two-view average L/W error stays
-above threshold, pose success is 7/8 and CPU latency is too high.
+The initial two-view edge experiment (v1) averaged L/W MAE **12.39 mm**,
+H MAE **8.88 mm**. The subsequent manually seeded silhouette-constrained
+v2 experiment averaged **7.91 mm L/W** and **6.12 mm H** across the same
+three pairs. These development-set numbers do **not** pass T01: pose
+success is 7/8, ROI segmentation is manual-seeded, K is self-calibrated,
+no held-out session exists and CPU latency remains seconds, not 800 ms.
 
 The optimizer currently uses **coarse manual ROIs + GrabCut**, not
 an autonomous multi-object detector; treating these experiments as
@@ -87,6 +90,7 @@ to fit the observed results.
 .\.venv\Scripts\python.exe -m experiments.real_t01.real_baseline
 .\.venv\Scripts\python.exe -m experiments.real_t01.paper_edge_experiment
 .\.venv\Scripts\python.exe -m experiments.real_t01.paper_two_view
+.\.venv\Scripts\python.exe -m experiments.real_t01.silhouette_fit
 .\.venv\Scripts\python.exe experiments\real_t01\generate_report.py
 .\.venv\Scripts\python.exe -m pytest -q tests
 ```
@@ -96,3 +100,73 @@ metadata are part of the experiment. The original photos remain in Drive;
 public GitHub copies exclude GPS, XMP and private EXIF tags. Benchmark result files intentionally
 remain in the branch as provenance; transient caches are ignored or
 removed. No commit, push, merge, or remote-source modification.
+
+
+### Iteration v2 — silhouette-constrained cuboid fitting (2026-10-29)
+
+**Research origin:** CubeSLAM (Yang & Scherer, 2019) uses geometric
+cuboid proposals and alignment to image edges:
+https://doi.org/10.1109/TRO.2019.2909168
+(source: https://github.com/shichaoy/cube_slam).
+The idea of using calibrated silhouettes to constrain 3D shape is
+established in visual-hull research; see Kristen Grauman,
+*A Statistical Image-Based Shape Model for Visual Hull Reconstruction
+and 3D Structure Inference* (MIT AI TR 2003-007):
+https://dspace.mit.edu/entities/publication/3b27690e-62d4-4c89-aacc-98ca46fe185c
+
+**We did NOT port CubeSLAM or implement a full visual hull.** We authored
+a compact bidirectional contour-matching objective in
+`silhouette_fit.py` and tested it with the already known ArUco camera
+poses. A rough human ROI initializes GrabCut. For each candidate
+cuboid, the eight corners are projected with `cv2.projectPoints`,
+their convex hull approximates its visible silhouette, and the
+following two residuals constrain L/W/H, center XY and yaw:
+
+1. **Predicted -> observed:** equal-distance samples of the projected
+   cuboid convex hull are penalized by a distance transform of the
+   observed binary GrabCut contour.
+2. **Observed -> predicted:** equally sampled observed contour points
+   are penalized by distance to their nearest projected hull segment.
+3. **BBox stabilization:** per-view projected min/max x/y residuals
+   with reduced weight, to preserve scale despite imperfect silhouettes.
+
+The reverse term discourages fitting a tiny box to unrelated internal
+edges. Unlike v1, internal text markings and floor grout are not
+attraction targets. We keep the **same eight bbox-fit initialization
+seeds**, 2 images per trial and the same manually seeded ROIs and K.
+No ground-truth dimension is used in the estimator or model selection
+for each object. The benchmark CSV is loaded only to measure error
+**after** each fit. This is methodological *inspiration*, not a paper
+reproduction, an ML model, or an automatic production solution.
+
+**Observed on the same development set (5 labels x 3 pairs):**
+
+| Method | Mean L/W MAE | Mean H MAE |
+|---|---:|---:|
+| Original manual-ROI raycast baseline | 24.73 mm | Not measured |
+| v1 two-view global Canny edge alignment | 12.39 mm | 8.88 mm |
+| **v2 two-view silhouette boundary alignment** | **7.91 mm** | **6.12 mm** |
+
+V2 per-pair L/W MAE = 4.53 (Trial01), 11.18 (Trial02),
+8.02 mm (Trial03). Trial02 remains a failure under the L/W
+threshold and several individual item errors exceed 20 mm.
+CPU wall time across two runs was **5.53–12.41 s (Trial01),
+14.96–38.10 s (Trial02), 8.24–10.83 s (Trial03)** for five items;
+substantial CPU-load variability, always far above the 800 ms gate. Pose is still 7/8 at <=2.5 px
+with in-sample calibration. The T01 gate remains **NOT PASSED**.
+No held-out capture data has been evaluated; the method was designed
+and assessed using the same 8 photos, so 7.91 mm is not an unbiased
+generalization estimate.
+
+**Dataset QA:** the 'black' label in Trial01 visibly has two white
+circular drivers, while Trials02-03 show an all-black cuboid. This
+could be a DIFFERENT OBJECT, which would invalidate one GT match.
+The owner must verify object identity, units (cm assumed), resting
+orientation and physical measurements before treating this set as
+an acceptance benchmark.
+
+**Reproduction:** `python -m experiments.real_t01.silhouette_fit`;
+result is `silhouette_experiment.json`. New geometric regression tests
+are in `tests/test_silhouette_cuboid.py`. Next priority is an
+autonomous object ROI/keypoint pipeline and a fast implementation, then
+independent camera calibration and held-out benchmark captures.

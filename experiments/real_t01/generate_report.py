@@ -18,7 +18,7 @@ def main():
         "",
         "- Eight **pixel-identical, GPS/EXIF-sanitized RGB JPEG copies** from the user-shared Drive folder. The source originals remain on Drive; `source_manifest.json` records Drive IDs and source/sanitized SHA-256 hashes.",
         "- Three named top-down/oblique trial pairs; two additional left/right side views for Trial 02.",
-        "- Five physical items. Input dimensions interpreted as **centimetres** and converted to millimetres in `ground_truth.csv`; user has not explicitly confirmed measurement units.",
+        "- Five object *labels* per capture; physical identity across trials, especially 'black' in Trial01, remains to be verified. Input dimensions interpreted as **centimetres** and converted to millimetres in `ground_truth.csv`; user has not explicitly confirmed measurement units.",
         "- **40 manually seeded ROIs/crops** (five items per photo), with provenance in `roi_annotations.json` and `crop_annotations.json`. These are NOT automatic detections or pixel-perfect masks.",
         "",
         "## Measured results on real pixels",
@@ -145,10 +145,10 @@ def main():
         "",
         "## Decision / next technical steps",
         "",
-        "1. **Do not close GitHub Issue #1 or claim T01 GO.** Current physical L/W benchmark exceeds 8 mm, and H triangulation is not implemented or validated on these captures.",
+        "1. **Do not close GitHub Issue #1 or claim T01 GO.** The exploratory v2 L/W aggregate is <=8 mm on this development set but the strict gate still fails for pose, manual ROI/unknown intrinsics, latency and missing held-out validation; several individual errors remain high.",
         "2. Obtain **independent camera intrinsics** (camera calibration profile for the same smartphone mode) and verify printed 40 mm ArUco marker size.",
         "3. Build reliable multi-object tabletop top-face segmentation and correspondence between top/oblique views; do not use bounding-box silhouette as a precise top-face measurement.",
-        "4. Implement genuine two-view H triangulation, estimate uncertainties and rerun the acceptance gate with exactly these original images. If H fails, activate the documented height-review fallback; if L/W remains >15 mm, escalate to the team as specified by T01.",
+        "4. Independently validate two-view H and L/W measurement (including uncertainty), evaluate a held-out capture session and optimize runtime. If H fails, activate the documented height-review fallback; if L/W remains >15 mm, escalate to the team as specified by T01.",
         "5. Expose only measurements validated by the CV module to `/orders/analyze`; the current router/production segmenter and metrology modules still contain placeholders.",
         "",
         "## Reproduction",
@@ -160,6 +160,8 @@ def main():
         ".\\.venv\\Scripts\\python.exe experiments\\real_t01\\prepare_dataset.py",
         ".\\.venv\\Scripts\\python.exe experiments\\phase0_cv_metrology.py --dataset both",
         ".\\.venv\\Scripts\\python.exe -m experiments.real_t01.exploratory_fit  # optional; ~35 s",
+        ".\\.venv\\Scripts\\python.exe -m experiments.real_t01.paper_two_view",
+        ".\\.venv\\Scripts\\python.exe -m experiments.real_t01.silhouette_fit",
         ".\\.venv\\Scripts\\python.exe experiments\\real_t01\\generate_report.py",
         ".\\.venv\\Scripts\\python.exe -m pytest -q tests",
         "```",
@@ -167,6 +169,59 @@ def main():
         "No commits, pushes or merges are performed by these scripts.",
         "",
     ]
+    # Latest research comparison belongs ABOVE the original baseline gate table.
+    # The gate table below still measures the non-production baseline and must
+    # not be silently replaced by exploratory, manually seeded benchmarks.
+    newer=HERE/"silhouette_experiment.json"
+    older=HERE/"paper_two_view_results.json"
+    if newer.is_file() and older.is_file():
+        latest=json.loads(newer.read_text(encoding="utf-8"))
+        previous=json.loads(older.read_text(encoding="utf-8"))
+        if latest["status"]=="EXPLORATORY_NOT_T01_GATE":
+            summary=[
+                "## Latest research — before / after (NOT an autonomous T01 pass)",
+                "",
+                "| Approach | L/W MAE | H MAE | Evidence |",
+                "|---|---:|---:|---|",
+                f"| Baseline silhouette/raycast | {r['observed_xy_mae_mm']:.2f} mm | Not measured | 3 top-down views; untrusted H prior |",
+                f"| CubeSLAM-inspired edge fit (v1) | {previous['all_pairs_xy_mae_mm']:.2f} mm | {previous['all_pairs_h_mae_mm']:.2f} mm | 3 pairs, manual ROIs |",
+                f"| **Silhouette-constrained cuboid (v2)** | **{latest['overall_xy_mae_mm']:.2f} mm** | **{latest['overall_h_mae_mm']:.2f} mm** | 3 pairs, manual ROIs + GrabCut, provisional K |",
+                "",
+                "V2 adds bidirectional silhouette-boundary distance (a shape-consistency",
+                "constraint) to cuboid fitting, reducing misleading matches to",
+                "floor grout/text/texture in global Canny maps. It is a custom",
+                "experiment motivated by geometric cuboid fitting (CubeSLAM)",
+                "and silhouette-consistency/visual-hull principles, **not an exact",
+                "reproduction** of either paper. No ground-truth dimensions enter",
+                "the optimizer; all errors are computed after fitting.",
+                "",
+                "| Pair | V1 L/W MAE | V2 L/W MAE | V2 H MAE | V2 wall time for 5 items |",
+                "|---|---:|---:|---:|---:|",
+            ]
+            for trial,datum in latest["trials"].items():
+                prior=previous["pair_results"][trial]
+                summary.append(
+                    f"| {trial} | {prior['xy_mae_mm']:.2f} mm | {datum['xy_mae_mm']:.2f} mm | "
+                    f"{datum['h_mae_mm']:.2f} mm | {datum['runtime_ms_five_objects']/1000:.2f} s |")
+            summary += [
+                "",
+                "**Status:** L/W and H means fall below 8/12 mm in this",
+                "**development-set ablation only**; **T01 is still NOT PASSED**",
+                "because pose is 7/8 <=2.5 px (<90%), processing time exceeds",
+                "800 ms per pair, camera intrinsics were fit in-sample, and",
+                "manual object ROIs are required. Several item errors still",
+                "exceed 12–20 mm; a 7.91 mm aggregate mean is not evidence",
+                "of robust generalization on new captures.",
+                "",
+                "**Dataset consistency warning:** Trial01 'black' appears to be",
+                "a two-driver black speaker, while Trials 02–03 show a plain",
+                "black box. Verify whether these are the same physical item",
+                "and its actual dimensions before trusting aggregated MAE.",
+                "The user-provided units (assumed cm) and box resting orientations",
+                "also need independent confirmation.",
+                "",
+            ]
+            lines[4:4]=summary
     (HERE/"REPORT.md").write_text("\n".join(lines),encoding="utf-8")
     print("REPORT.md generated:",len(rows),"real item trials")
 if __name__=="__main__":main()

@@ -52,8 +52,12 @@ can alter which dimension is vertical.
   but is **research-only, not a passing T01 two-view gate**.
 - `paper_edge_experiment.py`: independent CubeSLAM-inspired 4-view cuboid
   edge-fitting prototype; results in `paper_edge_experiment.json`.
-- `paper_two_view.py`: required top-down/oblique 2-view trial comparison;
+- `paper_two_view.py`: original CubeSLAM-inspired 2-view comparison;
   outputs `paper_two_view_results.json`. Still manual ROI and too slow for MVP.
+- `silhouette_fit.py`: refined method, replaces unconstrained global Canny-edge
+  attraction with a bidirectional silhouette-boundary distance and retains
+  bbox stabilization; same ArUco calibration/manual ROI protocol. Results
+  recorded in `silhouette_experiment.json`. Research only.
 - `calibration_ablation.py`: marker subpixel-refinement study with
   leave-one-image-out validation (`calibration_ablation.json`).
 - `RESEARCH_DECISION.md`: audited paper/source selection, license notes and
@@ -79,6 +83,7 @@ metrology success.
 .\.venv\Scripts\python.exe -m experiments.real_t01.calibration_ablation
 .\.venv\Scripts\python.exe -m experiments.real_t01.paper_edge_experiment
 .\.venv\Scripts\python.exe -m experiments.real_t01.paper_two_view
+.\.venv\Scripts\python.exe -m experiments.real_t01.silhouette_fit
 .\.venv\Scripts\python.exe experiments\real_t01\generate_report.py
 .\.venv\Scripts\python.exe -m pytest -q tests
 ```
