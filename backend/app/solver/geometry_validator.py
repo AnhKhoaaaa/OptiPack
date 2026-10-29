@@ -163,9 +163,16 @@ def validate_packing_solution(
                         )
 
     # 6. Max Payload Weight Check
-    total_payload_g = sum(
-        (item_dict[p.item_id].weight_g or 500) for p in placements if p.item_id in item_dict
-    )
+    total_payload_g = 0
+    for p in placements:
+        item_obj = item_dict.get(p.item_id)
+        if item_obj:
+            if item_obj.weight_g is not None and item_obj.weight_g > 0:
+                total_payload_g += item_obj.weight_g
+            else:
+                vol_cm3 = (item_obj.dimensions_mm.length_mm * item_obj.dimensions_mm.width_mm * item_obj.dimensions_mm.height_mm) / 1000.0
+                total_payload_g += max(1, int(round(vol_cm3 * 0.25)))
+
     if total_payload_g > carton.max_payload_g:
         weight_ok = False
         violations.append(

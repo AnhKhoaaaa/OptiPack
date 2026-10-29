@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-10-29T00:39:20Z",
+  "timestamp_utc": "2026-10-29T01:16:00Z",
   "member": "Member 3 (OR & 3D Packing Solver)",
   "phase": "Phase 0 Feasibility Gate",
   "overall_verdict": "GATE_PASSED",
@@ -7,7 +7,7 @@
     "S1": {
       "status": "OPTIMAL",
       "solver_used": "ortools_cpsat",
-      "solve_time_ms": 30.78,
+      "solve_time_ms": 15.26,
       "single_carton_feasible": true,
       "cartons_used": 1,
       "primary_carton": "BOX-S",
@@ -16,13 +16,13 @@
       "is_valid": true,
       "gate_passed": true,
       "notes": [
-        "Carton: BOX-S, Cost: $5.24, Time: 30.78ms"
+        "Carton: BOX-S, Cost: $5.24, Time: 15.26ms"
       ]
     },
     "S2": {
       "status": "OPTIMAL",
       "solver_used": "ortools_cpsat",
-      "solve_time_ms": 112.5,
+      "solve_time_ms": 141.19,
       "single_carton_feasible": true,
       "cartons_used": 1,
       "primary_carton": "BOX-M",
@@ -31,13 +31,13 @@
       "is_valid": true,
       "gate_passed": true,
       "notes": [
-        "Carton: BOX-M, Cost: $8.22, Time: 112.5ms"
+        "Carton: BOX-M, Cost: $8.22, Time: 141.19ms"
       ]
     },
     "S3": {
       "status": "OPTIMAL",
       "solver_used": "ortools_cpsat",
-      "solve_time_ms": 1021.78,
+      "solve_time_ms": 1018.56,
       "single_carton_feasible": true,
       "cartons_used": 1,
       "primary_carton": "BOX-L",
@@ -46,13 +46,13 @@
       "is_valid": true,
       "gate_passed": true,
       "notes": [
-        "Carton: BOX-L, Cost: $11.80, Time: 1021.78ms"
+        "Carton: BOX-L, Cost: $11.80, Time: 1018.56ms"
       ]
     },
     "S4": {
       "status": "OPTIMAL",
       "solver_used": "ortools_cpsat",
-      "solve_time_ms": 24.24,
+      "solve_time_ms": 25.05,
       "single_carton_feasible": true,
       "cartons_used": 1,
       "primary_carton": "BOX-L",
@@ -67,7 +67,7 @@
     "S5": {
       "status": "FEASIBLE",
       "solver_used": "multi_carton_split_heuristic",
-      "solve_time_ms": 1.16,
+      "solve_time_ms": 1.15,
       "single_carton_feasible": false,
       "cartons_used": 4,
       "primary_carton": "BOX-XXL",
