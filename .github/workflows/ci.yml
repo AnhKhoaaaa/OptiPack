@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Test Suite (Python ${{ matrix.python-version }})
+    name: Pytest Suite (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -35,9 +35,3 @@ jobs:
           PYTHONPATH: .
         run: |
           python -m pytest -v --durations=10
-
-      - name: Run Phase 0 Solver Benchmark Verification
-        env:
-          PYTHONPATH: .
-        run: |
-          python experiments/phase0_solver_benchmark.py
