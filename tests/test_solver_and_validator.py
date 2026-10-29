@@ -244,3 +244,134 @@ def test_multi_carton_split_oversized_order():
     for over in response.overflow_plans:
         assert over.validation.is_valid is True
 
+
+
+def test_quantity_expansion_in_solver():
+    """Assert items with quantity > 1 are expanded and placed as distinct instances."""
+    item = PackableItem(
+        item_id="item_bulk",
+        display_name="Bulk Item",
+        quantity=3,
+        dimensions_mm=Dimensions3D(length_mm=80, width_mm=60, height_mm=40),
+        safety_margin_mm=2,
+        weight_g=200,
+    )
+    req = PackingRequest(
+        analysis_id="test_qty",
+        items=[item],
+    )
+    response = solve_packing(req)
+    assert response.status == "OPTIMAL"
+    assert response.primary_plan is not None
+    assert len(response.primary_plan.placements) == 3
+    placed_ids = {p.item_id for p in response.primary_plan.placements}
+    assert placed_ids == {"item_bulk_a", "item_bulk_b", "item_bulk_c"}
+
+
+def test_apply_uncertainty_margin_toggle():
+    """Assert safety_margin_mm is stripped when apply_uncertainty_margin=False."""
+    item = PackableItem(
+        item_id="item_tight",
+        display_name="Tight Item",
+        dimensions_mm=Dimensions3D(length_mm=100, width_mm=80, height_mm=50),
+        safety_margin_mm=10,
+        weight_g=300,
+    )
+    req_no_margin = PackingRequest(
+        analysis_id="test_no_margin",
+        solver_config=SolverConfig(apply_uncertainty_margin=False),
+        items=[item],
+    )
+    resp = solve_packing(req_no_margin)
+    assert resp.status == "OPTIMAL"
+    assert resp.primary_plan is not None
+    p = resp.primary_plan.placements[0]
+    # When margin is disabled, placed_dimensions equal nominal_dimensions
+    assert p.placed_dimensions_mm.dx == p.nominal_dimensions_mm.dx
+    assert p.placed_dimensions_mm.dy == p.nominal_dimensions_mm.dy
+    assert p.placed_dimensions_mm.dz == p.nominal_dimensions_mm.dz
+
+
+def test_empty_order_handling():
+    """Assert empty items list returns clean valid response without error."""
+    req = PackingRequest(
+        analysis_id="test_empty",
+        items=[],
+    )
+    resp = solve_packing(req)
+    assert resp.status == "OPTIMAL"
+    assert resp.primary_plan is None
+    assert resp.unpacked_item_ids == []
+
+
+def test_cost_evaluator_density_fallback_when_weight_null(sample_carton_m):
+    """Assert compute_packing_metrics uses 0.25 g/cm3 fallback density when weight_g is None."""
+    item = PackableItem(
+        item_id="item_no_weight",
+        display_name="Item Without Weight",
+        # 100 x 100 x 100 mm = 1000 cm3 -> assumed weight = 250g
+        dimensions_mm=Dimensions3D(length_mm=100, width_mm=100, height_mm=100),
+        safety_margin_mm=0,
+        weight_g=None,
+    )
+    p = PlacedItem(
+        step_number=1,
+        item_id="item_no_weight",
+        display_name="Item Without Weight",
+        rotation_code=RotationCode.LWH,
+        position_mm=Position3D(x=0, y=0, z=0),
+        placed_dimensions_mm=PlacedDimensions3D(dx=100, dy=100, dz=100),
+        nominal_dimensions_mm=PlacedDimensions3D(dx=100, dy=100, dz=100),
+        support_ratio=1.0,
+    )
+    metrics = compute_packing_metrics(sample_carton_m, [item], [p])
+    # Expected gross weight: tare (160g) + item (250g) = 410g = 0.41 kg
+    assert metrics.actual_gross_weight_kg == 0.41
+
+
+def test_validator_rejects_negative_coordinates(sample_carton_m):
+    """Assert validator rejects placement with negative coordinates (constructed directly)."""
+    item = PackableItem(
+        item_id="item_neg",
+        display_name="Negative Position Box",
+        dimensions_mm=Dimensions3D(length_mm=100, width_mm=100, height_mm=50),
+        safety_margin_mm=0,
+        weight_g=500,
+    )
+    p_neg = PlacedItem.model_construct(
+        step_number=1,
+        item_id="item_neg",
+        display_name="Negative Position Box",
+        rotation_code=RotationCode.LWH,
+        position_mm=Position3D.model_construct(x=-10, y=0, z=0),
+        placed_dimensions_mm=PlacedDimensions3D(dx=100, dy=100, dz=50),
+        nominal_dimensions_mm=PlacedDimensions3D(dx=100, dy=100, dz=50),
+        support_ratio=1.0,
+    )
+    report = validate_packing_solution(sample_carton_m, [item], [p_neg])
+    assert report.is_valid is False
+    assert report.boundary_check_passed is False
+
+
+def test_validator_rejects_payload_capacity_exceeded(sample_carton_m):
+    """Assert validator rejects packing if items exceed carton.max_payload_g."""
+    heavy_item = PackableItem(
+        item_id="item_too_heavy",
+        display_name="Extremely Heavy Lead Block",
+        dimensions_mm=Dimensions3D(length_mm=100, width_mm=100, height_mm=50),
+        safety_margin_mm=0,
+        weight_g=9000,  # exceeds BOX-M max_payload_g (8000g)
+    )
+    p = PlacedItem(
+        step_number=1,
+        item_id="item_too_heavy",
+        display_name="Extremely Heavy Lead Block",
+        rotation_code=RotationCode.LWH,
+        position_mm=Position3D(x=0, y=0, z=0),
+        placed_dimensions_mm=PlacedDimensions3D(dx=100, dy=100, dz=50),
+        nominal_dimensions_mm=PlacedDimensions3D(dx=100, dy=100, dz=50),
+        support_ratio=1.0,
+    )
+    report = validate_packing_solution(sample_carton_m, [heavy_item], [p])
+    assert report.is_valid is False
+    assert report.weight_check_passed is False

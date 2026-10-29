@@ -3,7 +3,8 @@
 Implements two-tier optimization:
 - Tier 1: Extreme-Point Heuristic (< 30ms) for fast constructive warm-start / fallback
 - Tier 2: OR-Tools CP-SAT with 6-orientation selection and independent validation
-Includes multi-carton overflow splitting and deterministic physical validation.
+Includes multi-carton overflow splitting, uncertainty margin toggling, quantity expansion,
+and deterministic physical validation.
 """
 
 import time
@@ -24,7 +25,10 @@ from backend.app.schemas.contracts import (
     UPRIGHT_ROTATION_CODES,
 )
 from backend.app.solver.carton_catalog import STANDARD_CARTONS, get_carton_volume_mm3
-from backend.app.solver.cost_evaluator import compute_packing_metrics
+from backend.app.solver.cost_evaluator import (
+    compute_item_effective_weight_g,
+    compute_packing_metrics,
+)
 from backend.app.solver.geometry_validator import validate_packing_solution
 from backend.app.solver.heuristic_ep import (
     get_oriented_dimensions,
@@ -151,7 +155,7 @@ def pack_carton_cpsat(
         model.Add(z_vars[i] + dz_vars[i] <= max_z)
 
     # Heavier items lower
-    weighted_z = sum((items[i].weight_g or 500) * z_vars[i] for i in range(n))
+    weighted_z = sum(compute_item_effective_weight_g(items[i])[0] * z_vars[i] for i in range(n))
     coord_sum = sum(x_vars[i] + y_vars[i] for i in range(n))
     model.Minimize(100 * max_z + weighted_z + coord_sum)
 
@@ -238,21 +242,58 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
     3. Multi-carton overflow split if order cannot fit in any single catalog box.
     """
     start_time = time.time()
-    items = request.items
+    raw_items = request.items
     time_limit_ms = request.solver_config.time_limit_ms
     min_support_ratio = request.solver_config.min_support_ratio
     mode = request.solver_config.mode
+    apply_margin = request.solver_config.apply_uncertainty_margin
+
+    # 0. Handle empty order
+    if not raw_items:
+        return PackingSolutionResponse(
+            contract_version="1.0.0",
+            status="OPTIMAL",
+            solver_used="empty_order",
+            solve_time_ms=0,
+            single_carton_feasible=True,
+            primary_plan=None,
+            overflow_plans=[],
+            unpacked_item_ids=[],
+            candidate_carton_comparison=[],
+        )
+
+    # 1. Expand items with quantity > 1 and apply uncertainty margin
+    items: List[PackableItem] = []
+    for it in raw_items:
+        eff_margin = it.safety_margin_mm if apply_margin else 0
+        if it.quantity > 1:
+            for q_idx in range(it.quantity):
+                suffix = chr(97 + (q_idx % 26)) if q_idx < 26 else str(q_idx + 1)
+                item_copy = it.model_copy(
+                    update={
+                        "item_id": f"{it.item_id}_{suffix}",
+                        "display_name": f"{it.display_name} #{q_idx + 1}",
+                        "quantity": 1,
+                        "safety_margin_mm": eff_margin,
+                    }
+                )
+                items.append(item_copy)
+        else:
+            if not apply_margin and it.safety_margin_mm != 0:
+                items.append(it.model_copy(update={"safety_margin_mm": 0}))
+            else:
+                items.append(it)
 
     total_item_vol_mm3 = sum(
         it.dimensions_mm.length_mm * it.dimensions_mm.width_mm * it.dimensions_mm.height_mm
         for it in items
     )
-    total_item_weight_g = sum((it.weight_g or 500) for it in items)
+    total_item_weight_g = sum(compute_item_effective_weight_g(it)[0] for it in items)
 
     candidate_evaluations: List[CandidateCartonEvaluation] = []
     feasible_plans: List[Tuple[float, PackingPlan, str]] = []
 
-    # 1. Quick catalog screening using Tier 1 EP Heuristic (< 20 ms total)
+    # 2. Quick catalog screening using Tier 1 EP Heuristic (< 20 ms total)
     ep_results: Dict[str, Tuple[bool, List[PlacedItem], Optional[PackingPlan]]] = {}
 
     for carton in STANDARD_CARTONS:
@@ -315,7 +356,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
 
     feasible_carton_candidates.sort(key=lambda x: x[0])
 
-    # 2. Tier 2 CP-SAT optimization on lowest-cost candidate cartons
+    # 3. Tier 2 CP-SAT optimization on lowest-cost candidate cartons
     best_final_plan: Optional[PackingPlan] = None
     engine_name = "extreme_point_heuristic"
 
@@ -382,7 +423,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
 
     solve_time_ms = int((time.time() - start_time) * 1000)
 
-    # If feasible single carton plan found, return cost-optimal response
+    # 4. If feasible single carton plan found, return cost-optimal response
     if best_final_plan is not None:
         return PackingSolutionResponse(
             contract_version="1.0.0",
@@ -396,7 +437,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
             candidate_carton_comparison=candidate_evaluations,
         )
 
-    # 3. Multi-Carton Split handling for oversized orders
+    # 5. Multi-Carton Split handling for oversized orders
     if request.solver_config.allow_multi_carton_split:
         remaining_items = list(items)
         split_plans: List[PackingPlan] = []
@@ -442,10 +483,9 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
 
         if split_plans:
             total_solve_ms = int((time.time() - start_time) * 1000)
-            status_val = "FEASIBLE" if not remaining_items else "FEASIBLE"
             return PackingSolutionResponse(
                 contract_version="1.0.0",
-                status=status_val,
+                status="FEASIBLE",
                 solver_used="multi_carton_split_heuristic",
                 solve_time_ms=total_solve_ms,
                 single_carton_feasible=False,
@@ -461,7 +501,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
                 candidate_carton_comparison=candidate_evaluations,
             )
 
-    # 4. Infeasible and split not permitted
+    # 6. Infeasible and split not permitted
     return PackingSolutionResponse(
         contract_version="1.0.0",
         status="INFEASIBLE",
