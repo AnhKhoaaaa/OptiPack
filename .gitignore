@@ -35,3 +35,5 @@ Thumbs.db
 # OptiPack Temporary Assets & Cache (keep .gitkeep)
 backend/app/api/static/crops/*
 !backend/app/api/static/crops/.gitkeep
+
+scratch/
