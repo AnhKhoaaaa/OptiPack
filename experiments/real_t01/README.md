@@ -100,3 +100,35 @@ top-face geometry, real two-view H triangulation and pair-level CPU
 latency. For poor height estimation use documented Fallback 1A
 (top-down L/W + mandatory UI confirmation of H); if L/W also fail,
 escalate to team rather than silently accepting fallback.
+
+
+### 2026-10-30 paper-guided pose + acceptance audit
+
+Run the **optional** experiment and conservative gate audit with the
+same eight local images and the same provisional intrinsics:
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.real_t01.fast_pose_ablation
+.\.venv\Scripts\python.exe -m experiments.real_t01.t01_quality_audit
+.\.venv\Scripts\python.exe experiments\real_t01\generate_report.py
+.\.venv\Scripts\python.exe -m pytest -q tests
+```
+
+- `fast_pose_ablation.py` / `fast_pose_ablation.json`: iterative,
+  IPPE, EPnP pose solvers with marker detection at full, half and 35%
+  image resolution and full-size corner refinement. **0.5x+ITERATIVE**
+  reduces marker detection+PnP median from 154.55 to 49.16 ms/image
+  with the same 7/8 pose threshold count. This is NOT a new camera
+  calibration or production pipeline default.
+- `t01_quality_audit.py` / `t01_quality_audit.json`: machine-readable,
+  conservative status including dataset sensitivity. With one suspect
+  Trial01 `black` match excluded, diagnostic XY MAE is **8.27 mm**
+  rather than the full 15-case **7.91 mm** (not a repaired dataset).
+- `tests/test_fast_pose_ablation.py` and
+  `tests/test_t01_quality_audit.py`: synthetic pose, marker extraction,
+  invalid-input and anti-overclaim regression checks.
+
+See `RESEARCH_DECISION.md` for candidate papers, negative ablations,
+the full trial protocol, and important data limitations. The
+end-to-end T01 verdict remains **NOT PASSED**; no production code
+or remote Git branch has been changed by these research scripts.

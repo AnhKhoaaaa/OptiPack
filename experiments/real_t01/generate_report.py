@@ -222,6 +222,55 @@ def main():
                 "",
             ]
             lines[4:4]=summary
+    # Supplemental ablations are evidence, not new T01 acceptance criteria.
+    audit_file=HERE/"t01_quality_audit.json"
+    faster_file=HERE/"fast_pose_ablation.json"
+    if audit_file.is_file() and faster_file.is_file():
+        audit=json.loads(audit_file.read_text(encoding="utf-8"))
+        fast=json.loads(faster_file.read_text(encoding="utf-8"))
+        a=fast["summary"]["scale1.0_iterative"]
+        b=fast["summary"]["scale0.5_iterative"]
+        limit=audit["uncertain_label_sensitivity"]
+        lines.extend([
+            "",
+            "## 2026-10-30 research iteration — measured improvements and rejected ideas",
+            "",
+            "**Accepted as optional experiment only:** downsample ArUco detection",
+            "to half-resolution, refine corners at original resolution, retain",
+            "ITERATIVE PnP. Source: `fast_pose_ablation.py`,",
+            "results: `fast_pose_ablation.json`.",
+            "",
+            "| Diagnostic metric | Full-res original | 0.5x + full-res subpixel |",
+            "|---|---:|---:|",
+            f"| Median detect+PnP per photo | {a['median_ms_per_image']:.2f} ms | {b['median_ms_per_image']:.2f} ms |",
+            f"| Marker count 4/4 | {a['marker_4_count']}/8 | {b['marker_4_count']}/8 |",
+            f"| Pose reprojection <=2.5 px | {a['pose_pass_count']}/8 | {b['pose_pass_count']}/8 |",
+            f"| Max camera-center drift vs original | 0 mm (reference) | {b['max_camera_center_drift_mm']:.4f} mm |",
+            "",
+            "No new camera calibration, no new physical accuracy measurement,",
+            "and **no improvement in pose pass rate**. IPPE and EPnP planar",
+            "alternatives were tested; both retained the same 7/8 threshold count.",
+            "These are controlled *algorithm comparisons*, NOT production T01",
+            "wall-time measurements. Default backend remains unchanged.",
+            "",
+            "**Rejected/undone:** LSD top-face lines (von Gioi et al.,",
+            "TPAMI 2010) changed L/W MAE only 7.909 to 7.858 mm, regressed",
+            "Trial01, and did not resolve runtime. Graph-based segmentation",
+            "was not runnable in this OpenCV build; no new dependencies",
+            "or pretrained weights were added. Prior shortcut GrabCut",
+            "variants reduced latency but changed L/W/H fits unacceptably.",
+            "",
+            "## GT sensitivity and T01 readiness audit",
+            "",
+            f"- V2 L/W MAE, all 15 labeled cases: **{audit['criteria']['xy_mae']['mm']:.3f} mm**.",
+            f"- Excluding unverified Trial01 black: **{limit['xy_mae_mm_excluding_case']:.3f} mm** across {limit['remaining_cases']} cases; this is a sensitivity check, NOT repaired GT.",
+            "- **Verdict remains NOT PASSED:** marker pose 7/8, manual",
+            "  object ROIs, camera intrinsics fit on the same photographs,",
+            "  full-pair CPU much slower than 800 ms, and no held-out",
+            "  generalization or production backend integration.",
+            "- See `t01_quality_audit.json` for machine-readable evidence,",
+            "  `RESEARCH_DECISION.md` for paper sources and full caveats.",
+        ])
     (HERE/"REPORT.md").write_text("\n".join(lines),encoding="utf-8")
     print("REPORT.md generated:",len(rows),"real item trials")
 if __name__=="__main__":main()

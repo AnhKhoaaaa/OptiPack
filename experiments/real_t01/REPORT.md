@@ -178,3 +178,42 @@ LOO mean and maximum error among these three methods.
 ```
 
 No commits, pushes or merges are performed by these scripts.
+
+
+## 2026-10-30 research iteration — measured improvements and rejected ideas
+
+**Accepted as optional experiment only:** downsample ArUco detection
+to half-resolution, refine corners at original resolution, retain
+ITERATIVE PnP. Source: `fast_pose_ablation.py`,
+results: `fast_pose_ablation.json`.
+
+| Diagnostic metric | Full-res original | 0.5x + full-res subpixel |
+|---|---:|---:|
+| Median detect+PnP per photo | 154.55 ms | 49.16 ms |
+| Marker count 4/4 | 8/8 | 8/8 |
+| Pose reprojection <=2.5 px | 7/8 | 7/8 |
+| Max camera-center drift vs original | 0 mm (reference) | 0.0249 mm |
+
+No new camera calibration, no new physical accuracy measurement,
+and **no improvement in pose pass rate**. IPPE and EPnP planar
+alternatives were tested; both retained the same 7/8 threshold count.
+These are controlled *algorithm comparisons*, NOT production T01
+wall-time measurements. Default backend remains unchanged.
+
+**Rejected/undone:** LSD top-face lines (von Gioi et al.,
+TPAMI 2010) changed L/W MAE only 7.909 to 7.858 mm, regressed
+Trial01, and did not resolve runtime. Graph-based segmentation
+was not runnable in this OpenCV build; no new dependencies
+or pretrained weights were added. Prior shortcut GrabCut
+variants reduced latency but changed L/W/H fits unacceptably.
+
+## GT sensitivity and T01 readiness audit
+
+- V2 L/W MAE, all 15 labeled cases: **7.909 mm**.
+- Excluding unverified Trial01 black: **8.270 mm** across 14 cases; this is a sensitivity check, NOT repaired GT.
+- **Verdict remains NOT PASSED:** marker pose 7/8, manual
+  object ROIs, camera intrinsics fit on the same photographs,
+  full-pair CPU much slower than 800 ms, and no held-out
+  generalization or production backend integration.
+- See `t01_quality_audit.json` for machine-readable evidence,
+  `RESEARCH_DECISION.md` for paper sources and full caveats.

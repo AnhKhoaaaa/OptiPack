@@ -170,3 +170,86 @@ result is `silhouette_experiment.json`. New geometric regression tests
 are in `tests/test_silhouette_cuboid.py`. Next priority is an
 autonomous object ROI/keypoint pipeline and a fast implementation, then
 independent camera calibration and held-out benchmark captures.
+
+
+## Iteration v3 research — FASTER fiducials & honest acceptance gate (2026-10-30)
+
+**Outcome:** Retain an **opt-in RESEARCH ablation** for marker detection and
+automatic acceptance auditing; **do not modify production metrology, V2
+silhouettes, camera calibration, or official acceptance rules**. No GitHub
+push/merge as part of this iteration.
+
+### Literature investigated and why each was selected/rejected
+
+| Work | Relevant technique | Empirical decision |
+|---|---|---|
+| Collins & Bartoli, *Infinitesimal Plane-Based Pose Estimation*, IJCV 2014, doi:10.1007/s11263-014-0725-5 | IPPE generates possible solutions from coplanar marker corners | **Evaluated, not adopted as production solver**: the same 7/8 captures meet 2.5 px |
+| Lepetit, Moreno-Noguer & Fua, *EPnP*, IJCV 2009, doi:10.1007/s11263-008-0152-6 | Linear-complexity PnP initializer | **Evaluated, not adopted**: no pose gate improvement on 8 captures |
+| Grompone von Gioi et al., *LSD: A Fast Line Segment Detector with a False Detection Control*, TPAMI 2010, doi:10.1109/TPAMI.2008.300 | Additional top-face straight-line evidence for cuboid | **REJECTED/UNDONE**: aggregate XY 7.858 vs 7.909 mm in V2; negligible 0.051 mm change, Trial01 regressed and runtime remained high. Source scratch code removed. No ground-truth-based hyperparameter search |
+| Felzenszwalb & Huttenlocher, *Efficient Graph-Based Image Segmentation*, IJCV 2004, doi:10.1023/B:VISI.0000022288.19776.77 | Region proposals without manual ROIs | Not evaluated: current installed OpenCV wheel has no `cv2.segmentation.createGraphSegmentation`. Did not install dependencies or add GPL code |
+| Rother, Kolmogorov & Blake, *GrabCut*, ACM TOG 2004, doi:10.1145/1015706.1015720 | Foreground segmentation, existing V2 approach | Prior single-pass/parallel trials changed fitted L/W/H and were rejected; do not reintroduce silently |
+| MobileSAM (Zhang et al., arXiv:2306.14289), TinySAM (Shu et al., AAAI 2025) | Lightweight prompt-based segmentation candidates | NOT integrated: GPU/model benchmarks are not an 800 ms **CPU full-pair** guarantee; would require extra weights, prompt/ROI design and held-out validation |
+
+**Measured fast fiducial pathway** in
+`fast_pose_ablation.py`:
+1. Detect the same four ArUco IDs at scaled grayscale resolution.
+2. Map detected corners to **full-resolution pixel coordinates**;
+   run `cv2.cornerSubPix` against the full-resolution grayscale.
+3. Evaluate **ITERATIVE**, **EPnP+LM**, and **IPPE+LM** pose solvers,
+   explicitly rejecting solutions with nonphysical camera center Z.
+4. Compare against the unchanged original full-res pose on all
+   eight same-session photographs.
+
+Full-size iterative median detection+PnP time **154.55 ms/image**;
+50%-size iterative median **49.16 ms/image** (~3.1x speedup).
+50%-size IPPE+LM median **47.61 ms/image**; 35%-size iterative
+**28.75 ms/image**, but may fail on smaller/blurrier markers in unseen
+photos. For 50%-size ITERATIVE: **8/8 markers complete, 7/8 pose <=2.5
+px**, and max camera-center difference **0.0249 mm** compared to the
+full-resolution solution. 0.0249 mm is numerical pose-center drift,
+**NOT** actual calibration error or a dimension-accuracy estimate.
+The experiment is repeatable using
+`python -m experiments.real_t01.fast_pose_ablation`; findings are
+in `fast_pose_ablation.json`. Bench timings are same-PC,
+non-isolated wall time (three samples/variant/frame) and cannot
+establish production CPU latency.
+
+**Why NOT integrate into the production detector now?** The gain is
+well supported on the existing 8 pictures, but new photos might have
+markers too small for coarse detection, and the 7/8 reprojection
+gate still fails with in-sample intrinsics. Keep this alternative
+opt-in for controlled future validation; no new model, dependency,
+or global behavior changes.
+
+### New source-data quality audit and decision
+
+`t01_quality_audit.py` reads the existing real and V2 JSON reports,
+flags gates individually, and refuses a GO verdict. Run:
+`python -m experiments.real_t01.t01_quality_audit`.
+Generated `t01_quality_audit.json` records:
+- 8/8 full marker detections; 7/8 pose reprojection <=2.5 px
+- V2 research XY MAE **7.9089 mm**, H MAE **6.1195 mm** (15 cases)
+- Excluding just **Trial01 / black** (identity visually questionable),
+  XY MAE **8.2698 mm** on 14 cases — **sensitivity analysis**, not an
+  alternate corrected benchmark
+- Manual ROIs, same-session camera intrinsics, unknown GT units, no
+  held-out photos, high CPU wall time, and no production backend
+  integration still **FAIL** the full T01 acceptance.
+
+There are now pure synthetic pose/ArUco tests and failure-gate tests.
+No threshold was changed to make this benchmark appear passing.
+
+### Next steps only after acquiring new evidence
+
+1. Verify physical identity of 'black' in Trial01 vs later trials,
+   original L/W/H and their units, print dimensions of marker board.
+2. Capture independent camera-calibration frames plus new held-out
+   topdown/oblique pairs, with accurate GT per physical object.
+3. On those captures, benchmark (a) original full-res ArUco against
+   0.5x with full-res refinement, (b) marker missing/fallback cases,
+   (c) throughput at controlled CPU thread/thermal settings.
+4. Design an automatic ROI pipeline only when it passes per-object
+   detection/correspondence recall and downstream mm-error tests.
+5. After robust QA, profile GrabCut (currently dominating runtime);
+   evaluate SAM variants only if weights/licensing, CPU inference and
+   prompting protocol are all feasible. Keep issue T01 open meanwhile.

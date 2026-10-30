@@ -1,0 +1,614 @@
+{
+  "status": "RESEARCH_ONLY",
+  "note": "Same eight development photos, in-sample intrinsics; no independent calibration",
+  "images": [
+    {
+      "image": "Trial01_Oblique.JPG",
+      "baseline_rmse_px": 1.9298797274400847,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 1.92988,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 68.19,
+          "pose_pass": true
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.92988,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 75.96,
+          "pose_pass": true
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.92988,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 70.2,
+          "pose_pass": true
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 1.92268,
+          "camera_center_drift_mm": 0.0086,
+          "median_ms": 23.18,
+          "pose_pass": true
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.92268,
+          "camera_center_drift_mm": 0.0087,
+          "median_ms": 23.46,
+          "pose_pass": true
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.92268,
+          "camera_center_drift_mm": 0.0087,
+          "median_ms": 22.61,
+          "pose_pass": true
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 1.92213,
+          "camera_center_drift_mm": 0.0089,
+          "median_ms": 12.93,
+          "pose_pass": true
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.92213,
+          "camera_center_drift_mm": 0.0089,
+          "median_ms": 13.05,
+          "pose_pass": true
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.92213,
+          "camera_center_drift_mm": 0.0089,
+          "median_ms": 12.67,
+          "pose_pass": true
+        }
+      }
+    },
+    {
+      "image": "Trial01_topdown.JPG",
+      "baseline_rmse_px": 1.009361339586066,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 1.00936,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 68.21,
+          "pose_pass": true
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.00936,
+          "camera_center_drift_mm": 0.0001,
+          "median_ms": 68.51,
+          "pose_pass": true
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.00936,
+          "camera_center_drift_mm": 0.0001,
+          "median_ms": 67.36,
+          "pose_pass": true
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 1.00946,
+          "camera_center_drift_mm": 0.0145,
+          "median_ms": 63.22,
+          "pose_pass": true
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.00946,
+          "camera_center_drift_mm": 0.0146,
+          "median_ms": 64.31,
+          "pose_pass": true
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.00946,
+          "camera_center_drift_mm": 0.0146,
+          "median_ms": 66.09,
+          "pose_pass": true
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 1.00953,
+          "camera_center_drift_mm": 0.0146,
+          "median_ms": 41.55,
+          "pose_pass": true
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.00953,
+          "camera_center_drift_mm": 0.0148,
+          "median_ms": 41.47,
+          "pose_pass": true
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.00953,
+          "camera_center_drift_mm": 0.0147,
+          "median_ms": 44.46,
+          "pose_pass": true
+        }
+      }
+    },
+    {
+      "image": "Trial02_leftside.JPG",
+      "baseline_rmse_px": 1.844927249341699,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 1.84493,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 173.8,
+          "pose_pass": true
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.84493,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 202.84,
+          "pose_pass": true
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.84493,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 177.37,
+          "pose_pass": true
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 1.83943,
+          "camera_center_drift_mm": 0.0065,
+          "median_ms": 52.83,
+          "pose_pass": true
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.83943,
+          "camera_center_drift_mm": 0.0065,
+          "median_ms": 46.61,
+          "pose_pass": true
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.83943,
+          "camera_center_drift_mm": 0.0065,
+          "median_ms": 47.54,
+          "pose_pass": true
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 1.83913,
+          "camera_center_drift_mm": 0.0068,
+          "median_ms": 28.5,
+          "pose_pass": true
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 1.83913,
+          "camera_center_drift_mm": 0.0068,
+          "median_ms": 29.06,
+          "pose_pass": true
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 1.83913,
+          "camera_center_drift_mm": 0.0068,
+          "median_ms": 30.4,
+          "pose_pass": true
+        }
+      }
+    },
+    {
+      "image": "Trial02_Oblique.JPG",
+      "baseline_rmse_px": 2.4317939809720865,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 2.43179,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 152.79,
+          "pose_pass": true
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.43179,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 147.22,
+          "pose_pass": true
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.43179,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 153.39,
+          "pose_pass": true
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 2.43187,
+          "camera_center_drift_mm": 0.0141,
+          "median_ms": 47.12,
+          "pose_pass": true
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.43187,
+          "camera_center_drift_mm": 0.0141,
+          "median_ms": 39.92,
+          "pose_pass": true
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.43187,
+          "camera_center_drift_mm": 0.0141,
+          "median_ms": 44.15,
+          "pose_pass": true
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 2.43194,
+          "camera_center_drift_mm": 0.0135,
+          "median_ms": 27.2,
+          "pose_pass": true
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.43194,
+          "camera_center_drift_mm": 0.0135,
+          "median_ms": 28.98,
+          "pose_pass": true
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.43194,
+          "camera_center_drift_mm": 0.0136,
+          "median_ms": 28.91,
+          "pose_pass": true
+        }
+      }
+    },
+    {
+      "image": "Trial02_rightside.JPG",
+      "baseline_rmse_px": 2.2476151206323394,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 2.24762,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 153.37,
+          "pose_pass": true
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.24762,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 166.81,
+          "pose_pass": true
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.24762,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 170.11,
+          "pose_pass": true
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 2.24479,
+          "camera_center_drift_mm": 0.0044,
+          "median_ms": 46.11,
+          "pose_pass": true
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.24479,
+          "camera_center_drift_mm": 0.0044,
+          "median_ms": 45.76,
+          "pose_pass": true
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.24479,
+          "camera_center_drift_mm": 0.0044,
+          "median_ms": 47.53,
+          "pose_pass": true
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 2.24481,
+          "camera_center_drift_mm": 0.0045,
+          "median_ms": 28.69,
+          "pose_pass": true
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.24481,
+          "camera_center_drift_mm": 0.0045,
+          "median_ms": 25.41,
+          "pose_pass": true
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.24481,
+          "camera_center_drift_mm": 0.0045,
+          "median_ms": 23.34,
+          "pose_pass": true
+        }
+      }
+    },
+    {
+      "image": "Trial02_topdown.JPG",
+      "baseline_rmse_px": 0.9225200882593129,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 0.92252,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 199.26,
+          "pose_pass": true
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 0.92252,
+          "camera_center_drift_mm": 0.0001,
+          "median_ms": 208.62,
+          "pose_pass": true
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 0.92252,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 184.96,
+          "pose_pass": true
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 0.92166,
+          "camera_center_drift_mm": 0.0249,
+          "median_ms": 51.19,
+          "pose_pass": true
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 0.92166,
+          "camera_center_drift_mm": 0.0249,
+          "median_ms": 51.05,
+          "pose_pass": true
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 0.92166,
+          "camera_center_drift_mm": 0.0248,
+          "median_ms": 54.99,
+          "pose_pass": true
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 0.92154,
+          "camera_center_drift_mm": 0.0253,
+          "median_ms": 34.21,
+          "pose_pass": true
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 0.92154,
+          "camera_center_drift_mm": 0.0254,
+          "median_ms": 33.19,
+          "pose_pass": true
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 0.92154,
+          "camera_center_drift_mm": 0.0253,
+          "median_ms": 28.44,
+          "pose_pass": true
+        }
+      }
+    },
+    {
+      "image": "Trial03_Oblique.JPG",
+      "baseline_rmse_px": 2.663798295863456,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 2.6638,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 155.72,
+          "pose_pass": false
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.6638,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 152.82,
+          "pose_pass": false
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.6638,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 164.4,
+          "pose_pass": false
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 2.66615,
+          "camera_center_drift_mm": 0.006,
+          "median_ms": 46.54,
+          "pose_pass": false
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.66615,
+          "camera_center_drift_mm": 0.006,
+          "median_ms": 40.86,
+          "pose_pass": false
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.66615,
+          "camera_center_drift_mm": 0.006,
+          "median_ms": 47.69,
+          "pose_pass": false
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 2.66605,
+          "camera_center_drift_mm": 0.0061,
+          "median_ms": 29.74,
+          "pose_pass": false
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 2.66605,
+          "camera_center_drift_mm": 0.0061,
+          "median_ms": 24.85,
+          "pose_pass": false
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 2.66605,
+          "camera_center_drift_mm": 0.0061,
+          "median_ms": 23.68,
+          "pose_pass": false
+        }
+      }
+    },
+    {
+      "image": "Trial03_topdown.JPG",
+      "baseline_rmse_px": 0.7916592754313516,
+      "variants": {
+        "scale1.0_iterative": {
+          "markers": 4,
+          "rmse_px": 0.79166,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 195.76,
+          "pose_pass": true
+        },
+        "scale1.0_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 0.79166,
+          "camera_center_drift_mm": 0.0001,
+          "median_ms": 189.81,
+          "pose_pass": true
+        },
+        "scale1.0_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 0.79166,
+          "camera_center_drift_mm": 0.0,
+          "median_ms": 199.57,
+          "pose_pass": true
+        },
+        "scale0.5_iterative": {
+          "markers": 4,
+          "rmse_px": 0.79561,
+          "camera_center_drift_mm": 0.0161,
+          "median_ms": 52.07,
+          "pose_pass": true
+        },
+        "scale0.5_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 0.79561,
+          "camera_center_drift_mm": 0.0161,
+          "median_ms": 51.96,
+          "pose_pass": true
+        },
+        "scale0.5_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 0.79561,
+          "camera_center_drift_mm": 0.0161,
+          "median_ms": 54.89,
+          "pose_pass": true
+        },
+        "scale0.35_iterative": {
+          "markers": 4,
+          "rmse_px": 0.79552,
+          "camera_center_drift_mm": 0.0168,
+          "median_ms": 28.81,
+          "pose_pass": true
+        },
+        "scale0.35_epnp_refine": {
+          "markers": 4,
+          "rmse_px": 0.79552,
+          "camera_center_drift_mm": 0.0168,
+          "median_ms": 26.65,
+          "pose_pass": true
+        },
+        "scale0.35_ippe_refine": {
+          "markers": 4,
+          "rmse_px": 0.79552,
+          "camera_center_drift_mm": 0.0168,
+          "median_ms": 25.66,
+          "pose_pass": true
+        }
+      }
+    }
+  ],
+  "summary": {
+    "scale1.0_iterative": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 154.55,
+      "max_camera_center_drift_mm": 0.0
+    },
+    "scale1.0_epnp_refine": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 159.81,
+      "max_camera_center_drift_mm": 0.0001
+    },
+    "scale1.0_ippe_refine": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 167.25,
+      "max_camera_center_drift_mm": 0.0001
+    },
+    "scale0.5_iterative": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 49.16,
+      "max_camera_center_drift_mm": 0.0249
+    },
+    "scale0.5_epnp_refine": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 46.19,
+      "max_camera_center_drift_mm": 0.0249
+    },
+    "scale0.5_ippe_refine": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 47.61,
+      "max_camera_center_drift_mm": 0.0248
+    },
+    "scale0.35_iterative": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 28.75,
+      "max_camera_center_drift_mm": 0.0253
+    },
+    "scale0.35_epnp_refine": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 27.81,
+      "max_camera_center_drift_mm": 0.0254
+    },
+    "scale0.35_ippe_refine": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 27.05,
+      "max_camera_center_drift_mm": 0.0253
+    }
+  }
+}
