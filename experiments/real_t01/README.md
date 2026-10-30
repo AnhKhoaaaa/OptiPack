@@ -1,5 +1,41 @@
 # T01 — User-supplied real RGB capture dataset
 
+## Selected T01 research pipeline (final curation, 2026-10-30)
+
+**Primary method:** two-view V2 silhouette-constrained 3D cuboid fitting
+(CubeSLAM/visual-hull inspired), with **free-tangential distortion**
+calibration as the selected *development-set candidate*. All five objects
+are still located using manual ROIs + GrabCut; the production backend
+retains its placeholder. T01 is **NOT PASSED**.
+
+From the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.real_t01.selected_pipeline
+.\.venv\Scripts\python.exe experiments\real_t01\generate_report.py
+.\.venv\Scripts\python.exe -m pytest -q tests
+```
+
+Use `--calibration baseline` with `selected_pipeline` to run the original
+conservative K instead. The default camera profile is NEVER overwritten.
+`selected_pipeline_results.json` contains predictions and per-trial errors.
+Final comparison and caveats are at the **top** of `REPORT.md`.
+
+| Setup | L/W MAE | H MAE | Pose on same 8 photos |
+|---|---:|---:|---:|
+| Original V2, provisional K | 7.909 mm | 6.119 mm | 7/8 |
+| **Selected V2 + free-tangent K** | **7.723 mm** | **5.898 mm** | **8/8** |
+
+**These metrics are NOT a held-out acceptance test:** only 8 photos,
+unconfirmed GT units/object identity and no independent calibration.
+CPU is seconds per pair, not the required 800 ms. Trial03 H worsens
+slightly; do not deploy the selected calibration to new sessions without
+checking device/zoom/resolution. `CAPTURE_PROTOCOL.md` lists the required
+new captures and masks. The FastSAM, LSD, Huber and shortened-GrabCut
+trials were not chosen; `SEGMENTATION_STUDY.md` retains their evidence.
+
+---
+
 **Source:** https://drive.google.com/drive/folders/1_rKzBn4uuPKspFRDF7G_TwtU255h-xeG
 
 **Physical test set:** Five rigid household/retail packages with a printed A4

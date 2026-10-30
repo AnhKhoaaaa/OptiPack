@@ -10,6 +10,31 @@ Given an order of multiple distinct items captured at a controlled packing bench
 
 ---
 
+## T01 final research selection (2026-10-30)
+
+**Selected experiment:** V2 silhouette-constrained 3D cuboid fitting plus
+free-tangential-distortion calibration. On the original eight development
+photos: L/W MAE **7.723 mm**, H MAE **5.898 mm**, and pose **8/8** at
+RMSE <=2.5 px. Compare original V2 **7.909/6.119 mm** and **7/8** poses.
+**This does not mean physical T01 passed.** Human object ROIs, in-sample
+calibration and slow CPU inference remain; the metrology backend is still
+not connected to the selected research method.
+
+**One entrypoint:**
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.real_t01.selected_pipeline
+.\.venv\Scripts\python.exe experiments\real_t01\generate_report.py
+```
+
+Read [the curated experiment overview](experiments/real_t01/README.md)
+and [T01 report](experiments/real_t01/REPORT.md) before reviewing or merging.
+Use `--calibration baseline` to compare against the original K. FastSAM-s,
+Huber, LSD, reduced GrabCut iterations and plain homography proposals
+were rejected as default replacements; their findings remain documented.
+
+---
+
 ## 1. Team Module Ownership & Responsibilities
 
 | Role | Module Directory | Primary Responsibilities | Phase 0 Gate Script |

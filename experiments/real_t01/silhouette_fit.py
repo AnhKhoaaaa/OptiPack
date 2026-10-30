@@ -126,7 +126,8 @@ def refine(p,items,maxiter=40):
         if np.linalg.norm(d)<1.e-4:break
     return p,score
 
-def run():
+def run(camera_intrinsics=None, output_path=None, calibration_label="default_provisional"):
+    """Benchmark manually annotated V2. Optional K/D does not alter default."""
     annotations=json.loads((HERE/"roi_annotations.json").read_text(encoding="utf-8"))
     gt={}
     with (HERE/"ground_truth.csv").open(encoding="utf-8-sig",newline="") as f:
@@ -134,11 +135,12 @@ def run():
             gt[row["item_id"]]=np.array([float(row[v]) for v in ("length_mm","width_mm","height_mm")])
     result={"status":"EXPLORATORY_NOT_T01_GATE","paper_inspiration":"CubeSLAM geometry + visual-hull silhouette consistency, independent implementation",
             "constraints":"Manual ROI + GrabCut, self-calibration on same captures, two views, no GT as optimizer input",
+            "calibration_label":calibration_label,
             "trials":{}}
     start=perf_counter()
     for trial,names in TRIAL_PAIRS.items():
         tic=perf_counter()
-        views=load_views(names)
+        views=load_views(names, camera_intrinsics=camera_intrinsics)
         evidence=evidence_for_pair(trial,names,views,annotations)
         data=list(views.values())
         predictions=[]
@@ -168,7 +170,8 @@ def run():
     result["overall_xy_mae_mm"]=float(np.mean([x["xy_mae_mm"] for x in result["trials"].values()]))
     result["overall_h_mae_mm"]=float(np.mean([x["h_mae_mm"] for x in result["trials"].values()]))
     result["overall_runtime_ms"]=round((perf_counter()-start)*1000,1)
-    (HERE/"silhouette_experiment.json").write_text(json.dumps(result,indent=2)+"\n")
+    target=Path(output_path) if output_path is not None else HERE/"silhouette_experiment.json"
+    target.write_text(json.dumps(result,indent=2)+"\n",encoding="utf-8")
     print("TOTAL",round(result["overall_xy_mae_mm"],2),round(result["overall_h_mae_mm"],2),flush=True)
     return result
 

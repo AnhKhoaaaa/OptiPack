@@ -23,11 +23,24 @@ TRIAL_PAIRS={
     "Trial03":("Trial03_topdown.JPG","Trial03_Oblique.JPG"),
 }
 
-def load_views(names):
+def load_views(names, camera_intrinsics=None):
+    """Build annotated two-view evidence; optional (K, distortion) for research.
+
+    The default remains the original provisional camera profile. A supplied
+    tuple changes only this call, never the global calibration or backend.
+    """
     a=json.loads((HERE/"roi_annotations.json").read_text(encoding="utf-8"))
     profile=json.loads((HERE/"camera_profile_estimated.json").read_text())
-    K=np.asarray(profile["camera_matrix"],np.float64)
-    dist=np.asarray(profile["distortion"],np.float64)
+    if camera_intrinsics is None:
+        K=np.asarray(profile["camera_matrix"],np.float64)
+        dist=np.asarray(profile["distortion"],np.float64)
+    else:
+        K=np.asarray(camera_intrinsics[0],np.float64)
+        dist=np.asarray(camera_intrinsics[1],np.float64).ravel()
+        if K.shape!=(3,3) or dist.size not in (4,5,8,12,14):
+            raise ValueError("Invalid experimental calibration dimensions")
+        if not np.isfinite(K).all() or not np.isfinite(dist).all() or K[0,0]<=0 or K[1,1]<=0:
+            raise ValueError("Nonphysical experimental calibration")
     result={}
     for name in names:
         raw=cv2.imread(str(HERE/"images"/name))

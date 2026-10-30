@@ -2,6 +2,32 @@
 
 **Verdict: NOT PASSED / needs further CV metrology work.**
 
+## Final selected research pipeline — current recommendation
+
+**Selected:** two-view silhouette-constrained cuboid fitting (V2)
+with radial + tangential camera distortion. Manual ROIs/GrabCut
+are required; no backend production integration is claimed.
+
+| Metric | Original V2 | Selected research configuration |
+|---|---:|---:|
+| L/W MAE (15 labeled cases) | 7.909 mm | **7.723 mm** |
+| H MAE (15 labeled cases) | 6.119 mm | **5.898 mm** |
+| Marker pose <=2.5 px (same 8 photos) | 7/8 | **8/8** |
+| Calibration LOO pose <=2.5 px | 6/8 | **8/8** |
+
+**T01 acceptance: NOT PASSED.** Results use the SAME eight
+development images; no independently calibrated camera, no
+automatic ROIs, CPU is seconds not <=800 ms/pair, uncertain
+ground truth and the production backend still has placeholders.
+H MAE for Trial03 slightly worsens. Calibration model selection
+among six candidates also introduces selection bias.
+
+Reproduce: `python -m experiments.real_t01.selected_pipeline`
+(`--calibration baseline` uses the original camera profile).
+Results: `selected_pipeline_results.json`.
+Fast ArUco is optional research; FastSAM, LSD, Huber and
+single-iteration GrabCut are NOT selected.
+
 ## Latest research — before / after (NOT an autonomous T01 pass)
 
 | Approach | L/W MAE | H MAE | Evidence |
