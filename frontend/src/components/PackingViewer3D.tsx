@@ -14,6 +14,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const itemGroupRef = useRef<THREE.Group | null>(null);
 
   const [currentStep, setCurrentStep] = useState<number>(plan.placements.length);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -74,6 +75,25 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     controls.update();
   };
 
+  // Helper to safely dispose geometries and materials inside a group
+  const clearAndDisposeGroup = (group: THREE.Group) => {
+    group.traverse((obj) => {
+      if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
+        if (obj.geometry) {
+          obj.geometry.dispose();
+        }
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((m) => m.dispose());
+        } else if (obj.material) {
+          obj.material.dispose();
+        }
+      }
+    });
+    group.clear();
+  };
+
+  // Effect 1: Initialize Scene, Camera, Renderer, Controls & Carton Wireframe
+  // Only re-runs when carton dimensions/ID change, preserving camera angle across steps
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -154,8 +174,68 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     floorMesh.position.y = 0;
     scene.add(floorMesh);
 
-    // 7. Placed Items up to current step
+    // 7. Dedicated Group for Placed Items (updated independently in Effect 2)
     const itemGroup = new THREE.Group();
+    scene.add(itemGroup);
+    itemGroupRef.current = itemGroup;
+
+    // 8. Animation & Render Loop
+    let animationFrameId: number;
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    };
+    animate();
+
+    // 9. Resize observer for responsive layout
+    const handleResize = () => {
+      if (!container) return;
+      const newWidth = container.clientWidth;
+      camera.aspect = newWidth / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newWidth, height);
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(animationFrameId);
+      controls.dispose();
+      itemGroupRef.current = null;
+
+      // Professional GPU Memory Cleanup: dispose all meshes, geometries, and materials
+      scene.traverse((obj) => {
+        if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
+          if (obj.geometry) {
+            obj.geometry.dispose();
+          }
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => m.dispose());
+          } else if (obj.material) {
+            obj.material.dispose();
+          }
+        }
+      });
+
+      renderer.dispose();
+      if (container) container.innerHTML = "";
+    };
+  }, [
+    plan.carton.carton_id,
+    plan.carton.internal_dimensions_mm.length_mm,
+    plan.carton.internal_dimensions_mm.width_mm,
+    plan.carton.internal_dimensions_mm.height_mm,
+  ]);
+
+  // Effect 2: Update Placed Item Meshes when step, halo toggle, or placements change
+  // Preserves user's current camera angle, zoom, and pan
+  useEffect(() => {
+    const itemGroup = itemGroupRef.current;
+    if (!itemGroup) return;
+
+    clearAndDisposeGroup(itemGroup);
+
     const visiblePlacements = plan.placements.filter((p) => p.step_number <= currentStep);
 
     visiblePlacements.forEach((p) => {
@@ -166,10 +246,11 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
       const isCurrentActive = p.step_number === currentStep;
 
       if (showSafetyHalo) {
-        // A. Nominal Inner Solid Box
-        const nomDx = p.nominal_dimensions_mm.dx;
-        const nomDy = p.nominal_dimensions_mm.dy;
-        const nomDz = p.nominal_dimensions_mm.dz;
+        // A. Nominal Inner Solid Box (with safe fallback if nominal_dimensions_mm is absent)
+        const nom = p.nominal_dimensions_mm || p.placed_dimensions_mm;
+        const nomDx = nom.dx;
+        const nomDy = nom.dy;
+        const nomDz = nom.dz;
 
         // Determine orientation scaling based on placed dimensions
         const innerGeo = new THREE.BoxGeometry(
@@ -232,51 +313,14 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         itemGroup.add(mesh);
       }
     });
+  }, [plan.carton, plan.placements, currentStep, showSafetyHalo]);
 
-    scene.add(itemGroup);
-
-    // 8. Animation & Render Loop
-    let animationFrameId: number;
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      controls.update();
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    // 9. Resize observer for responsive layout
-    const handleResize = () => {
-      if (!container) return;
-      const newWidth = container.clientWidth;
-      camera.aspect = newWidth / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, height);
-    };
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      cancelAnimationFrame(animationFrameId);
-      controls.dispose();
-
-      // Professional GPU Memory Cleanup: dispose all meshes, geometries, and materials
-      scene.traverse((obj) => {
-        if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
-          if (obj.geometry) {
-            obj.geometry.dispose();
-          }
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose());
-          } else if (obj.material) {
-            obj.material.dispose();
-          }
-        }
-      });
-
-      renderer.dispose();
-      if (container) container.innerHTML = "";
-    };
-  }, [plan, currentStep, showSafetyHalo, autoRotate]);
+  // Effect 3: Update Turntable autoRotate without touching Scene or Camera
+  useEffect(() => {
+    if (controlsRef.current) {
+      controlsRef.current.autoRotate = autoRotate;
+    }
+  }, [autoRotate]);
 
   const activeItem = plan.placements.find((p) => p.step_number === currentStep);
 

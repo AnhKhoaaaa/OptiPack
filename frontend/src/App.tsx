@@ -145,6 +145,9 @@ export const App: React.FC = () => {
       const data = await OptiPackClient.packOrder(req);
       setSolution(data);
       setActivePlanIndex(1);
+    } catch (err) {
+      console.error("[App] Packing optimization failed:", err);
+      alert(`Tối ưu hóa đóng gói thất bại: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setPackingLoading(false);
     }

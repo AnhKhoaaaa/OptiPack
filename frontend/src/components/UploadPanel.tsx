@@ -3,6 +3,7 @@ import { OrderAnalysisResponse, PackingSolutionResponse } from "../types/contrac
 import { OptiPackClient } from "../api/optipackClient";
 import orderAnalysisSample from "../mocks/orderAnalysisSample.json";
 import preset2UncertainReview from "../mocks/preset2UncertainReview.json";
+import preset2PackingSolution from "../mocks/preset2PackingSolution.json";
 import preset3OrderAnalysis from "../mocks/preset3OrderAnalysis.json";
 import preset3MultiCartonSplit from "../mocks/preset3MultiCartonSplit.json";
 
@@ -63,7 +64,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       if (presetNumber === 1) {
         onAnalysisLoaded(orderAnalysisSample as unknown as OrderAnalysisResponse);
       } else if (presetNumber === 2) {
-        onAnalysisLoaded(preset2UncertainReview as unknown as OrderAnalysisResponse);
+        onAnalysisLoaded(
+          preset2UncertainReview as unknown as OrderAnalysisResponse,
+          preset2PackingSolution as unknown as PackingSolutionResponse
+        );
       } else if (presetNumber === 3) {
         onAnalysisLoaded(
           preset3OrderAnalysis as unknown as OrderAnalysisResponse,
@@ -91,6 +95,9 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     try {
       const data = await OptiPackClient.analyzeOrder(formData);
       onAnalysisLoaded(data);
+    } catch (err) {
+      console.error("[UploadPanel] Analysis request failed:", err);
+      alert(`Phân tích đơn hàng thất bại: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }

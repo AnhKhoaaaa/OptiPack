@@ -39,7 +39,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
       ...item,
       dimensions_mm: {
         ...item.dimensions_mm,
-        [field]: Math.max(10, val),
+        [field]: Math.max(0, val),
       },
       // If user manually updates height on a review item, mark review as completed
       uncertainty_info: item.uncertainty_info
@@ -48,13 +48,41 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
     });
   };
 
+  const handleDimensionBlur = (
+    index: number,
+    field: "length_mm" | "width_mm" | "height_mm"
+  ) => {
+    const item = items[index];
+    const currentVal = item.dimensions_mm[field];
+    if (currentVal < 10) {
+      onUpdateItem(index, {
+        ...item,
+        dimensions_mm: {
+          ...item.dimensions_mm,
+          [field]: Math.max(10, currentVal),
+        },
+      });
+    }
+  };
+
   const handleWeightChange = (index: number, val: number) => {
     const item = items[index];
     onUpdateItem(index, {
       ...item,
-      weight_g: Math.max(1, val),
+      weight_g: Math.max(0, val),
       weight_assumed: false,
     });
+  };
+
+  const handleWeightBlur = (index: number) => {
+    const item = items[index];
+    if (item.weight_g !== null && item.weight_g < 1) {
+      onUpdateItem(index, {
+        ...item,
+        weight_g: 1,
+        weight_assumed: false,
+      });
+    }
   };
 
   const handleUprightToggle = (index: number, checked: boolean) => {
@@ -132,29 +160,35 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                     <div className="dim-inputs">
                       <input
                         type="number"
-                        value={item.dimensions_mm.length_mm}
+                        min={10}
+                        value={item.dimensions_mm.length_mm || ""}
                         onChange={(e) =>
-                          handleDimensionChange(idx, "length_mm", parseInt(e.target.value) || 0)
+                          handleDimensionChange(idx, "length_mm", parseInt(e.target.value, 10) || 0)
                         }
+                        onBlur={() => handleDimensionBlur(idx, "length_mm")}
                         title="Length (mm)"
                       />
                       <span>×</span>
                       <input
                         type="number"
-                        value={item.dimensions_mm.width_mm}
+                        min={10}
+                        value={item.dimensions_mm.width_mm || ""}
                         onChange={(e) =>
-                          handleDimensionChange(idx, "width_mm", parseInt(e.target.value) || 0)
+                          handleDimensionChange(idx, "width_mm", parseInt(e.target.value, 10) || 0)
                         }
+                        onBlur={() => handleDimensionBlur(idx, "width_mm")}
                         title="Width (mm)"
                       />
                       <span>×</span>
                       <input
                         type="number"
+                        min={10}
                         className={isReviewNeeded ? "input-review-alert" : ""}
-                        value={item.dimensions_mm.height_mm}
+                        value={item.dimensions_mm.height_mm || ""}
                         onChange={(e) =>
-                          handleDimensionChange(idx, "height_mm", parseInt(e.target.value) || 0)
+                          handleDimensionChange(idx, "height_mm", parseInt(e.target.value, 10) || 0)
                         }
+                        onBlur={() => handleDimensionBlur(idx, "height_mm")}
                         title="Height (mm) - Review required"
                       />
                     </div>
@@ -163,11 +197,13 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                     <div className="weight-cell">
                       <input
                         type="number"
+                        min={1}
                         value={item.weight_g || ""}
                         placeholder="Est. 450"
                         onChange={(e) =>
-                          handleWeightChange(idx, parseInt(e.target.value) || 0)
+                          handleWeightChange(idx, parseInt(e.target.value, 10) || 0)
                         }
+                        onBlur={() => handleWeightBlur(idx)}
                         title="Weight in grams"
                       />
                       {item.weight_assumed && (
