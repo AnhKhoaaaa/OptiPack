@@ -1,0 +1,94 @@
+{
+  "benchmark_name": "Phase 0 Feasibility - Member 2 (AI & Meta Model API)",
+  "timestamp_utc": "2026-10-29T07:28:55Z",
+  "model_id": "muse-spark-1.3",
+  "base_url": "https://api.meta.ai/v1",
+  "verdict": "GATE PASSED",
+  "all_passed": true,
+  "metrics": {
+    "schema_compliance_pct": 100.0,
+    "p50_latency_ms": 3254.0,
+    "p95_latency_ms": 3443.0,
+    "fabricated_weights_count": 0,
+    "visible_label_recall_pct": 100.0,
+    "sam_parser_ok": true,
+    "cache_hit_latency_ms": 0.26,
+    "batch_latency_ms": 5062.1
+  },
+  "gates": {
+    "schema_gate": "PASS",
+    "latency_gate": "PASS",
+    "epistemic_weight_gate": "PASS",
+    "label_recall_gate": "PASS",
+    "sam_parser_gate": "PASS",
+    "cache_gate": "PASS"
+  },
+  "item_results": [
+    {
+      "item_id": "item_01_fragile",
+      "name": "Fragile Carton Box",
+      "latency_ms": 2278.0,
+      "status": "success",
+      "visible_labels": [
+        "FRAGILE"
+      ],
+      "fragility_class": "high",
+      "keep_upright": false,
+      "weight_g": null,
+      "weight_source": "unknown",
+      "max_top_load_g": 0
+    },
+    {
+      "item_id": "item_02_upright",
+      "name": "This-Side-Up Liquid Carton",
+      "latency_ms": 3942.7,
+      "status": "success",
+      "visible_labels": [
+        "THIS SIDE UP"
+      ],
+      "fragility_class": "unknown",
+      "keep_upright": true,
+      "weight_g": null,
+      "weight_source": "unknown",
+      "max_top_load_g": 2000
+    },
+    {
+      "item_id": "item_03_printed_wt",
+      "name": "Retail Box with Printed Weight",
+      "latency_ms": 3443.0,
+      "status": "success",
+      "visible_labels": [
+        "NET WT 500g"
+      ],
+      "fragility_class": "unknown",
+      "keep_upright": false,
+      "weight_g": 500,
+      "weight_source": "manifest",
+      "max_top_load_g": 2000
+    },
+    {
+      "item_id": "item_04_opaque_unmarked_1",
+      "name": "Plain Brown Cardboard Box #1",
+      "latency_ms": 2250.9,
+      "status": "success",
+      "visible_labels": [],
+      "fragility_class": "unknown",
+      "keep_upright": false,
+      "weight_g": null,
+      "weight_source": "unknown",
+      "max_top_load_g": 2000
+    },
+    {
+      "item_id": "item_05_opaque_unmarked_2",
+      "name": "Plain Gray Rigid Box #2",
+      "latency_ms": 3254.0,
+      "status": "success",
+      "visible_labels": [],
+      "fragility_class": "unknown",
+      "keep_upright": false,
+      "weight_g": null,
+      "weight_source": "unknown",
+      "max_top_load_g": 2000
+    }
+  ]
+}

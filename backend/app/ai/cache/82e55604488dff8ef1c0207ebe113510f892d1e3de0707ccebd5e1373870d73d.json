@@ -1,0 +1,15 @@
+{
+  "item_id": "item_02_upright",
+  "display_name": "Teal Carton Box with This Side Up Label",
+  "category": "generic_carton",
+  "visible_labels": [
+    "THIS SIDE UP"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "unknown",
+  "keep_upright": true,
+  "orientation_source": "visible_label",
+  "stackable": false,
+  "reasoning_note": "Teal carton shows THIS SIDE UP label, requiring upright orientation; no fragility or weight markings visible."
+}

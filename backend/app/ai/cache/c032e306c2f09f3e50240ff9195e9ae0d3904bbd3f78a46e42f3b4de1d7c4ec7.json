@@ -1,0 +1,15 @@
+{
+  "item_id": "item_02_upright",
+  "display_name": "Teal carton with THIS SIDE UP arrows",
+  "category": "generic_carton",
+  "visible_labels": [
+    "THIS SIDE UP"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "unknown",
+  "keep_upright": true,
+  "orientation_source": "visible_label",
+  "stackable": true,
+  "reasoning_note": "Teal box shows THIS SIDE UP text with up arrows, triggering keep_upright. No fragile marking or net weight visible."
+}

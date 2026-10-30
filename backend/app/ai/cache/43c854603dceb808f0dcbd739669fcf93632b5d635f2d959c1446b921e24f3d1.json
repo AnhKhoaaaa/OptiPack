@@ -1,0 +1,15 @@
+{
+  "item_id": "item_03_printed_wt",
+  "display_name": "Lavender carton with NET WT 500g",
+  "category": "generic_carton",
+  "visible_labels": [
+    "NET WT 500g"
+  ],
+  "printed_weight_g": 500,
+  "fragility_class": "unknown",
+  "fragility_source": "unknown",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Lavender box shows legible NET WT 500g. No FRAGILE or THIS SIDE UP or bottle shape visible."
+}
