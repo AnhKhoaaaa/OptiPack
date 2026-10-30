@@ -59,28 +59,29 @@ def test_user_role_only_vision_payload():
     }
     mock_client.post.return_value = mock_resp
 
-    with patch("backend.app.ai.meta_client.get_cached_response", return_value=None):
-        with patch("backend.app.ai.meta_client.get_sync_http_client", return_value=mock_client):
-            extract_item_semantics_muse(dummy_bytes, item_id="item_test")
+    with patch.dict(os.environ, {"MODEL_API_KEY": "mock_api_key_for_testing"}):
+        with patch("backend.app.ai.meta_client.get_cached_response", return_value=None):
+            with patch("backend.app.ai.meta_client.get_sync_http_client", return_value=mock_client):
+                extract_item_semantics_muse(dummy_bytes, item_id="item_test")
 
-            assert mock_client.post.called
-            call_kwargs = mock_client.post.call_args[1]
-            payload = call_kwargs["json"]
+                assert mock_client.post.called
+                call_kwargs = mock_client.post.call_args[1]
+                payload = call_kwargs["json"]
 
-            # Verify messages inside payload
-            for msg in payload["input"]:
-                role = msg.get("role")
-                content = msg.get("content", [])
-                if role in ("system", "developer"):
-                    if isinstance(content, list):
-                        for part in content:
-                            assert part.get("type") != "input_image", "input_image found in developer/system role!"
-                    elif isinstance(content, str):
-                        assert "input_image" not in content
-                elif role == "user":
-                    if isinstance(content, list):
-                        has_image = any(part.get("type") == "input_image" for part in content)
-                        assert has_image, "User role should contain the input_image block"
+                # Verify messages inside payload
+                for msg in payload["input"]:
+                    role = msg.get("role")
+                    content = msg.get("content", [])
+                    if role in ("system", "developer"):
+                        if isinstance(content, list):
+                            for part in content:
+                                assert part.get("type") != "input_image", "input_image found in developer/system role!"
+                        elif isinstance(content, str):
+                            assert "input_image" not in content
+                    elif role == "user":
+                        if isinstance(content, list):
+                            has_image = any(part.get("type") == "input_image" for part in content)
+                            assert has_image, "User role should contain the input_image block"
 
 
 def test_unobservable_weight_sanitization():
@@ -136,15 +137,16 @@ def test_timeout_triggers_clean_fallback():
     mock_client = MagicMock()
     mock_client.post.side_effect = httpx.TimeoutException("Connection timed out")
 
-    with patch("backend.app.ai.meta_client.get_cached_response", return_value=None):
-        with patch("backend.app.ai.meta_client.get_sync_http_client", return_value=mock_client):
-            attrs, telemetry = extract_item_semantics_muse(dummy_bytes, item_id="item_timeout", timeout_sec=0.1)
+    with patch.dict(os.environ, {"MODEL_API_KEY": "mock_api_key_for_testing"}):
+        with patch("backend.app.ai.meta_client.get_cached_response", return_value=None):
+            with patch("backend.app.ai.meta_client.get_sync_http_client", return_value=mock_client):
+                attrs, telemetry = extract_item_semantics_muse(dummy_bytes, item_id="item_timeout", timeout_sec=0.1)
 
-            assert telemetry.fallback_activated is True
-            assert telemetry.muse_status == "fallback"
-            assert attrs.fragility_class == "medium"
-            assert attrs.weight_g is None
-            assert attrs.weight_source == "unknown"
+                assert telemetry.fallback_activated is True
+                assert telemetry.muse_status == "fallback"
+                assert attrs.fragility_class == "medium"
+                assert attrs.weight_g is None
+                assert attrs.weight_source == "unknown"
 
 
 def test_sam31_regex_parser():
