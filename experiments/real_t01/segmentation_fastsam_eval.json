@@ -1,0 +1,536 @@
+{
+  "summary": {
+    "model": "FastSAM-s 1024 fp32 ONNX third-party export",
+    "images": 8,
+    "gt_coarse_rois": 40,
+    "0.2_recall": 33,
+    "0.05_recall": 33,
+    "median_cpu_infer_ms": 1286.9,
+    "mean_candidates_low_conf": 65.125,
+    "limitations": "No mask-level GT, same development images, downstream mm error not measured; CPU inference excludes decode/prepost"
+  },
+  "rows": [
+    {
+      "name": "Trial01_Oblique.JPG",
+      "median_infer_ms": 426.5,
+      "variants": {
+        "0.2": {
+          "recall": 5,
+          "candidates": 61,
+          "matched": [
+            {
+              "object": "black",
+              "iou": 0.659,
+              "confidence": 0.929
+            },
+            {
+              "object": "white",
+              "iou": 0.61,
+              "confidence": 0.932
+            },
+            {
+              "object": "paper",
+              "iou": 0.592,
+              "confidence": 0.91
+            },
+            {
+              "object": "wood",
+              "iou": 0.473,
+              "confidence": 0.928
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.438,
+              "confidence": 0.908
+            }
+          ],
+          "top5_recall": 0,
+          "top10_recall": 3,
+          "top20_recall": 5
+        },
+        "0.05": {
+          "recall": 5,
+          "candidates": 61,
+          "matched": [
+            {
+              "object": "black",
+              "iou": 0.659,
+              "confidence": 0.929
+            },
+            {
+              "object": "white",
+              "iou": 0.61,
+              "confidence": 0.932
+            },
+            {
+              "object": "paper",
+              "iou": 0.592,
+              "confidence": 0.91
+            },
+            {
+              "object": "wood",
+              "iou": 0.473,
+              "confidence": 0.928
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.438,
+              "confidence": 0.908
+            }
+          ],
+          "top5_recall": 0,
+          "top10_recall": 3,
+          "top20_recall": 5
+        }
+      }
+    },
+    {
+      "name": "Trial01_topdown.JPG",
+      "median_infer_ms": 387.9,
+      "variants": {
+        "0.2": {
+          "recall": 4,
+          "candidates": 61,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.637,
+              "confidence": 0.933
+            },
+            {
+              "object": "black",
+              "iou": 0.557,
+              "confidence": 0.935
+            },
+            {
+              "object": "white",
+              "iou": 0.485,
+              "confidence": 0.921
+            },
+            {
+              "object": "wood",
+              "iou": 0.441,
+              "confidence": 0.892
+            }
+          ],
+          "top5_recall": 1,
+          "top10_recall": 3,
+          "top20_recall": 4
+        },
+        "0.05": {
+          "recall": 4,
+          "candidates": 61,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.637,
+              "confidence": 0.933
+            },
+            {
+              "object": "black",
+              "iou": 0.557,
+              "confidence": 0.935
+            },
+            {
+              "object": "white",
+              "iou": 0.485,
+              "confidence": 0.921
+            },
+            {
+              "object": "wood",
+              "iou": 0.441,
+              "confidence": 0.892
+            }
+          ],
+          "top5_recall": 1,
+          "top10_recall": 3,
+          "top20_recall": 4
+        }
+      }
+    },
+    {
+      "name": "Trial02_Oblique.JPG",
+      "median_infer_ms": 1134.6,
+      "variants": {
+        "0.2": {
+          "recall": 4,
+          "candidates": 66,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.448,
+              "confidence": 0.947
+            },
+            {
+              "object": "white",
+              "iou": 0.433,
+              "confidence": 0.875
+            },
+            {
+              "object": "black",
+              "iou": 0.37,
+              "confidence": 0.949
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.304,
+              "confidence": 0.944
+            }
+          ],
+          "top5_recall": 3,
+          "top10_recall": 3,
+          "top20_recall": 4
+        },
+        "0.05": {
+          "recall": 4,
+          "candidates": 66,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.448,
+              "confidence": 0.947
+            },
+            {
+              "object": "white",
+              "iou": 0.433,
+              "confidence": 0.875
+            },
+            {
+              "object": "black",
+              "iou": 0.37,
+              "confidence": 0.949
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.304,
+              "confidence": 0.944
+            }
+          ],
+          "top5_recall": 3,
+          "top10_recall": 3,
+          "top20_recall": 4
+        }
+      }
+    },
+    {
+      "name": "Trial02_leftside.JPG",
+      "median_infer_ms": 1391.5,
+      "variants": {
+        "0.2": {
+          "recall": 5,
+          "candidates": 56,
+          "matched": [
+            {
+              "object": "black",
+              "iou": 0.634,
+              "confidence": 0.946
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.503,
+              "confidence": 0.894
+            },
+            {
+              "object": "paper",
+              "iou": 0.502,
+              "confidence": 0.877
+            },
+            {
+              "object": "wood",
+              "iou": 0.488,
+              "confidence": 0.932
+            },
+            {
+              "object": "white",
+              "iou": 0.454,
+              "confidence": 0.933
+            }
+          ],
+          "top5_recall": 3,
+          "top10_recall": 4,
+          "top20_recall": 5
+        },
+        "0.05": {
+          "recall": 5,
+          "candidates": 59,
+          "matched": [
+            {
+              "object": "black",
+              "iou": 0.634,
+              "confidence": 0.946
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.503,
+              "confidence": 0.894
+            },
+            {
+              "object": "paper",
+              "iou": 0.502,
+              "confidence": 0.877
+            },
+            {
+              "object": "wood",
+              "iou": 0.488,
+              "confidence": 0.932
+            },
+            {
+              "object": "white",
+              "iou": 0.454,
+              "confidence": 0.933
+            }
+          ],
+          "top5_recall": 3,
+          "top10_recall": 4,
+          "top20_recall": 5
+        }
+      }
+    },
+    {
+      "name": "Trial02_rightside.JPG",
+      "median_infer_ms": 1279.0,
+      "variants": {
+        "0.2": {
+          "recall": 3,
+          "candidates": 68,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.589,
+              "confidence": 0.892
+            },
+            {
+              "object": "white",
+              "iou": 0.485,
+              "confidence": 0.956
+            },
+            {
+              "object": "wood",
+              "iou": 0.306,
+              "confidence": 0.953
+            }
+          ],
+          "top5_recall": 2,
+          "top10_recall": 3,
+          "top20_recall": 3
+        },
+        "0.05": {
+          "recall": 3,
+          "candidates": 68,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.589,
+              "confidence": 0.892
+            },
+            {
+              "object": "white",
+              "iou": 0.485,
+              "confidence": 0.956
+            },
+            {
+              "object": "wood",
+              "iou": 0.306,
+              "confidence": 0.953
+            }
+          ],
+          "top5_recall": 2,
+          "top10_recall": 3,
+          "top20_recall": 3
+        }
+      }
+    },
+    {
+      "name": "Trial02_topdown.JPG",
+      "median_infer_ms": 1294.8,
+      "variants": {
+        "0.2": {
+          "recall": 3,
+          "candidates": 71,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.469,
+              "confidence": 0.848
+            },
+            {
+              "object": "black",
+              "iou": 0.421,
+              "confidence": 0.96
+            },
+            {
+              "object": "white",
+              "iou": 0.399,
+              "confidence": 0.903
+            }
+          ],
+          "top5_recall": 1,
+          "top10_recall": 2,
+          "top20_recall": 3
+        },
+        "0.05": {
+          "recall": 3,
+          "candidates": 71,
+          "matched": [
+            {
+              "object": "paper",
+              "iou": 0.469,
+              "confidence": 0.848
+            },
+            {
+              "object": "black",
+              "iou": 0.421,
+              "confidence": 0.96
+            },
+            {
+              "object": "white",
+              "iou": 0.399,
+              "confidence": 0.903
+            }
+          ],
+          "top5_recall": 1,
+          "top10_recall": 2,
+          "top20_recall": 3
+        }
+      }
+    },
+    {
+      "name": "Trial03_Oblique.JPG",
+      "median_infer_ms": 1304.2,
+      "variants": {
+        "0.2": {
+          "recall": 5,
+          "candidates": 65,
+          "matched": [
+            {
+              "object": "white",
+              "iou": 0.451,
+              "confidence": 0.91
+            },
+            {
+              "object": "black",
+              "iou": 0.439,
+              "confidence": 0.955
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.431,
+              "confidence": 0.949
+            },
+            {
+              "object": "paper",
+              "iou": 0.322,
+              "confidence": 0.945
+            },
+            {
+              "object": "wood",
+              "iou": 0.321,
+              "confidence": 0.91
+            }
+          ],
+          "top5_recall": 3,
+          "top10_recall": 5,
+          "top20_recall": 5
+        },
+        "0.05": {
+          "recall": 5,
+          "candidates": 65,
+          "matched": [
+            {
+              "object": "white",
+              "iou": 0.451,
+              "confidence": 0.91
+            },
+            {
+              "object": "black",
+              "iou": 0.439,
+              "confidence": 0.955
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.431,
+              "confidence": 0.949
+            },
+            {
+              "object": "paper",
+              "iou": 0.322,
+              "confidence": 0.945
+            },
+            {
+              "object": "wood",
+              "iou": 0.321,
+              "confidence": 0.91
+            }
+          ],
+          "top5_recall": 3,
+          "top10_recall": 5,
+          "top20_recall": 5
+        }
+      }
+    },
+    {
+      "name": "Trial03_topdown.JPG",
+      "median_infer_ms": 1332.3,
+      "variants": {
+        "0.2": {
+          "recall": 4,
+          "candidates": 70,
+          "matched": [
+            {
+              "object": "white",
+              "iou": 0.438,
+              "confidence": 0.786
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.403,
+              "confidence": 0.826
+            },
+            {
+              "object": "paper",
+              "iou": 0.332,
+              "confidence": 0.915
+            },
+            {
+              "object": "black",
+              "iou": 0.307,
+              "confidence": 0.92
+            }
+          ],
+          "top5_recall": 0,
+          "top10_recall": 2,
+          "top20_recall": 4
+        },
+        "0.05": {
+          "recall": 4,
+          "candidates": 70,
+          "matched": [
+            {
+              "object": "white",
+              "iou": 0.438,
+              "confidence": 0.786
+            },
+            {
+              "object": "gocheck",
+              "iou": 0.403,
+              "confidence": 0.826
+            },
+            {
+              "object": "paper",
+              "iou": 0.332,
+              "confidence": 0.915
+            },
+            {
+              "object": "black",
+              "iou": 0.307,
+              "confidence": 0.92
+            }
+          ],
+          "top5_recall": 0,
+          "top10_recall": 2,
+          "top20_recall": 4
+        }
+      }
+    }
+  ]
+}

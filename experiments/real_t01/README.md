@@ -161,3 +161,18 @@ introduces optimistic selection bias. Trial03 H also worsens slightly.
 `REPORT.md` and `RESEARCH_DECISION.md` document the risks.
 The trial shortcuts to GrabCut were **rejected/removed** because
 their MAE regressed, despite some CPU savings.
+
+
+### Class-agnostic segmentation research (2026-10-30)
+
+See `SEGMENTATION_STUDY.md` for paper sources, FastSAM-s ONNX CPU
+benchmark (33/40 coarse ROI matches, ~1.29 s/image inference, 65
+proposals/image) and a failed ArUco plane-homography foreground trial
+(8/15 matches). Both are **rejected as replacements for production
+T01**; the V2 silhouette fitting, GrabCut and camera profile remain
+unchanged. Machine-readable FastSAM evidence:
+`segmentation_fastsam_eval.json`.
+
+`CAPTURE_PROTOCOL.md` explains how to collect independent photos,
+confirmed object dimensions, camera calibration and pixel-level
+instance masks needed before training/validating another model.
