@@ -1,0 +1,15 @@
+{
+  "item_id": "item_01_fragile",
+  "display_name": "Brown carton with FRAGILE label",
+  "category": "generic_carton",
+  "visible_labels": [
+    "FRAGILE"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "high",
+  "fragility_source": "visible_label",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": false,
+  "reasoning_note": "Brown box shows red FRAGILE label, no THIS SIDE UP arrows or bottle neck visible, no legible net weight."
+}

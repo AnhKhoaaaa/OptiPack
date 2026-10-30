@@ -1,0 +1,13 @@
+{
+  "item_id": "item_04_opaque_unmarked_1",
+  "display_name": "Plain Opaque Unmarked Box",
+  "category": "generic_carton",
+  "visible_labels": [],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "unknown",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Image shows a plain opaque tan box with no text, labels, arrows, or product clues, so weight, fragility and orientation cannot be determined."
+}

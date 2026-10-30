@@ -1,0 +1,13 @@
+{
+  "item_id": "item_05_opaque_unmarked_2",
+  "display_name": "Unmarked Carton Box",
+  "category": "generic_carton",
+  "visible_labels": [],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "unknown",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Plain unmarked box no labels"
+}
