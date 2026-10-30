@@ -1,0 +1,76 @@
+{
+  "free_tangent": {
+    "model": "free_tangent",
+    "in_sample_pose_pass": 8,
+    "poses": [
+      [
+        "Trial01_Oblique.JPG",
+        4,
+        1.7525144140095155,
+        true
+      ],
+      [
+        "Trial01_topdown.JPG",
+        4,
+        0.9423627835876212,
+        true
+      ],
+      [
+        "Trial02_leftside.JPG",
+        4,
+        1.8033274179980476,
+        true
+      ],
+      [
+        "Trial02_Oblique.JPG",
+        4,
+        2.280817612381992,
+        true
+      ],
+      [
+        "Trial02_rightside.JPG",
+        4,
+        2.2390782621768084,
+        true
+      ],
+      [
+        "Trial02_topdown.JPG",
+        4,
+        0.9884060316991284,
+        true
+      ],
+      [
+        "Trial03_Oblique.JPG",
+        4,
+        2.120065018695159,
+        true
+      ],
+      [
+        "Trial03_topdown.JPG",
+        4,
+        0.7689859524481308,
+        true
+      ]
+    ],
+    "mean_xy_mm": 7.723126424086522,
+    "mean_h_mm": 5.898393808479089,
+    "per_trial": {
+      "Trial01": {
+        "xy_mae_mm": 4.372076957576979,
+        "h_mae_mm": 4.038358828520844,
+        "elapsed_s": 13.03578449995257
+      },
+      "Trial02": {
+        "xy_mae_mm": 10.932206211146584,
+        "h_mae_mm": 8.853143832843273,
+        "elapsed_s": 39.561835999949835
+      },
+      "Trial03": {
+        "xy_mae_mm": 7.865096103536004,
+        "h_mae_mm": 4.803678764073149,
+        "elapsed_s": 26.83621849998599
+      }
+    },
+    "runtime_s": 80.46876690001227
+  }
+}

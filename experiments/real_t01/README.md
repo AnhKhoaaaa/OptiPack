@@ -132,3 +132,32 @@ See `RESEARCH_DECISION.md` for candidate papers, negative ablations,
 the full trial protocol, and important data limitations. The
 end-to-end T01 verdict remains **NOT PASSED**; no production code
 or remote Git branch has been changed by these research scripts.
+
+
+### Optional calibration-model experiment (2026-10-30)
+
+A paper-guided camera calibration comparison is provided **for evaluation
+only**. Run these after preparing the original eight sanitized photos:
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.real_t01.calibration_model_variants
+.\.venv\Scripts\python.exe -m experiments.real_t01.calibration_metrology_experiment
+.\.venv\Scripts\python.exe experiments\real_t01\generate_report.py
+```
+
+`calibration_model_variants.py` compares six constrained camera models
+using leave-one-image-out marker reprojection. The free-tangential-
+distortion candidate scores **8/8** images within 2.5 px (vs baseline
+**6/8** under LOO) and has **1.686 px** LOO mean (baseline **1.838 px**).
+`calibration_metrology_experiment.py` evaluates the candidate on the
+existing two-view V2 pipeline without writing a replacement camera
+profile. On the same 15 labeled cases the candidate obtains
+L/W **7.723 mm** and H **5.898 mm** (V2 default **7.909/6.119 mm**).
+
+**No default calibration or production metrology code is changed.**
+This is still the same 8-photo capture session, not independent
+calibration or held-out validation; choosing among six candidates
+introduces optimistic selection bias. Trial03 H also worsens slightly.
+`REPORT.md` and `RESEARCH_DECISION.md` document the risks.
+The trial shortcuts to GrabCut were **rejected/removed** because
+their MAE regressed, despite some CPU savings.

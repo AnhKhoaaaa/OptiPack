@@ -1,0 +1,398 @@
+{
+  "baseline": {
+    "status": "NOT_INDEPENDENT_CALIBRATION",
+    "in_sample_rms_px": 1.8603086910141926,
+    "loo_mean_px": 1.8383734747767448,
+    "loo_max_px": 2.9055349826812744,
+    "loo_pass_count": 6,
+    "frames": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "held_out_pose_rmse_px": 1.9506388902664185
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "held_out_pose_rmse_px": 1.0407450199127197
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "held_out_pose_rmse_px": 1.869618535041809
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.8366570472717285
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "held_out_pose_rmse_px": 2.3650362491607666
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "held_out_pose_rmse_px": 0.9323288202285767
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.9055349826812744
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "held_out_pose_rmse_px": 0.8064282536506653
+      }
+    ],
+    "camera_matrix": [
+      [
+        3099.2845854281513,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3113.0368642224885,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.036529164027323306,
+      -0.05494707437966694,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "elapsed_s": 0.06
+  },
+  "fix_aspect_ratio": {
+    "status": "NOT_INDEPENDENT_CALIBRATION",
+    "in_sample_rms_px": 2.015864297176854,
+    "loo_mean_px": 2.0724304914474487,
+    "loo_max_px": 3.016618251800537,
+    "loo_pass_count": 6,
+    "frames": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.0038585662841797
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "held_out_pose_rmse_px": 1.6287171840667725
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "held_out_pose_rmse_px": 1.8377891778945923
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.843204975128174
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "held_out_pose_rmse_px": 2.4879648685455322
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "held_out_pose_rmse_px": 1.4214335680007935
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "held_out_pose_rmse_px": 3.016618251800537
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "held_out_pose_rmse_px": 1.3398573398590088
+      }
+    ],
+    "camera_matrix": [
+      [
+        3086.8006554213825,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3086.8006554213825,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.04877663813617657,
+      -0.07279775012526125,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "elapsed_s": 0.07
+  },
+  "fix_k2": {
+    "status": "NOT_INDEPENDENT_CALIBRATION",
+    "in_sample_rms_px": 1.9427994690177914,
+    "loo_mean_px": 1.9451982751488686,
+    "loo_max_px": 3.1002697944641113,
+    "loo_pass_count": 5,
+    "frames": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "held_out_pose_rmse_px": 1.956342101097107
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "held_out_pose_rmse_px": 1.2222174406051636
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "held_out_pose_rmse_px": 2.0265979766845703
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.608980655670166
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "held_out_pose_rmse_px": 2.58064341545105
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "held_out_pose_rmse_px": 1.0791044235229492
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "held_out_pose_rmse_px": 3.1002697944641113
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "held_out_pose_rmse_px": 0.9874303936958313
+      }
+    ],
+    "camera_matrix": [
+      [
+        3102.786499903685,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3119.0205315415124,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.006451887516745967,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "elapsed_s": 0.06
+  },
+  "no_radial_distortion": {
+    "status": "NOT_INDEPENDENT_CALIBRATION",
+    "in_sample_rms_px": 1.9701206540877974,
+    "loo_mean_px": 1.9293909817934036,
+    "loo_max_px": 2.7027082443237305,
+    "loo_pass_count": 5,
+    "frames": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "held_out_pose_rmse_px": 1.95243239402771
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "held_out_pose_rmse_px": 1.2821483612060547
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "held_out_pose_rmse_px": 2.1163501739501953
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.7027082443237305
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "held_out_pose_rmse_px": 2.6508302688598633
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "held_out_pose_rmse_px": 1.1334037780761719
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.525209426879883
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "held_out_pose_rmse_px": 1.0720452070236206
+      }
+    ],
+    "camera_matrix": [
+      [
+        3092.5734182697947,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3109.6019272692183,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "elapsed_s": 0.04
+  },
+  "free_principal_point": {
+    "status": "NOT_INDEPENDENT_CALIBRATION",
+    "in_sample_rms_px": 1.697096752262595,
+    "loo_mean_px": 1.7424701899290085,
+    "loo_max_px": 2.740065574645996,
+    "loo_pass_count": 7,
+    "frames": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.2323896884918213
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "held_out_pose_rmse_px": 0.9036261439323425
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "held_out_pose_rmse_px": 1.790736198425293
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.740065574645996
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "held_out_pose_rmse_px": 2.3416810035705566
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "held_out_pose_rmse_px": 0.9363683462142944
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.2474095821380615
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "held_out_pose_rmse_px": 0.7474849820137024
+      }
+    ],
+    "camera_matrix": [
+      [
+        3104.814964476102,
+        0.0,
+        1994.6859032658788
+      ],
+      [
+        0.0,
+        3118.010223737207,
+        1508.4809665326122
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.04504697249214321,
+      -0.06568128675209342,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "elapsed_s": 0.06
+  },
+  "free_tangent": {
+    "status": "NOT_INDEPENDENT_CALIBRATION",
+    "in_sample_rms_px": 1.713545526367631,
+    "loo_mean_px": 1.685867317020893,
+    "loo_max_px": 2.4627411365509033,
+    "loo_pass_count": 8,
+    "frames": [
+      {
+        "image": "Trial01_Oblique.JPG",
+        "held_out_pose_rmse_px": 1.762688159942627
+      },
+      {
+        "image": "Trial01_topdown.JPG",
+        "held_out_pose_rmse_px": 0.9734437465667725
+      },
+      {
+        "image": "Trial02_leftside.JPG",
+        "held_out_pose_rmse_px": 1.8059732913970947
+      },
+      {
+        "image": "Trial02_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.4627411365509033
+      },
+      {
+        "image": "Trial02_rightside.JPG",
+        "held_out_pose_rmse_px": 2.3759398460388184
+      },
+      {
+        "image": "Trial02_topdown.JPG",
+        "held_out_pose_rmse_px": 1.0067325830459595
+      },
+      {
+        "image": "Trial03_Oblique.JPG",
+        "held_out_pose_rmse_px": 2.313842296600342
+      },
+      {
+        "image": "Trial03_topdown.JPG",
+        "held_out_pose_rmse_px": 0.7855774760246277
+      }
+    ],
+    "camera_matrix": [
+      [
+        3103.4941265731627,
+        0.0,
+        2016.0
+      ],
+      [
+        0.0,
+        3116.4463087159465,
+        1512.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.04322356201358326,
+      -0.0633438368623376,
+      0.00027537971367647655,
+      0.0023271916392269025,
+      0.0
+    ],
+    "elapsed_s": 0.05
+  }
+}

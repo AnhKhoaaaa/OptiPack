@@ -253,3 +253,83 @@ No threshold was changed to make this benchmark appear passing.
 5. After robust QA, profile GrabCut (currently dominating runtime);
    evaluate SAM variants only if weights/licensing, CPU inference and
    prompting protocol are all feasible. Keep issue T01 open meanwhile.
+
+
+## Calibration and segmentation iteration — 2026-10-30 (experimental only)
+
+The default V2 code and `camera_profile_estimated.json` remain **unchanged**.
+We compared calibration models in a controlled ablation on the same
+eight captures, using planar calibration from Zhengyou Zhang,
+*A Flexible New Technique for Camera Calibration* (TPAMI, 2000):
+https://www.microsoft.com/en-us/research/publication/a-flexible-new-technique-for-camera-calibration/
+
+### Calibration model comparison
+
+The original conservative intrinsics fit fixes the principal point,
+sets tangential distortion coefficients `p1=p2=0`, and estimates radial
+`k1,k2`. The experimental candidate frees only `p1,p2` (a standard
+camera distortion model), retaining the original other constraints.
+Six model parameterizations were compared; the pre-existing ArUco
+corner SUBPIX refinement was used for all. We measured both
+**in-sample reprojection** and **leave-one-image-out (LOO)**, which
+fits camera intrinsics from 7 photos, then measures pose on the
+eighth.
+
+| Metric | Default constrained K | Candidate K (free p1,p2) |
+|---|---:|---:|
+| In-sample pose <=2.5 px | 7/8 | **8/8** |
+| LOO pose <=2.5 px | 6/8 | **8/8** |
+| LOO mean reprojection RMSE | 1.838 px | **1.686 px** |
+| V2 2-view L/W MAE (same 15 labels) | 7.909 mm | **7.723 mm** |
+| V2 2-view H MAE | 6.119 mm | **5.898 mm** |
+
+**Strict qualifications:** the candidate was selected from SIX
+parameterizations using these exact same eight photos, creating
+model-selection bias even for LOO metrics. All photographs are from
+one development capture set; this is **not independent device
+calibration**. Ground-truth object identity and measurement units
+still require verification. Trial03's H MAE WORSENS from 4.55 to
+4.80 mm despite the overall improvement. Do NOT replace the default
+camera profile, claim a new production performance metric, or close
+the T01 gate based on this ablation.
+
+Reproduce in the repo root:
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.real_t01.calibration_model_variants
+.\.venv\Scripts\python.exe -m experiments.real_t01.calibration_metrology_experiment
+.\.venv\Scripts\python.exe -m pytest -q tests
+```
+
+Output is written to `calibration_model_variants.json` and
+`calibration_metrology_experiment.json`. The metrology evaluation
+monkeypatches the camera pose function **in the experiment process
+only**; production camera intrinsics and measurement code are not
+changed. Regression tests prevent mislabelling the result.
+
+### Segmentation ablation — rejected and undone
+
+We measured original GrabCut and two single-iteration variants
+using unchanged object ROIs, geometry and test protocol. GrabCut's
+original graph-cut algorithm is described by Rother, Kolmogorov &
+Blake (SIGGRAPH 2004):
+https://www.microsoft.com/en-us/research/publication/grabcut-interactive-foreground-extraction-using-iterated-graph-cuts/
+
+| Segmentation setting | 3-pair run | L/W MAE | H MAE |
+|---|---:|---:|---:|
+| Existing V2: 2 iterations for 700px bbox + 360px silhouette | 76.26 s | 7.909 mm | 6.119 mm |
+| One iteration only for 360px silhouette | 69.59 s | **8.009 mm (regression)** | **6.128 mm (regression)** |
+| One iteration only for 700px bbox | 65.23 s | 7.861 mm | **6.228 mm (regression)** |
+
+Per-run wall time on an active Windows computer is **not** a
+controlled latency benchmark. 60 original GrabCut calls consume
+~57.8 of 76.3 seconds, confirming a bottleneck. However, both
+shortcuts worsened one or more metrology metrics, so **both were
+undone**, not integrated and not committed. No segmentation
+shortcut is production-qualified by this experiment.
+
+**Final verdict: still T01 NOT PASSED.** Camera intrinsics must be
+validated on a physically measured marker board and a new independent
+capture session; segmentation needs automatic ROIs and a faster method
+that does not regress L/W/H. A 0.19mm improvement on an 8-photo
+development set is too small to establish real-world generalization.

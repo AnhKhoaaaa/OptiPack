@@ -217,3 +217,32 @@ variants reduced latency but changed L/W/H fits unacceptably.
   generalization or production backend integration.
 - See `t01_quality_audit.json` for machine-readable evidence,
   `RESEARCH_DECISION.md` for paper sources and full caveats.
+
+## Experimental camera distortion model (NOT a new T01 pass)
+
+The camera calibration used for default V2 is unchanged. An
+optional Zhang-style planar fit that estimates tangential distortion
+p1/p2 improved metrics **on the same eight capture-session photos**.
+
+| Metric | Existing conservative model | Candidate free-tangent model |
+|---|---:|---:|
+| Leave-one-out pose <=2.5 px | 6/8 | 8/8 |
+| Leave-one-out mean reprojection | 1.838 px | 1.686 px |
+| L/W MAE (research 15 cases) | 7.909 mm | 7.723 mm |
+| H MAE (research 15 cases) | 6.119 mm | 5.898 mm |
+| In-sample pose <=2.5 px | 7/8 | 8/8 |
+
+This candidate was **selected among six configurations using the
+same eight photos**, so even leave-one-image-out metrics have
+model-selection bias; there is no independent camera calibration.
+Trial03 H MAE slightly worsens. Do not overwrite the existing
+camera profile or claim production acceptance based on this.
+Full source, caveats and commands in RESEARCH_DECISION.md.
+
+## Segmentation shortcuts explicitly rejected
+
+Reducing GrabCut to one iteration for silhouette extraction:
+L/W 7.909 -> 8.009 mm and H 6.119 -> 6.128 mm (regression).
+Reducing GrabCut to one iteration for bbox generation:
+L/W 7.909 -> 7.861 mm but H 6.119 -> 6.228 mm (regression).
+Both were removed; production and V2 segmentation unchanged.

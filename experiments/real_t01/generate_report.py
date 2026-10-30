@@ -271,6 +271,46 @@ def main():
             "- See `t01_quality_audit.json` for machine-readable evidence,",
             "  `RESEARCH_DECISION.md` for paper sources and full caveats.",
         ])
+    # Experimental calibration comparisons must never replace T01 gate rows.
+    model_path=HERE/"calibration_model_variants.json"
+    dim_path=HERE/"calibration_metrology_experiment.json"
+    if model_path.is_file() and dim_path.is_file():
+        model=json.loads(model_path.read_text(encoding="utf-8"))
+        dim=json.loads(dim_path.read_text(encoding="utf-8"))
+        current=json.loads((HERE/"silhouette_experiment.json").read_text(encoding="utf-8"))
+        old_model=model["baseline"];new_model=model["free_tangent"]
+        candidate=dim["free_tangent"]
+        lines.extend([
+            "",
+            "## Experimental camera distortion model (NOT a new T01 pass)",
+            "",
+            "The camera calibration used for default V2 is unchanged. An",
+            "optional Zhang-style planar fit that estimates tangential distortion",
+            "p1/p2 improved metrics **on the same eight capture-session photos**.",
+            "",
+            "| Metric | Existing conservative model | Candidate free-tangent model |",
+            "|---|---:|---:|",
+            f"| Leave-one-out pose <=2.5 px | {old_model['loo_pass_count']}/8 | {new_model['loo_pass_count']}/8 |",
+            f"| Leave-one-out mean reprojection | {old_model['loo_mean_px']:.3f} px | {new_model['loo_mean_px']:.3f} px |",
+            f"| L/W MAE (research 15 cases) | {current['overall_xy_mae_mm']:.3f} mm | {candidate['mean_xy_mm']:.3f} mm |",
+            f"| H MAE (research 15 cases) | {current['overall_h_mae_mm']:.3f} mm | {candidate['mean_h_mm']:.3f} mm |",
+            f"| In-sample pose <=2.5 px | 7/8 | {candidate['in_sample_pose_pass']}/8 |",
+            "",
+            "This candidate was **selected among six configurations using the",
+            "same eight photos**, so even leave-one-image-out metrics have",
+            "model-selection bias; there is no independent camera calibration.",
+            "Trial03 H MAE slightly worsens. Do not overwrite the existing",
+            "camera profile or claim production acceptance based on this.",
+            "Full source, caveats and commands in RESEARCH_DECISION.md.",
+            "",
+            "## Segmentation shortcuts explicitly rejected",
+            "",
+            "Reducing GrabCut to one iteration for silhouette extraction:",
+            "L/W 7.909 -> 8.009 mm and H 6.119 -> 6.128 mm (regression).",
+            "Reducing GrabCut to one iteration for bbox generation:",
+            "L/W 7.909 -> 7.861 mm but H 6.119 -> 6.228 mm (regression).",
+            "Both were removed; production and V2 segmentation unchanged.",
+        ])
     (HERE/"REPORT.md").write_text("\n".join(lines),encoding="utf-8")
     print("REPORT.md generated:",len(rows),"real item trials")
 if __name__=="__main__":main()
