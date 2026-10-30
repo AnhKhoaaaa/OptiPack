@@ -31,18 +31,18 @@
       "measurement_provenance": {
         "xy_method": "aruco_plane_raycast",
         "z_method": "dual_view_pnp_triangulation",
-        "confidence_score": 0.91,
+        "confidence_score": 0.94,
         "requires_user_review": false
       },
       "physical_attributes": {
-        "weight_g": null,
-        "weight_source": "unknown",
+        "weight_g": 480,
+        "weight_source": "scale_verified",
         "fragility_class": "medium",
         "fragility_source": "ai_inferred_packaging",
         "keep_upright": false,
         "orientation_source": "default_unconstrained",
         "stackable": true,
-        "max_top_load_g": 2000,
+        "max_top_load_g": 3500,
         "visible_labels": ["CE", "Li-ion Battery"]
       },
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
@@ -52,16 +52,139 @@
         "mask_rle": null,
         "display_color_hex": "#3B82F6"
       }
+    },
+    {
+      "item_id": "item_02",
+      "display_name": "Smartphone Premium Packaging",
+      "category": "electronics_boxed",
+      "quantity": 1,
+      "dimensions_mm": {
+        "length_mm": 160,
+        "width_mm": 85,
+        "height_mm": 45
+      },
+      "uncertainty_mm": {
+        "length_sigma_mm": 2.1,
+        "width_sigma_mm": 1.8,
+        "height_sigma_mm": 3.0,
+        "safety_margin_mm": 5
+      },
+      "measurement_provenance": {
+        "xy_method": "aruco_plane_raycast",
+        "z_method": "dual_view_pnp_triangulation",
+        "confidence_score": 0.96,
+        "requires_user_review": false
+      },
+      "physical_attributes": {
+        "weight_g": 350,
+        "weight_source": "scale_verified",
+        "fragility_class": "medium",
+        "fragility_source": "ai_inferred_packaging",
+        "keep_upright": false,
+        "orientation_source": "default_unconstrained",
+        "stackable": true,
+        "max_top_load_g": 2500,
+        "visible_labels": ["CE", "Fragile Glass"]
+      },
+      "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
+      "visual_evidence": {
+        "bbox_2d_px": [850, 240, 1100, 480],
+        "crop_url": "/api/v1/assets/crops/ord_20261027_001_item_02.jpg",
+        "mask_rle": null,
+        "display_color_hex": "#10B981"
+      }
+    },
+    {
+      "item_id": "item_03",
+      "display_name": "Fast Charger 65W GaN Set",
+      "category": "electronics_accessory",
+      "quantity": 1,
+      "dimensions_mm": {
+        "length_mm": 85,
+        "width_mm": 50,
+        "height_mm": 45
+      },
+      "uncertainty_mm": {
+        "length_sigma_mm": 2.5,
+        "width_sigma_mm": 2.1,
+        "height_sigma_mm": 3.4,
+        "safety_margin_mm": 5
+      },
+      "measurement_provenance": {
+        "xy_method": "aruco_plane_raycast",
+        "z_method": "dual_view_pnp_triangulation",
+        "confidence_score": 0.92,
+        "requires_user_review": false
+      },
+      "physical_attributes": {
+        "weight_g": 210,
+        "weight_source": "scale_verified",
+        "fragility_class": "low",
+        "fragility_source": "ai_inferred_packaging",
+        "keep_upright": false,
+        "orientation_source": "default_unconstrained",
+        "stackable": true,
+        "max_top_load_g": 4000,
+        "visible_labels": ["RoHS", "GaN Fast"]
+      },
+      "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
+      "visual_evidence": {
+        "bbox_2d_px": [350, 640, 520, 800],
+        "crop_url": "/api/v1/assets/crops/ord_20261027_001_item_03.jpg",
+        "mask_rle": null,
+        "display_color_hex": "#F59E0B"
+      }
+    },
+    {
+      "item_id": "item_04",
+      "display_name": "Silicone Armor Case",
+      "category": "accessories_soft",
+      "quantity": 1,
+      "dimensions_mm": {
+        "length_mm": 85,
+        "width_mm": 50,
+        "height_mm": 30
+      },
+      "uncertainty_mm": {
+        "length_sigma_mm": 2.8,
+        "width_sigma_mm": 2.4,
+        "height_sigma_mm": 4.1,
+        "safety_margin_mm": 5
+      },
+      "measurement_provenance": {
+        "xy_method": "aruco_plane_raycast",
+        "z_method": "dual_view_pnp_triangulation",
+        "confidence_score": 0.89,
+        "requires_user_review": false
+      },
+      "physical_attributes": {
+        "weight_g": null,
+        "weight_source": "unknown",
+        "fragility_class": "low",
+        "fragility_source": "ai_inferred_packaging",
+        "keep_upright": false,
+        "orientation_source": "default_unconstrained",
+        "stackable": true,
+        "max_top_load_g": 5000,
+        "visible_labels": []
+      },
+      "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
+      "visual_evidence": {
+        "bbox_2d_px": [550, 640, 720, 800],
+        "crop_url": "/api/v1/assets/crops/ord_20261027_001_item_04.jpg",
+        "mask_rle": null,
+        "display_color_hex": "#8B5CF6"
+      }
     }
   ],
   "ai_telemetry": {
-    "sam_status": "skipped",
+    "sam_status": "success",
     "muse_model": "muse-spark-1.3",
     "muse_status": "success",
-    "muse_latency_ms": 1420,
+    "muse_latency_ms": 1380,
     "fallback_activated": false
   },
   "global_warnings": [
-    "Item 'item_01' weight is unknown (cannot be determined from visual appearance). Default density estimate (520g) will be used unless overridden."
+    "Item 'item_04' weight is unknown (opaque packaging). Default density estimate (120g) applied unless confirmed."
   ]
 }

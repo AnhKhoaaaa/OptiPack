@@ -1,0 +1,155 @@
+{
+  "contract_version": "1.0.0",
+  "status": "OPTIMAL",
+  "solver_used": "ortools_cpsat",
+  "solve_time_ms": 214,
+  "single_carton_feasible": true,
+  "primary_plan": {
+    "plan_index": 1,
+    "carton": {
+      "carton_id": "BOX-M",
+      "display_name": "Medium Standard Carton",
+      "internal_dimensions_mm": {
+        "length_mm": 300,
+        "width_mm": 220,
+        "height_mm": 150
+      },
+      "tare_weight_g": 160,
+      "max_payload_g": 8000,
+      "box_cost_usd": 0.85
+    },
+    "metrics": {
+      "volume_utilization_pct": 38.6,
+      "total_items_packed": 3,
+      "actual_gross_weight_kg": 1.34,
+      "dim_weight_kg": 1.98,
+      "billable_weight_kg": 2.00,
+      "box_cost_usd": 0.85,
+      "void_fill_cost_usd": 0.24,
+      "shipping_cost_usd": 5.90,
+      "total_estimated_cost_usd": 6.99,
+      "center_of_mass_mm": {
+        "x": 162.5,
+        "y": 84.0,
+        "z": 52.0
+      }
+    },
+    "placements": [
+      {
+        "step_number": 1,
+        "item_id": "item_rev_03",
+        "display_name": "Velvet Gift Box with Silk Ribbon",
+        "rotation_code": "LWH",
+        "position_mm": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "placed_dimensions_mm": {
+          "dx": 185,
+          "dy": 145,
+          "dz": 65
+        },
+        "nominal_dimensions_mm": {
+          "dx": 180,
+          "dy": 140,
+          "dz": 60
+        },
+        "support_ratio": 1.0,
+        "supported_by_item_ids": [
+          "CARTON_FLOOR"
+        ],
+        "display_color_hex": "#EC4899"
+      },
+      {
+        "step_number": 2,
+        "item_id": "item_rev_02",
+        "display_name": "Scented Soy Candle in Ceramic Jar",
+        "rotation_code": "LWH",
+        "position_mm": {
+          "x": 185,
+          "y": 0,
+          "z": 0
+        },
+        "placed_dimensions_mm": {
+          "dx": 115,
+          "dy": 115,
+          "dz": 95
+        },
+        "nominal_dimensions_mm": {
+          "dx": 110,
+          "dy": 110,
+          "dz": 90
+        },
+        "support_ratio": 1.0,
+        "supported_by_item_ids": [
+          "CARTON_FLOOR"
+        ],
+        "display_color_hex": "#F97316"
+      },
+      {
+        "step_number": 3,
+        "item_id": "item_rev_01",
+        "display_name": "Luxury Eau de Parfum (Glass Bottle)",
+        "rotation_code": "LWH",
+        "position_mm": {
+          "x": 185,
+          "y": 115,
+          "z": 0
+        },
+        "placed_dimensions_mm": {
+          "dx": 95,
+          "dy": 75,
+          "dz": 140
+        },
+        "nominal_dimensions_mm": {
+          "dx": 90,
+          "dy": 70,
+          "dz": 135
+        },
+        "support_ratio": 1.0,
+        "supported_by_item_ids": [
+          "CARTON_FLOOR"
+        ],
+        "display_color_hex": "#EF4444"
+      }
+    ],
+    "validation": {
+      "is_valid": true,
+      "boundary_check_passed": true,
+      "overlap_check_passed": true,
+      "rotation_check_passed": true,
+      "support_check_passed": true,
+      "fragility_check_passed": true,
+      "weight_check_passed": true,
+      "violations": [],
+      "warnings": []
+    }
+  },
+  "overflow_plans": [],
+  "unpacked_item_ids": [],
+  "infeasibility_diagnostics": null,
+  "candidate_carton_comparison": [
+    {
+      "carton_id": "BOX-S",
+      "feasible": false,
+      "rejection_reason": "Upright height of 'Luxury Eau de Parfum' (140mm with margin) exceeds BOX-S internal height (100mm)."
+    },
+    {
+      "carton_id": "BOX-M",
+      "feasible": true,
+      "total_estimated_cost_usd": 6.99,
+      "volume_utilization_pct": 38.6,
+      "selected": true
+    },
+    {
+      "carton_id": "BOX-L",
+      "feasible": true,
+      "total_estimated_cost_usd": 10.75,
+      "volume_utilization_pct": 18.2,
+      "selected": false,
+      "rejection_reason": "Higher DIM weight surcharge (+$3.76 USD compared to BOX-M)."
+    }
+  ]
+}
+

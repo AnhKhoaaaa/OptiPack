@@ -1,0 +1,181 @@
+{
+  "contract_version": "1.0.0",
+  "status": "FEASIBLE",
+  "solver_used": "multi_carton_split_heuristic",
+  "solve_time_ms": 482,
+  "single_carton_feasible": false,
+  "primary_plan": {
+    "plan_index": 1,
+    "carton": {
+      "carton_id": "BOX-XL",
+      "display_name": "Extra Large Standard Carton",
+      "internal_dimensions_mm": {
+        "length_mm": 500,
+        "width_mm": 350,
+        "height_mm": 260
+      },
+      "tare_weight_g": 380,
+      "max_payload_g": 15000,
+      "box_cost_usd": 1.75
+    },
+    "metrics": {
+      "volume_utilization_pct": 74.2,
+      "total_items_packed": 4,
+      "actual_gross_weight_kg": 5.48,
+      "dim_weight_kg": 9.10,
+      "billable_weight_kg": 9.50,
+      "box_cost_usd": 1.75,
+      "void_fill_cost_usd": 0.45,
+      "shipping_cost_usd": 18.20,
+      "total_estimated_cost_usd": 20.40,
+      "center_of_mass_mm": {
+        "x": 240.0,
+        "y": 170.0,
+        "z": 110.0
+      }
+    },
+    "placements": [
+      {
+        "step_number": 1,
+        "item_id": "split_item_01",
+        "display_name": "Desktop Computer Monitor Stand",
+        "rotation_code": "LWH",
+        "position_mm": { "x": 0, "y": 0, "z": 0 },
+        "placed_dimensions_mm": { "dx": 380, "dy": 240, "dz": 110 },
+        "nominal_dimensions_mm": { "dx": 375, "dy": 235, "dz": 105 },
+        "support_ratio": 1.0,
+        "supported_by_item_ids": ["CARTON_FLOOR"],
+        "display_color_hex": "#3B82F6"
+      },
+      {
+        "step_number": 2,
+        "item_id": "split_item_02",
+        "display_name": "Mechanical Keyboard Box",
+        "rotation_code": "LWH",
+        "position_mm": { "x": 0, "y": 0, "z": 110 },
+        "placed_dimensions_mm": { "dx": 440, "dy": 160, "dz": 60 },
+        "nominal_dimensions_mm": { "dx": 435, "dy": 155, "dz": 55 },
+        "support_ratio": 0.85,
+        "supported_by_item_ids": ["split_item_01"],
+        "display_color_hex": "#10B981"
+      },
+      {
+        "step_number": 3,
+        "item_id": "split_item_03",
+        "display_name": "Audio Studio Interface",
+        "rotation_code": "LWH",
+        "position_mm": { "x": 0, "y": 165, "z": 110 },
+        "placed_dimensions_mm": { "dx": 230, "dy": 150, "dz": 70 },
+        "nominal_dimensions_mm": { "dx": 225, "dy": 145, "dz": 65 },
+        "support_ratio": 0.90,
+        "supported_by_item_ids": ["split_item_01"],
+        "display_color_hex": "#F59E0B"
+      },
+      {
+        "step_number": 4,
+        "item_id": "split_item_04",
+        "display_name": "Gaming Headset Retail Box",
+        "rotation_code": "LWH",
+        "position_mm": { "x": 235, "y": 165, "z": 110 },
+        "placed_dimensions_mm": { "dx": 220, "dy": 160, "dz": 130 },
+        "nominal_dimensions_mm": { "dx": 215, "dy": 155, "dz": 125 },
+        "support_ratio": 0.80,
+        "supported_by_item_ids": ["split_item_01"],
+        "display_color_hex": "#8B5CF6"
+      }
+    ],
+    "validation": {
+      "is_valid": true,
+      "boundary_check_passed": true,
+      "overlap_check_passed": true,
+      "rotation_check_passed": true,
+      "support_check_passed": true,
+      "fragility_check_passed": true,
+      "weight_check_passed": true,
+      "violations": [],
+      "warnings": []
+    }
+  },
+  "overflow_plans": [
+    {
+      "plan_index": 2,
+      "carton": {
+        "carton_id": "BOX-M",
+        "display_name": "Medium Standard Carton (Overflow)",
+        "internal_dimensions_mm": {
+          "length_mm": 300,
+          "width_mm": 220,
+          "height_mm": 150
+        },
+        "tare_weight_g": 160,
+        "max_payload_g": 8000,
+        "box_cost_usd": 0.85
+      },
+      "metrics": {
+        "volume_utilization_pct": 54.8,
+        "total_items_packed": 2,
+        "actual_gross_weight_kg": 1.65,
+        "dim_weight_kg": 1.98,
+        "billable_weight_kg": 2.00,
+        "box_cost_usd": 0.85,
+        "void_fill_cost_usd": 0.15,
+        "shipping_cost_usd": 6.20,
+        "total_estimated_cost_usd": 7.20,
+        "center_of_mass_mm": { "x": 130.0, "y": 95.0, "z": 60.0 }
+      },
+      "placements": [
+        {
+          "step_number": 1,
+          "item_id": "split_item_05",
+          "display_name": "Wireless Mouse & Charging Mat",
+          "rotation_code": "LWH",
+          "position_mm": { "x": 0, "y": 0, "z": 0 },
+          "placed_dimensions_mm": { "dx": 200, "dy": 150, "dz": 60 },
+          "nominal_dimensions_mm": { "dx": 195, "dy": 145, "dz": 55 },
+          "support_ratio": 1.0,
+          "supported_by_item_ids": ["CARTON_FLOOR"],
+          "display_color_hex": "#06B6D4"
+        },
+        {
+          "step_number": 2,
+          "item_id": "split_item_06",
+          "display_name": "Webcam 4K Ultra Box",
+          "rotation_code": "LWH",
+          "position_mm": { "x": 0, "y": 0, "z": 60 },
+          "placed_dimensions_mm": { "dx": 140, "dy": 120, "dz": 75 },
+          "nominal_dimensions_mm": { "dx": 135, "dy": 115, "dz": 70 },
+          "support_ratio": 1.0,
+          "supported_by_item_ids": ["split_item_05"],
+          "display_color_hex": "#E11D48"
+        }
+      ],
+      "validation": {
+        "is_valid": true,
+        "boundary_check_passed": true,
+        "overlap_check_passed": true,
+        "rotation_check_passed": true,
+        "support_check_passed": true,
+        "fragility_check_passed": true,
+        "weight_check_passed": true,
+        "violations": [],
+        "warnings": []
+      }
+    }
+  ],
+  "unpacked_item_ids": [],
+  "infeasibility_diagnostics": null,
+  "candidate_carton_comparison": [
+    {
+      "carton_id": "BOX-XXL",
+      "feasible": false,
+      "rejection_reason": "Order items total length and volume cannot fit in a single BOX-XXL without crushing fragile audio equipment."
+    },
+    {
+      "carton_id": "MULTI_BOX_XL_PLUS_M",
+      "feasible": true,
+      "total_estimated_cost_usd": 27.60,
+      "volume_utilization_pct": 66.5,
+      "selected": true
+    }
+  ]
+}
