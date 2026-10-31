@@ -264,7 +264,7 @@ def run_stage_0b_fast_metrology(metadata: dict, golden_dir: Path, num_threads: i
             v2_item = next(x for x in metadata["v2_baseline_metrics"]["trials"][trial]["items"] if x["item_id"] == item)
             p0 = v2_item["fit_parameters"]
 
-            p_fit, score = fitter.fit_cuboid(p0, crops[item], max_iter=8)
+            p_fit, score = fitter.fit_cuboid(p0, crops[item], max_iter=5)
 
             pred_lwh = np.r_[sorted(p_fit[2:4], reverse=True), p_fit[4]]
             gt_lwh = np.r_[sorted(gt_dims[item][:2], reverse=True), gt_dims[item][2]]
