@@ -1,0 +1,16 @@
+{
+  "item_id": "order_2_topdown_paper",
+  "display_name": "Top Gia Premium Paper Tissue",
+  "category": "cosmetics_personal_care",
+  "visible_labels": [
+    "TOP GIA",
+    "KHAN GIAY CAO CAP"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "low",
+  "fragility_source": "ai_inferred_packaging",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Soft tissue pack low risk"
+}

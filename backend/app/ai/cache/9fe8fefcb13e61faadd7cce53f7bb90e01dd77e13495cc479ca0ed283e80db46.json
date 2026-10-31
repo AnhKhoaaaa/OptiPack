@@ -1,0 +1,15 @@
+{
+  "item_id": "order_3_topdown_paper",
+  "display_name": "Top Gia tissue pack",
+  "category": "generic_carton",
+  "visible_labels": [
+    "TOP GIA"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "low",
+  "fragility_source": "ai_inferred_packaging",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Tissue pack no fragile marks"
+}
