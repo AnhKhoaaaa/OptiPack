@@ -76,3 +76,4 @@ def test_gate_0d_end_to_end_autonomous_metrology(metadata):
     assert res["mae_h"] <= 12.00
     assert res["mean_pair_latency_ms"] <= 800.0
     assert REPORT_FILE.exists()
+
