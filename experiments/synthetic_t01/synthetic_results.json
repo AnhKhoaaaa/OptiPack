@@ -1,0 +1,33 @@
+{
+  "dataset_type": "synthetic",
+  "real_world_phase0_pass": false,
+  "synthetic_regression_pass": true,
+  "marker_counts": [
+    4,
+    4
+  ],
+  "reprojection_rmse_px": [
+    0.30856979044322036,
+    0.6125235440967011
+  ],
+  "prediction_mm": {
+    "length_mm": 196.97632534488048,
+    "width_mm": 135.65757655478944,
+    "height_mm": 105.25,
+    "two_view_corner_alignment_rms_mm": 1.231805378572514
+  },
+  "ground_truth_mm": {
+    "length_mm": 200,
+    "width_mm": 140,
+    "height_mm": 105
+  },
+  "absolute_errors_mm": {
+    "length_mm": 3.023674655119521,
+    "width_mm": 4.342423445210557,
+    "height_mm": 0.25
+  },
+  "footprint_mae_mm": 3.683049050165039,
+  "height_mae_mm": 0.25,
+  "cpu_latency_ms_per_pair": 81.50240001850761,
+  "limitations": "Single colored synthetic box; known intrinsics; no real photos, printed board or multi-object segmentation."
+}

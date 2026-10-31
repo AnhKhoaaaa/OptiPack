@@ -10,6 +10,31 @@ Given an order of multiple distinct items captured at a controlled packing bench
 
 ---
 
+## T01 final research selection (2026-10-30)
+
+**Selected experiment:** V2 silhouette-constrained 3D cuboid fitting plus
+free-tangential-distortion calibration. On the original eight development
+photos: L/W MAE **7.723 mm**, H MAE **5.898 mm**, and pose **8/8** at
+RMSE <=2.5 px. Compare original V2 **7.909/6.119 mm** and **7/8** poses.
+**This does not mean physical T01 passed.** Human object ROIs, in-sample
+calibration and slow CPU inference remain; the metrology backend is still
+not connected to the selected research method.
+
+**One entrypoint:**
+
+```powershell
+.\.venv\Scripts\python.exe -m experiments.real_t01.selected_pipeline
+.\.venv\Scripts\python.exe experiments\real_t01\generate_report.py
+```
+
+Read [the curated experiment overview](experiments/real_t01/README.md)
+and [T01 report](experiments/real_t01/REPORT.md) before reviewing or merging.
+Use `--calibration baseline` to compare against the original K. FastSAM-s,
+Huber, LSD, reduced GrabCut iterations and plain homography proposals
+were rejected as default replacements; their findings remain documented.
+
+---
+
 ## 1. Team Module Ownership & Responsibilities
 
 | Role | Module Directory | Primary Responsibilities | Phase 0 Gate Script |
@@ -88,6 +113,8 @@ Before full integration, each team member runs and iterates on their Phase 0 fea
    python experiments/phase0_cv_metrology.py
    ```
    - *Target:* Reprojection error $\le 2.5\text{ px}$, Footprint MAE $\le 8\text{ mm}$, Height MAE $\le 12\text{ mm}$.
+   - *Real captures:* [`experiments/real_t01/REPORT.md`](experiments/real_t01/REPORT.md) documents eight RGB photos and five ground-truth items. Real T01 gate is **NOT PASSED**; this script now audits both synthetic and real data by default. Select `--dataset synthetic` or `--dataset real` to run one.
+   - *Paper & method:* [`RESEARCH_DECISION.md`](experiments/real_t01/RESEARCH_DECISION.md) explains the CubeSLAM-inspired edge-constrained cuboid fit, official paper/code sources, provenance, and limits; [`real_t01/README.md`](experiments/real_t01/README.md) contains reproducible commands. Exploratory **two-view** before/after: v1 L/W **12.39 mm**, H **8.88 mm**; v2 (silhouette constraints) L/W **7.91 mm**, H **6.12 mm**. Both require **manual ROIs** and provisional intrinsics; T01 remains **NOT PASSED**.
 
 2. **Member 2 (AI & Meta API):**
    ```bash

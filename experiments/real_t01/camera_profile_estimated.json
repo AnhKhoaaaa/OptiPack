@@ -1,0 +1,46 @@
+{
+  "source": "self-calibration from same 8 T01 captures (NOT independently calibrated)",
+  "status": "estimated_not_verified",
+  "landscape_orientation": "portrait files rotated 90deg clockwise",
+  "image_size_px": [
+    4032,
+    3024
+  ],
+  "camera_matrix": [
+    [
+      3099.284584261449,
+      0.0,
+      2016.0
+    ],
+    [
+      0.0,
+      3113.0368629399954,
+      1512.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "distortion": [
+    0.0365291637233428,
+    -0.054947074235684235,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "training_frames": 8,
+  "in_sample_rms_px": 1.8603086910142086,
+  "per_view_reprojection_rmse_px": {
+    "Trial01_Oblique.JPG": 1.929870843887329,
+    "Trial01_topdown.JPG": 1.0093722343444824,
+    "Trial02_leftside.JPG": 1.8449264764785767,
+    "Trial02_Oblique.JPG": 2.4318130016326904,
+    "Trial02_rightside.JPG": 2.24763560295105,
+    "Trial02_topdown.JPG": 0.922532320022583,
+    "Trial03_Oblique.JPG": 2.6638224124908447,
+    "Trial03_topdown.JPG": 0.7916596531867981
+  },
+  "limitations": "Planar board; same captures used in fit and scoring; geometry/marker printed 100% assumed; camera zoom/intrinsics consistency not independently verified."
+}

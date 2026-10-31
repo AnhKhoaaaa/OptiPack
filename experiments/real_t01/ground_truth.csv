@@ -1,0 +1,6 @@
+item_id,display_name,length_mm,width_mm,height_mm,source_units,source_note
+white,Màu trắng,135,45,65,cm,User 13.5 x 4.5 x 6.5
+gocheck,GoCheck,65,65,30,cm,User 6.5 x 6.5 x 3
+black,Hộp đen,140,45,70,cm,User 14 x 4.5 x 7
+paper,Giấy (TOP GIA),140,80,50,cm,User 14 x 8 x 5
+wood,Gỗ,75,45,35,cm,User 7.5 x 4.5 x 3.5

@@ -1,0 +1,409 @@
+{
+  "dataset": "real",
+  "ground_truth_units": "mm (user input interpreted from cm)",
+  "intrinsics_source": "self-calibrated from SAME image set; independent calibration unavailable",
+  "object_localization": "manual ROI labels + GrabCut; NOT fully automated",
+  "XY_measurement": "experimental Z=prior H raycast of top-view silhouette (not full box corner measurement)",
+  "height_measurement": "manual confirmation required; no valid automated H estimate",
+  "real_world_t01_gate": "NOT_PASSED",
+  "reason": "No independent intrinsics/fully automatic multi-object dimension estimator or validated two-view H; in-sample calibration and manual ROI not a T01 end-to-end pass.",
+  "images_analyzed": 8,
+  "top_views_with_xy": 3,
+  "marker_detection_rate": 1.0,
+  "pose_quality_threshold_rate": 0.875,
+  "observed_xy_mae_mm": 24.733150334177715,
+  "height_mae_mm": null,
+  "view_diagnostics": [
+    {
+      "image": "Trial01_Oblique.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": true,
+      "reprojection_rmse_px": 1.9298797274400847,
+      "pose_time_ms": 122.40980000933632,
+      "pose_valid": true,
+      "warnings": []
+    },
+    {
+      "image": "Trial01_topdown.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": true,
+      "reprojection_rmse_px": 1.009361339586066,
+      "pose_time_ms": 102.7440000034403,
+      "pose_valid": true,
+      "warnings": []
+    },
+    {
+      "image": "Trial02_Oblique.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": true,
+      "reprojection_rmse_px": 2.4317939809720865,
+      "pose_time_ms": 71.19170000078157,
+      "pose_valid": true,
+      "warnings": []
+    },
+    {
+      "image": "Trial02_leftside.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": true,
+      "reprojection_rmse_px": 1.844927249341699,
+      "pose_time_ms": 74.71449999138713,
+      "pose_valid": true,
+      "warnings": []
+    },
+    {
+      "image": "Trial02_rightside.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": true,
+      "reprojection_rmse_px": 2.2476151206323394,
+      "pose_time_ms": 63.28699999721721,
+      "pose_valid": true,
+      "warnings": []
+    },
+    {
+      "image": "Trial02_topdown.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": true,
+      "reprojection_rmse_px": 0.9225200882593129,
+      "pose_time_ms": 226.4902000024449,
+      "pose_valid": true,
+      "warnings": []
+    },
+    {
+      "image": "Trial03_Oblique.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": false,
+      "reprojection_rmse_px": 2.663798295863456,
+      "pose_time_ms": 206.3435999734793,
+      "pose_valid": true,
+      "warnings": [
+        "Pose quality below Phase 0 threshold"
+      ]
+    },
+    {
+      "image": "Trial03_topdown.JPG",
+      "detected_marker_count": 4,
+      "pose_accepted_by_detector": true,
+      "reprojection_rmse_px": 0.7916592754313516,
+      "pose_time_ms": 251.98490000911988,
+      "pose_valid": true,
+      "warnings": []
+    }
+  ],
+  "object_baseline_diagnostics": [
+    {
+      "trial": "Trial01",
+      "image": "Trial01_topdown.JPG",
+      "item_id": "wood",
+      "mask_coverage_ratio": 0.4653606102635229,
+      "length_mm": 105.59445763587085,
+      "width_mm": 54.70659282283128,
+      "height_prior_mm": 21.882637129132515,
+      "uncorrected_length_mm": 110.04040674932786,
+      "uncorrected_width_mm": 57.00995924287237,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 195.4420999973081,
+      "ground_truth_mm": {
+        "length_mm": 75.0,
+        "width_mm": 45.0,
+        "height_mm": 35.0
+      },
+      "absolute_error_length_mm": 30.594457635870853,
+      "absolute_error_width_mm": 9.706592822831283
+    },
+    {
+      "trial": "Trial01",
+      "image": "Trial01_topdown.JPG",
+      "item_id": "white",
+      "mask_coverage_ratio": 0.43343073593073594,
+      "length_mm": 178.56060480025354,
+      "width_mm": 55.79389345024872,
+      "height_prior_mm": 22.317557380099487,
+      "uncorrected_length_mm": 186.24157079409864,
+      "uncorrected_width_mm": 58.19392451384738,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 310.59119998826645,
+      "ground_truth_mm": {
+        "length_mm": 135.0,
+        "width_mm": 45.0,
+        "height_mm": 65.0
+      },
+      "absolute_error_length_mm": 43.56060480025354,
+      "absolute_error_width_mm": 10.793893450248717
+    },
+    {
+      "trial": "Trial01",
+      "image": "Trial01_topdown.JPG",
+      "item_id": "gocheck",
+      "mask_coverage_ratio": 0.3698717256278693,
+      "length_mm": 90.39359895167648,
+      "width_mm": 80.86434112171295,
+      "height_prior_mm": 32.34573644868518,
+      "uncorrected_length_mm": 96.26925194079641,
+      "uncorrected_width_mm": 86.12058507189585,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 377.0790000271518,
+      "ground_truth_mm": {
+        "length_mm": 65.0,
+        "width_mm": 65.0,
+        "height_mm": 30.0
+      },
+      "absolute_error_length_mm": 25.39359895167648,
+      "absolute_error_width_mm": 15.864341121712954
+    },
+    {
+      "trial": "Trial01",
+      "image": "Trial01_topdown.JPG",
+      "item_id": "black",
+      "mask_coverage_ratio": 0.5233775510204082,
+      "length_mm": 154.2525832767681,
+      "width_mm": 81.25152464357116,
+      "height_prior_mm": 32.500609857428465,
+      "uncorrected_length_mm": 164.3338393636222,
+      "uncorrected_width_mm": 86.56175938958813,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 229.1294999886304,
+      "ground_truth_mm": {
+        "length_mm": 140.0,
+        "width_mm": 45.0,
+        "height_mm": 70.0
+      },
+      "absolute_error_length_mm": 14.252583276768092,
+      "absolute_error_width_mm": 36.25152464357116
+    },
+    {
+      "trial": "Trial01",
+      "image": "Trial01_topdown.JPG",
+      "item_id": "paper",
+      "mask_coverage_ratio": 0.5983073089700996,
+      "length_mm": 153.53687294911626,
+      "width_mm": 96.45914813404613,
+      "height_prior_mm": 38.58365925361846,
+      "uncorrected_length_mm": 165.772203992375,
+      "uncorrected_width_mm": 104.14596359994353,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 384.0151999902446,
+      "ground_truth_mm": {
+        "length_mm": 140.0,
+        "width_mm": 80.0,
+        "height_mm": 50.0
+      },
+      "absolute_error_length_mm": 13.536872949116258,
+      "absolute_error_width_mm": 16.45914813404613
+    },
+    {
+      "trial": "Trial02",
+      "image": "Trial02_topdown.JPG",
+      "item_id": "wood",
+      "mask_coverage_ratio": 0.3371016330636531,
+      "length_mm": 88.4554358603297,
+      "width_mm": 65.95275333299065,
+      "height_prior_mm": 26.381101333196263,
+      "uncorrected_length_mm": 92.32202019700662,
+      "uncorrected_width_mm": 68.83569524060525,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 1553.144000004977,
+      "ground_truth_mm": {
+        "length_mm": 75.0,
+        "width_mm": 45.0,
+        "height_mm": 35.0
+      },
+      "absolute_error_length_mm": 13.4554358603297,
+      "absolute_error_width_mm": 20.952753332990653
+    },
+    {
+      "trial": "Trial02",
+      "image": "Trial02_topdown.JPG",
+      "item_id": "white",
+      "mask_coverage_ratio": 0.44296756383712904,
+      "length_mm": 152.45945174188552,
+      "width_mm": 98.0754012450106,
+      "height_prior_mm": 39.23016049800424,
+      "uncorrected_length_mm": 162.83770243129106,
+      "uncorrected_width_mm": 104.75160983001831,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 2010.9265000210144,
+      "ground_truth_mm": {
+        "length_mm": 135.0,
+        "width_mm": 45.0,
+        "height_mm": 65.0
+      },
+      "absolute_error_length_mm": 17.459451741885516,
+      "absolute_error_width_mm": 53.075401245010596
+    },
+    {
+      "trial": "Trial02",
+      "image": "Trial02_topdown.JPG",
+      "item_id": "gocheck",
+      "mask_coverage_ratio": 0.28493009659379764,
+      "length_mm": 88.88908214901238,
+      "width_mm": 80.3285053342741,
+      "height_prior_mm": 32.13140213370964,
+      "uncorrected_length_mm": 93.71832177340593,
+      "uncorrected_width_mm": 84.69265885628116,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 2546.1312000115868,
+      "ground_truth_mm": {
+        "length_mm": 65.0,
+        "width_mm": 65.0,
+        "height_mm": 30.0
+      },
+      "absolute_error_length_mm": 23.88908214901238,
+      "absolute_error_width_mm": 15.328505334274098
+    },
+    {
+      "trial": "Trial02",
+      "image": "Trial02_topdown.JPG",
+      "item_id": "black",
+      "mask_coverage_ratio": 0.47698916861826696,
+      "length_mm": 157.48243412225605,
+      "width_mm": 95.43843226124804,
+      "height_prior_mm": 38.17537290449922,
+      "uncorrected_length_mm": 167.87360526672222,
+      "uncorrected_width_mm": 101.73575099977026,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 945.3367000096478,
+      "ground_truth_mm": {
+        "length_mm": 140.0,
+        "width_mm": 45.0,
+        "height_mm": 70.0
+      },
+      "absolute_error_length_mm": 17.482434122256052,
+      "absolute_error_width_mm": 50.43843226124804
+    },
+    {
+      "trial": "Trial02",
+      "image": "Trial02_topdown.JPG",
+      "item_id": "paper",
+      "mask_coverage_ratio": 0.4737439261418853,
+      "length_mm": 155.6986084624675,
+      "width_mm": 123.65103662440535,
+      "height_prior_mm": 49.46041464976214,
+      "uncorrected_length_mm": 169.59674373872483,
+      "uncorrected_width_mm": 134.68850735729052,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 3052.149700000882,
+      "ground_truth_mm": {
+        "length_mm": 140.0,
+        "width_mm": 80.0,
+        "height_mm": 50.0
+      },
+      "absolute_error_length_mm": 15.69860846246749,
+      "absolute_error_width_mm": 43.65103662440535
+    },
+    {
+      "trial": "Trial03",
+      "image": "Trial03_topdown.JPG",
+      "item_id": "wood",
+      "mask_coverage_ratio": 0.41945781573498964,
+      "length_mm": 125.95872477400448,
+      "width_mm": 65.59861480143817,
+      "height_prior_mm": 26.23944592057527,
+      "uncorrected_length_mm": 132.36757586275002,
+      "uncorrected_width_mm": 68.93630938865076,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 1620.2284000173677,
+      "ground_truth_mm": {
+        "length_mm": 75.0,
+        "width_mm": 45.0,
+        "height_mm": 35.0
+      },
+      "absolute_error_length_mm": 50.95872477400448,
+      "absolute_error_width_mm": 20.598614801438174
+    },
+    {
+      "trial": "Trial03",
+      "image": "Trial03_topdown.JPG",
+      "item_id": "white",
+      "mask_coverage_ratio": 0.43074361628709457,
+      "length_mm": 157.14809037551467,
+      "width_mm": 93.81431444386874,
+      "height_prior_mm": 37.5257257775475,
+      "uncorrected_length_mm": 169.14369570740985,
+      "uncorrected_width_mm": 100.97545453702443,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 1018.1253000046127,
+      "ground_truth_mm": {
+        "length_mm": 135.0,
+        "width_mm": 45.0,
+        "height_mm": 65.0
+      },
+      "absolute_error_length_mm": 22.14809037551467,
+      "absolute_error_width_mm": 48.81431444386874
+    },
+    {
+      "trial": "Trial03",
+      "image": "Trial03_topdown.JPG",
+      "item_id": "gocheck",
+      "mask_coverage_ratio": 0.44566231066231066,
+      "length_mm": 87.46140363993537,
+      "width_mm": 68.44702181304926,
+      "height_prior_mm": 27.378808725219706,
+      "uncorrected_length_mm": 92.12646623687255,
+      "uncorrected_width_mm": 72.09788525729886,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 1091.216800006805,
+      "ground_truth_mm": {
+        "length_mm": 65.0,
+        "width_mm": 65.0,
+        "height_mm": 30.0
+      },
+      "absolute_error_length_mm": 22.46140363993537,
+      "absolute_error_width_mm": 3.447021813049261
+    },
+    {
+      "trial": "Trial03",
+      "image": "Trial03_topdown.JPG",
+      "item_id": "black",
+      "mask_coverage_ratio": 0.3125013896609227,
+      "length_mm": 166.924251269781,
+      "width_mm": 58.76770403697218,
+      "height_prior_mm": 23.507081614788873,
+      "uncorrected_length_mm": 174.4492804456695,
+      "uncorrected_width_mm": 61.4169816830553,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 994.695600005798,
+      "ground_truth_mm": {
+        "length_mm": 140.0,
+        "width_mm": 45.0,
+        "height_mm": 70.0
+      },
+      "absolute_error_length_mm": 26.924251269780996,
+      "absolute_error_width_mm": 13.767704036972177
+    },
+    {
+      "trial": "Trial03",
+      "image": "Trial03_topdown.JPG",
+      "item_id": "paper",
+      "mask_coverage_ratio": 0.30233258928571427,
+      "length_mm": 164.84766548841395,
+      "width_mm": 100.18196046237844,
+      "height_prior_mm": 40.07278418495138,
+      "uncorrected_length_mm": 178.43806675932046,
+      "uncorrected_width_mm": 108.44117989843116,
+      "height_method": "category_aspect_prior_needs_user_review",
+      "requires_user_review": true,
+      "segmentation_and_xy_ms": 1443.1698999833316,
+      "ground_truth_mm": {
+        "length_mm": 140.0,
+        "width_mm": 80.0,
+        "height_mm": 50.0
+      },
+      "absolute_error_length_mm": 24.847665488413952,
+      "absolute_error_width_mm": 20.18196046237844
+    }
+  ]
+}

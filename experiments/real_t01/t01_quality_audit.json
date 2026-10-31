@@ -1,0 +1,125 @@
+{
+  "status": "NOT_PASSED",
+  "reason": "Research/development-set benchmark, NOT production T01 acceptance",
+  "criteria": {
+    "marker_detected": {
+      "rate": 1.0,
+      "threshold": 0.9,
+      "meets_numeric_threshold": true
+    },
+    "pose_reprojection": {
+      "rate": 0.875,
+      "threshold": 0.9,
+      "meets_numeric_threshold": false
+    },
+    "xy_mae": {
+      "mm": 7.908936355332892,
+      "threshold_mm": 8.0,
+      "meets_development_mean": true
+    },
+    "h_mae": {
+      "mm": 6.11948568392458,
+      "threshold_mm": 12.0,
+      "meets_development_mean": true
+    },
+    "cpu_pair": {
+      "threshold_ms": 800,
+      "meets": false,
+      "observed_wall_ms_by_pair": {
+        "Trial01": 12411.396100011189,
+        "Trial02": 38100.450300000375,
+        "Trial03": 10826.308599993354
+      }
+    },
+    "fully_automatic_multiobject": {
+      "meets": false,
+      "evidence": "Manually supplied ROIs + GrabCut"
+    },
+    "independent_camera_calibration": {
+      "meets": false
+    },
+    "independent_holdout_session": {
+      "meets": false
+    },
+    "production_backend_integration": {
+      "meets": false
+    }
+  },
+  "uncertain_label_sensitivity": {
+    "unverified_case": {
+      "trial": "Trial01",
+      "item_id": "black"
+    },
+    "xy_mae_mm_excluding_case": 8.26981262132763,
+    "remaining_cases": 14,
+    "note": "Diagnostic only: exclusion does not correct ground truth. Confirm actual object identity/dimensions."
+  },
+  "per_trial": {
+    "Trial01": {
+      "xy_mae_mm": 4.530524920545528,
+      "h_mae_mm": 4.205245505748488,
+      "wall_ms_five_objects": 12411.396100011189
+    },
+    "Trial02": {
+      "xy_mae_mm": 11.179614994910256,
+      "h_mae_mm": 9.605159064348946,
+      "wall_ms_five_objects": 38100.450300000375
+    },
+    "Trial03": {
+      "xy_mae_mm": 8.01666915054289,
+      "h_mae_mm": 4.548052481676311,
+      "wall_ms_five_objects": 10826.308599993354
+    }
+  },
+  "worst_five_xy_errors": [
+    {
+      "trial": "Trial03",
+      "item": "wood",
+      "xy_abs_error_mean_mm": 16.161352481278733,
+      "h_abs_error_mm": 1.443248123728445
+    },
+    {
+      "trial": "Trial02",
+      "item": "gocheck",
+      "xy_abs_error_mean_mm": 15.205607279845239,
+      "h_abs_error_mm": 15.0
+    },
+    {
+      "trial": "Trial02",
+      "item": "wood",
+      "xy_abs_error_mean_mm": 14.026009841920455,
+      "h_abs_error_mm": 20.0
+    },
+    {
+      "trial": "Trial02",
+      "item": "black",
+      "xy_abs_error_mean_mm": 10.704183486661385,
+      "h_abs_error_mm": 1.265353119592092
+    },
+    {
+      "trial": "Trial03",
+      "item": "white",
+      "xy_abs_error_mean_mm": 8.949354341313907,
+      "h_abs_error_mm": 5.596090773859345
+    }
+  ],
+  "limitations": [
+    "manual ROIs",
+    "same-session intrinsic calibration",
+    "uncertain 'black' identity and GT units",
+    "unvalidated marker printed size",
+    "wall-time not controlled benchmark",
+    "absence of held-out captures"
+  ],
+  "experimental_fast_pose": {
+    "available": true,
+    "best_tested_conservative_variant": "scale0.5_iterative",
+    "does_not_resolve_current_pose_failure": true,
+    "stats": {
+      "pose_pass_count": 7,
+      "marker_4_count": 8,
+      "median_ms_per_image": 49.16,
+      "max_camera_center_drift_mm": 0.0249
+    }
+  }
+}

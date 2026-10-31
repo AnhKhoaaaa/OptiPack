@@ -1,0 +1,54 @@
+{
+  "asset_policy": "public repo stores pixel-identical JPEGs without GPS/XMP/IPTC; retains minimal EXIF orientation when required",
+  "images": {
+    "Trial01_Oblique.JPG": {
+      "bytes": 3180121,
+      "drive_id": "1p39tlASzDLrM03Zn4Ib0VmI9JweG1sVr",
+      "sha256": "91e500e7ed996e7cbe57a4d30d5401e93dff0de4cf752bbd2fc1533f72a1e454",
+      "source_sha256": "89d74913862871038bde5cfd1c38b6c4a22fa8db916ccd96a84a5bc58a6c61cd"
+    },
+    "Trial01_topdown.JPG": {
+      "bytes": 3342108,
+      "drive_id": "1rlB2YO_fGCcQKOev9-OcBROqmuv9Dv2g",
+      "sha256": "0560ce188b8a15b117e928e95275b86b26693534978fbfde184c974a9ae2f263",
+      "source_sha256": "518f3eaae7ca5e826886457d7142f79eb61c27a1668a51daad0c4710bd17336e"
+    },
+    "Trial02_Oblique.JPG": {
+      "bytes": 2730543,
+      "drive_id": "1fd8i9D73cIqFDRKuRPLJaNkB69kopzwL",
+      "sha256": "2bccba2b880d3248664bef9ba1898178f0ce7be0bb5e34da813a4d833fd1db81",
+      "source_sha256": "e33fd9e2bb2c7e10ad74f5761557e840848c1f3de143cf1917eadf3581573403"
+    },
+    "Trial02_leftside.JPG": {
+      "bytes": 2813039,
+      "drive_id": "12QRGXOVAFyIoTUao2uD5tOi3Unjh-tEC",
+      "sha256": "993f24ad0c756c8609990900ac0a4e36b92df0acf4bf45ac72ce45571469aee8",
+      "source_sha256": "057f243b55c0784a6405509f1cca07727e23fa4c9d44772d3e3b9a87fc643b49"
+    },
+    "Trial02_rightside.JPG": {
+      "bytes": 2692435,
+      "drive_id": "11VW58hBhnNL39PINMMnK9ORu9ondmOPX",
+      "sha256": "6fc450f2218915cb7dda00c29ce98da4a3c4d577c2a16ad35a210c7ab5e6a9d0",
+      "source_sha256": "d0cd96f03b81551484999619a2253625d486b7d20c073926d82528f1ff830098"
+    },
+    "Trial02_topdown.JPG": {
+      "bytes": 3026000,
+      "drive_id": "1PXuKw9ojyREMXhn6mVvHp8iB7IWXnaOP",
+      "sha256": "b9a549eb1cfe64834c1fbaaeeafeafcf4013894ade78285fe9c86bc6bb244544",
+      "source_sha256": "b16587a6ccd8ac56572d2ee8961c09434d949e6e79af1fca7afb1ac34d9d32e4"
+    },
+    "Trial03_Oblique.JPG": {
+      "bytes": 2711360,
+      "drive_id": "1TyKaqbp0_5TYnB6YztLX0wdM4NIPkT7s",
+      "sha256": "c18179db9ca8de2c6ebbfa23bb6af9a0d605e2eff733bd539e0f9a5c256423aa",
+      "source_sha256": "e7c92f5f070b44c6ba457d6e4d047b709d892b07bd97937a16db6e4346926cf0"
+    },
+    "Trial03_topdown.JPG": {
+      "bytes": 2999150,
+      "drive_id": "1fpYQ5E6uw22ZtHKHZbX9bJFHN2dVwwbh",
+      "sha256": "ba8b21a6c1ac070f60f32ba8ee3182c18e10d6bab5a4a0d87d670f1ee52cd53a",
+      "source_sha256": "d3a1daa7ac274f4654758dc5286217a9413e92f8ad2aba1f643818743cdafe7e"
+    }
+  },
+  "source_folder": "https://drive.google.com/drive/folders/1_rKzBn4uuPKspFRDF7G_TwtU255h-xeG"
+}
