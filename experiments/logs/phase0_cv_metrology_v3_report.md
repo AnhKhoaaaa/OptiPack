@@ -13,7 +13,7 @@ All four gate stages (0A Freeze Baseline, 0B Fast SDF Metrology, 0C Auto-Segment
 | :--- | :--- | :--- | :--- |
 | **MAE(L, W)** | $\le 8.00\text{ mm}$ | **7.48 mm** | **PASS** |
 | **MAE(H)** | $\le 12.00\text{ mm}$ | **10.30 mm** | **PASS** |
-| **CPU Latency per Pair** | $\le 800.0\text{ ms}$ | **439.7 ms** | **PASS** |
+| **CPU Latency per Pair** | $\le 800.0\text{ ms}$ | **465.9 ms** | **PASS** |
 | **Autonomous Operation** | $100\%$ (0 Manual ROI) | **100% Autonomous** | **PASS** |
 | **Two-View Matching Rate** | $15/15$ items ($100\%$) | **15/15 (100%)** | **PASS** |
 | **Floor Shadows / Refl. False Positives** | $\text{FP} = 0$ | **0 FP** | **PASS** |

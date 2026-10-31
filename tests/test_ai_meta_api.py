@@ -14,6 +14,7 @@ from unittest.mock import patch, MagicMock
 import httpx
 
 from backend.app.ai.meta_client import (
+    analyze_items_with_muse_spark,
     extract_item_semantics_muse,
     parse_sam31_response,
     MUSE_ITEM_SEMANTIC_SCHEMA,
@@ -61,8 +62,9 @@ def test_user_role_only_vision_payload():
 
     with patch.dict(os.environ, {"MODEL_API_KEY": "mock_api_key_for_testing"}):
         with patch("backend.app.ai.meta_client.get_cached_response", return_value=None):
-            with patch("backend.app.ai.meta_client.get_sync_http_client", return_value=mock_client):
-                extract_item_semantics_muse(dummy_bytes, item_id="item_test")
+            with patch("backend.app.ai.meta_client.store_cached_response"):
+                with patch("backend.app.ai.meta_client.get_sync_http_client", return_value=mock_client):
+                    extract_item_semantics_muse(dummy_bytes, item_id="item_test")
 
                 assert mock_client.post.called
                 call_kwargs = mock_client.post.call_args[1]
@@ -171,3 +173,136 @@ def test_sam31_regex_parser():
     assert det1["bbox_xyxy"] == [150, 60, 350, 260]
     assert det1["mask_origin_xy"] == (150, 60)
     assert det1["mask_b64_data"] == "BBBB"
+
+
+@pytest.mark.asyncio
+async def test_batch_muse_disk_cache_fast_path():
+    """Verify that batch analysis immediately resolves from disk cache without network requests."""
+    cached_payload = {
+        "item_id": "box_cached_01",
+        "display_name": "Cached Sennheiser Box",
+        "category": "electronics_boxed",
+        "visible_labels": ["Sennheiser"],
+        "printed_weight_g": None,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 3000,
+        "reasoning_note": "Cache hit test",
+    }
+
+    dummy_crop_bytes = b"sample_crop_bytes_12345"
+
+    with patch("backend.app.ai.meta_client.get_cached_response", return_value=cached_payload):
+        with patch("backend.app.ai.meta_client.get_async_http_client") as mock_async_client:
+            res = await analyze_items_with_muse_spark(
+                overview_image_bytes=b"overview_bytes",
+                item_crops=[{"item_id": "box_cached_01", "crop_bytes": dummy_crop_bytes, "dims_mm": (100, 100, 50)}],
+            )
+
+            assert res["status"] == "cached"
+            assert res["fallback_activated"] is False
+            assert "box_cached_01" in res["items"]
+            item_attrs = res["items"]["box_cached_01"]
+            assert item_attrs["fragility_class"] == "medium"
+            assert item_attrs["fragility_source"] == "default_safe"
+            assert item_attrs["stackable"] is True
+            # Async HTTP client should never be invoked when all items are in cache
+            assert not mock_async_client.called
+
+
+@pytest.mark.asyncio
+async def test_batch_muse_demo_item_fallback():
+    """Verify perceptual demo item fallback returns rich domain semantics offline."""
+    with patch.dict(os.environ, {"MODEL_API_KEY": ""}):
+        res = await analyze_items_with_muse_spark(
+            overview_image_bytes=b"overview_bytes",
+            item_crops=[
+                {"item_id": "item_gocheck", "name": "GoChek Mic", "crop_bytes": b"noise_bytes_gocheck"},
+                {"item_id": "order_3_topdown_wood", "crop_bytes": b"noise_bytes_wood"},
+                {"item_id": "item_tissue_paper", "name": "Top Gia Paper", "crop_bytes": b"noise_bytes_paper"},
+            ],
+        )
+
+        assert res["status"] == "fallback"
+        items = res["items"]
+        assert "item_gocheck" in items
+        assert items["item_gocheck"]["fragility_class"] == "medium"
+        assert "order_3_topdown_wood" in items
+        assert items["order_3_topdown_wood"]["max_top_load_g"] == 3000
+        assert "item_tissue_paper" in items
+        assert items["item_tissue_paper"]["fragility_class"] == "low"
+
+
+@pytest.mark.asyncio
+async def test_batch_muse_partial_caching():
+    """Verify that when 1 item is cached and 1 is uncached, only uncached is sent to Meta API."""
+    cached_payload = {
+        "item_id": "cached_item_1",
+        "display_name": "Pre-warmed Item",
+        "category": "generic_carton",
+        "visible_labels": [],
+        "printed_weight_g": None,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 2000,
+        "reasoning_note": "from cache",
+    }
+
+    mock_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "output": [
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "output_text",
+                        "text": (
+                            '{"items":[{"item_id":"uncached_item_2","display_name":"New Item",'
+                            '"category":"generic_carton","visible_labels":[],"printed_weight_g":null,'
+                            '"fragility_class":"low","fragility_source":"default_safe","keep_upright":false,'
+                            '"orientation_source":"default_unconstrained","stackable":true,'
+                            '"reasoning_note":"newly analyzed"}]}'
+                        ),
+                    }
+                ],
+            }
+        ]
+    }
+    
+    async def async_post(*args, **kwargs):
+        return mock_resp
+
+    mock_client.post = async_post
+
+    def fake_get_cache(sha):
+        if sha == "hash_cached":
+            return cached_payload
+        return None
+
+    with patch.dict(os.environ, {"MODEL_API_KEY": "test_key"}):
+        with patch("backend.app.ai.meta_client.compute_image_sha256", side_effect=lambda b: "hash_cached" if b == b"bytes_cached" else "hash_uncached"):
+            with patch("backend.app.ai.meta_client.get_cached_response", side_effect=fake_get_cache):
+                with patch("backend.app.ai.meta_client.store_cached_response"):
+                    with patch("backend.app.ai.meta_client.get_async_http_client", return_value=mock_client):
+                        res = await analyze_items_with_muse_spark(
+                            overview_image_bytes=b"overview",
+                            item_crops=[
+                                {"item_id": "cached_item_1", "crop_bytes": b"bytes_cached"},
+                                {"item_id": "uncached_item_2", "crop_bytes": b"bytes_uncached"},
+                            ],
+                        )
+
+                        assert res["status"] == "success"
+                        assert "cached_item_1" in res["items"]
+                        assert "uncached_item_2" in res["items"]
+                        assert res["items"]["cached_item_1"]["fragility_class"] == "medium"
+                        assert res["items"]["uncached_item_2"]["fragility_class"] == "low"

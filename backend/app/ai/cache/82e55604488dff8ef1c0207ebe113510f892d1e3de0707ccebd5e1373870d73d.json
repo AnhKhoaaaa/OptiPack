@@ -7,9 +7,9 @@
   ],
   "printed_weight_g": null,
   "fragility_class": "unknown",
-  "fragility_source": "unknown",
+  "fragility_source": "default_safe",
   "keep_upright": true,
-  "orientation_source": "visible_label",
+  "orientation_source": "default_unconstrained",
   "stackable": false,
   "reasoning_note": "Teal carton shows THIS SIDE UP label, requiring upright orientation; no fragility or weight markings visible."
 }
