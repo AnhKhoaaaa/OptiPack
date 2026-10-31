@@ -1,0 +1,15 @@
+{
+  "item_id": "order_2_topdown_gocheck",
+  "display_name": "GoChek Device",
+  "category": "electronics_boxed",
+  "visible_labels": [
+    "GoChek"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Small black GoChek device"
+}

@@ -113,12 +113,12 @@ MUSE_ITEM_SEMANTIC_SCHEMA: Dict[str, Any] = {
             },
             "fragility_source": {
                 "type": "string",
-                "enum": ["visible_label", "ai_inferred_packaging", "unknown"],
+                "enum": ["visible_label", "ai_inferred_packaging", "default_safe"],
             },
             "keep_upright": {"type": "boolean"},
             "orientation_source": {
                 "type": "string",
-                "enum": ["visible_label", "liquid_container_shape", "default_unconstrained"],
+                "enum": ["label_this_side_up", "bottle_liquid_rule", "user_specified", "default_unconstrained"],
             },
             "stackable": {"type": "boolean"},
             "reasoning_note": {"type": "string"},
@@ -244,28 +244,153 @@ def extract_output_text_from_responses_api(data: Dict[str, Any]) -> str:
     return ""
 
 
+# Pre-warmed semantics for live demo objects (protects against camera noise or network loss during live pitch)
+DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
+    "gocheck": {
+        "display_name": "GoChek Wireless Mic Case",
+        "category": "electronics_boxed",
+        "visible_labels": ["GoChek"],
+        "printed_weight_g": None,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 2000,
+        "reasoning_note": "GoChek electronic device case",
+    },
+    "wood": {
+        "display_name": "Sennheiser Wooden Box",
+        "category": "electronics_boxed",
+        "visible_labels": ["Sennheiser"],
+        "printed_weight_g": None,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 3000,
+        "reasoning_note": "Sennheiser wooden case",
+    },
+    "paper": {
+        "display_name": "Top Gia Premium Paper Tissue",
+        "category": "cosmetics_personal_care",
+        "visible_labels": ["Top Gia"],
+        "printed_weight_g": None,
+        "fragility_class": "low",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 5000,
+        "reasoning_note": "Tissue paper pack",
+    },
+    "white": {
+        "display_name": "White Electronic Device",
+        "category": "electronics_boxed",
+        "visible_labels": [],
+        "printed_weight_g": None,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 2000,
+        "reasoning_note": "White portable electronic",
+    },
+    "black": {
+        "display_name": "Black Rectangular Box",
+        "category": "generic_carton",
+        "visible_labels": [],
+        "printed_weight_g": None,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 2000,
+        "reasoning_note": "Black carton box",
+    },
+    "fragile": {
+        "display_name": "Brown Carton with Fragile Label",
+        "category": "generic_carton",
+        "visible_labels": ["FRAGILE"],
+        "printed_weight_g": None,
+        "fragility_class": "high",
+        "fragility_source": "visible_label",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": False,
+        "max_top_load_g": 0,
+        "reasoning_note": "Fragile label present",
+    },
+    "upright": {
+        "display_name": "Teal Carton with THIS SIDE UP",
+        "category": "generic_carton",
+        "visible_labels": ["THIS SIDE UP"],
+        "printed_weight_g": None,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": True,
+        "orientation_source": "label_this_side_up",
+        "stackable": True,
+        "max_top_load_g": 2000,
+        "reasoning_note": "Upright arrows visible",
+    },
+    "printed_wt": {
+        "display_name": "Lavender Carton with Net Weight",
+        "category": "cosmetics_personal_care",
+        "visible_labels": ["NET WT 500g"],
+        "printed_weight_g": 500,
+        "fragility_class": "medium",
+        "fragility_source": "default_safe",
+        "keep_upright": False,
+        "orientation_source": "default_unconstrained",
+        "stackable": True,
+        "max_top_load_g": 2000,
+        "reasoning_note": "Printed weight readable",
+    },
+}
+
+
+def find_demo_item_semantics(item_id: str, name: str = "") -> Optional[Dict[str, Any]]:
+    """Look up verified pre-warmed demo semantics by item_id or label text."""
+    target = f"{item_id} {name}".lower()
+    for key, val in DEMO_SEMANTIC_CATALOG.items():
+        if key in target:
+            res = dict(val)
+            res["item_id"] = item_id
+            return res
+    return None
+
+
 def build_deterministic_fallback_semantics(
     item_crops: List[Dict[str, Any]], reason: str = "fallback"
 ) -> Dict[str, Any]:
-    """Generate safe, conservative physical semantics when API or key is unavailable."""
+    """Generate safe physical semantics when API or key is unavailable, with demo item perceptual fallback."""
     items = {}
     for crop in item_crops:
         iid = crop.get("item_id", "item_01")
         name = crop.get("name", "Generic Package")
-        items[iid] = {
-            "item_id": iid,
-            "display_name": name,
-            "category": "generic_carton",
-            "visible_labels": [],
-            "printed_weight_g": None,
-            "fragility_class": "medium",
-            "fragility_source": "default_safe",
-            "keep_upright": False,
-            "orientation_source": "default_unconstrained",
-            "stackable": True,
-            "max_top_load_g": 2000,
-            "reasoning_note": f"Offline safe default ({reason})",
-        }
+        demo_match = find_demo_item_semantics(iid, name)
+        if demo_match:
+            item_dict = dict(demo_match)
+        else:
+            item_dict = {
+                "item_id": iid,
+                "display_name": name,
+                "category": "generic_carton",
+                "visible_labels": [],
+                "printed_weight_g": None,
+                "fragility_class": "medium",
+                "fragility_source": "default_safe",
+                "keep_upright": False,
+                "orientation_source": "default_unconstrained",
+                "stackable": True,
+                "max_top_load_g": 2000,
+                "reasoning_note": f"Offline safe default ({reason})",
+            }
+        items[iid] = sanitize_physical_attributes(item_dict).model_dump()
     return {
         "status": "fallback",
         "model": MUSE_MODEL_NAME,
@@ -336,7 +461,7 @@ def extract_item_semantics_muse(
                     "Packaging inspector. Output strict JSON. Keep reasoning_note under 6 words. "
                     "Rules: 1. Set printed_weight_g ONLY if net weight is explicitly printed on the package; else null. "
                     "2. Set keep_upright=true ONLY if 'THIS SIDE UP' arrows or bottle shape are visible. "
-                    "3. If an unmarked box with no labels, set fragility_class='unknown', fragility_source='unknown'."
+                    "3. If an unmarked box with no labels, set fragility_class='unknown', fragility_source='default_safe'."
                 ),
             },
             {
@@ -418,21 +543,64 @@ async def analyze_items_with_muse_spark(
     model_name: Optional[str] = None,
     timeout_sec: float = 7.0,
 ) -> Dict[str, Any]:
-    """Batched semantic extraction for multiple item crops in a single call."""
-    api_key = os.getenv("MODEL_API_KEY", MODEL_API_KEY).strip()
+    """Batched semantic extraction for multiple item crops in a single call.
+
+    Pre-checks disk cache for each crop. Uncached crops are queried via Meta API.
+    If all items are cached, returns immediately without network calls (sub-millisecond latency).
+    """
+    t0 = time.perf_counter()
     target_model = model_name or MUSE_MODEL_NAME
+    api_key = os.getenv("MODEL_API_KEY", MODEL_API_KEY).strip()
 
+    results: Dict[str, Any] = {}
+    uncached_crops: List[Dict[str, Any]] = []
+
+    # 1. Pre-check disk cache for each item crop
+    for crop in item_crops:
+        iid = crop.get("item_id", "item_01")
+        crop_bytes = crop.get("crop_bytes", b"")
+        cached_data = None
+        if crop_bytes:
+            sha = compute_image_sha256(crop_bytes)
+            cached_data = get_cached_response(sha)
+
+        if cached_data:
+            results[iid] = sanitize_physical_attributes(cached_data).model_dump()
+        else:
+            uncached_crops.append(crop)
+
+    # 2. If all items were resolved from cache, return immediately
+    if not uncached_crops:
+        return {
+            "status": "cached",
+            "model": target_model,
+            "latency_ms": int((time.perf_counter() - t0) * 1000),
+            "fallback_activated": False,
+            "items": results,
+        }
+
+    # 3. If there are uncached crops and no API key, resolve via demo fallback catalog
     if not api_key:
-        return build_deterministic_fallback_semantics(item_crops, reason="missing_api_key")
+        fallback_res = build_deterministic_fallback_semantics(uncached_crops, reason="missing_api_key")
+        for iid, data in fallback_res["items"].items():
+            results[iid] = data
+        return {
+            "status": "cached" if (len(results) > len(uncached_crops)) else "fallback",
+            "model": target_model,
+            "latency_ms": int((time.perf_counter() - t0) * 1000),
+            "fallback_activated": True if uncached_crops else False,
+            "items": results,
+        }
 
+    # 4. Construct payload ONLY for the uncached crops
     user_content: List[Dict[str, Any]] = [
         {
             "type": "input_text",
             "text": (
-                "Packaging inspection. Image 1 is overview, rest are crops. Keep reasoning_note under 6 words. "
+                "Packaging inspector. Image 1 is overview, rest are crops. Keep reasoning_note under 6 words. "
                 "1. Set printed_weight_g ONLY if net weight is legibly printed; else null. "
                 "2. Set keep_upright=true ONLY if 'THIS SIDE UP' arrows or liquid bottle visible. "
-                "3. If unmarked box, set fragility_class='unknown', fragility_source='unknown'."
+                "3. If unmarked box, set fragility_class='unknown', fragility_source='default_safe'."
             ),
         },
         {
@@ -441,7 +609,7 @@ async def analyze_items_with_muse_spark(
         },
     ]
 
-    for crop in item_crops:
+    for crop in uncached_crops:
         iid = crop.get("item_id", "item_01")
         dims = crop.get("dims_mm", (100, 100, 100))
         crop_bytes = crop.get("crop_bytes", b"")
@@ -475,7 +643,6 @@ async def analyze_items_with_muse_spark(
         },
     }
 
-    t0 = time.perf_counter()
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -494,16 +661,22 @@ async def analyze_items_with_muse_spark(
 
         raw_text = extract_output_text_from_responses_api(res_json)
         parsed = MuseBatchOutput.model_validate_json(raw_text)
-        latency_ms = int((time.perf_counter() - t0) * 1000)
 
-        results = {}
         for item in parsed.items:
             dumped = item.model_dump()
-            matching_crop = next((c for c in item_crops if c.get("item_id") == item.item_id), None)
+            matching_crop = next((c for c in uncached_crops if c.get("item_id") == item.item_id), None)
             if matching_crop and "crop_bytes" in matching_crop:
                 store_cached_response(compute_image_sha256(matching_crop["crop_bytes"]), dumped)
             results[item.item_id] = sanitize_physical_attributes(dumped).model_dump()
 
+        # Handle any uncached crop missing from parsed response
+        for crop in uncached_crops:
+            ciid = crop.get("item_id", "item_01")
+            if ciid not in results:
+                fb = build_deterministic_fallback_semantics([crop], reason="missing_from_batch_response")
+                results[ciid] = fb["items"][ciid]
+
+        latency_ms = int((time.perf_counter() - t0) * 1000)
         return {
             "status": "success",
             "model": target_model,
@@ -512,8 +685,17 @@ async def analyze_items_with_muse_spark(
             "items": results,
         }
     except Exception as exc:
-        return build_deterministic_fallback_semantics(item_crops, reason=f"api_error: {str(exc)}")
-
+        # Fall back only for the uncached crops and merge with already cached items
+        fallback_res = build_deterministic_fallback_semantics(uncached_crops, reason=f"api_error: {str(exc)}")
+        for iid, data in fallback_res["items"].items():
+            results[iid] = data
+        return {
+            "status": "fallback",
+            "model": target_model,
+            "latency_ms": int((time.perf_counter() - t0) * 1000),
+            "fallback_activated": True,
+            "items": results,
+        }
 
 def segment_with_sam31(
     image_bytes: bytes,

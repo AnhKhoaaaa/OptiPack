@@ -1,0 +1,15 @@
+{
+  "item_id": "order_2_topdown_wood",
+  "display_name": "Sennheiser wooden case",
+  "category": "electronics_boxed",
+  "visible_labels": [
+    "SENNHEISER"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "medium",
+  "fragility_source": "ai_inferred_packaging",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Wooden Sennheiser electronics case"
+}

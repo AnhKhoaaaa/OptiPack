@@ -1,0 +1,15 @@
+{
+  "item_id": "order_1_topdown_paper",
+  "display_name": "Top Gia paper pack",
+  "category": "other_rigid",
+  "visible_labels": [
+    "TOP GIA"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "low",
+  "fragility_source": "ai_inferred_packaging",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Soft paper pack no markings"
+}

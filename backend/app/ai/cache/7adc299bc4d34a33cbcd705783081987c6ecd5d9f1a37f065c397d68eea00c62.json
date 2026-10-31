@@ -1,0 +1,13 @@
+{
+  "item_id": "order_1_topdown_white",
+  "display_name": "White electronic device",
+  "category": "electronics_boxed",
+  "visible_labels": [],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "White device no visible labels"
+}

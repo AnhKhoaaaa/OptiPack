@@ -1,13 +1,13 @@
 {
-  "item_id": "item_test",
-  "display_name": "Test Box",
+  "item_id": "order_2_topdown_black",
+  "display_name": "Black carton box",
   "category": "generic_carton",
   "visible_labels": [],
   "printed_weight_g": null,
-  "fragility_class": "medium",
+  "fragility_class": "unknown",
   "fragility_source": "default_safe",
   "keep_upright": false,
   "orientation_source": "default_unconstrained",
   "stackable": true,
-  "reasoning_note": "unit test"
+  "reasoning_note": "Unmarked black box no labels"
 }

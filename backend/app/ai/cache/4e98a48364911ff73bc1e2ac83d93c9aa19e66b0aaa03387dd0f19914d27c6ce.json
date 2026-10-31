@@ -7,9 +7,9 @@
   ],
   "printed_weight_g": null,
   "fragility_class": "unknown",
-  "fragility_source": "unknown",
+  "fragility_source": "default_safe",
   "keep_upright": true,
-  "orientation_source": "visible_label",
+  "orientation_source": "default_unconstrained",
   "stackable": true,
   "reasoning_note": "THIS SIDE UP arrows visible"
 }
