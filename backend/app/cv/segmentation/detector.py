@@ -7,6 +7,7 @@ never used as a silent substitute for autonomous detection.
 No ROI annotation JSON is read by this module.
 """
 from pathlib import Path
+from threading import RLock
 import hashlib
 from typing import Dict, List, Optional, Sequence, Tuple
 
@@ -56,6 +57,9 @@ class YOLOESegmenter:
         self.tiled_inference = tiled_inference
         self.frame_margin_fraction = float(frame_margin_fraction)
         self._model = None
+        # YOLOE's prediction state is mutable; serialize shared-model calls
+        # while preserving the benefit of warm model/prompt embeddings.
+        self._inference_lock = RLock()
 
     def _get_model(self):
         """Load checkpoint lazily; only automatic inference needs heavy deps."""
@@ -182,13 +186,14 @@ class YOLOESegmenter:
         self, patch: np.ndarray, x_offset: int, y_offset: int,
         full_shape: tuple[int, int],
     ) -> List[Dict]:
-        model = self._get_model()
         try:
-            result = model.predict(
-                source=patch, imgsz=self.imgsz, conf=self.conf_threshold,
-                iou=self.iou_threshold, agnostic_nms=True, max_det=30,
-                retina_masks=True, device=self.device, verbose=False,
-            )[0]
+            with self._inference_lock:
+                model = self._get_model()
+                result = model.predict(
+                    source=patch, imgsz=self.imgsz, conf=self.conf_threshold,
+                    iou=self.iou_threshold, agnostic_nms=True, max_det=30,
+                    retina_masks=True, device=self.device, verbose=False,
+                )[0]
         except Exception as exc:
             raise RuntimeError(f"YOLOE inference failed: {exc}") from exc
         if result.boxes is None or len(result.boxes) == 0:

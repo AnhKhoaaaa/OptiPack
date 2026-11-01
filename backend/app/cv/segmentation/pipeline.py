@@ -39,7 +39,9 @@ class SegmentationPipeline:
         verifier: Optional[ParallaxVerifier] = None,
         crop_dir: Path = DEFAULT_CROP_DIR,
     ):
-        self.segmenter = segmenter or YOLOESegmenter()
+        self.segmenter = segmenter if segmenter is not None else YOLOESegmenter(
+            tiled_inference=True
+        )
         self.verifier = verifier or ParallaxVerifier()
         self.crop_dir = Path(crop_dir)
 

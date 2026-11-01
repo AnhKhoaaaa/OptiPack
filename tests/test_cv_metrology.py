@@ -288,3 +288,28 @@ def test_process_pair_alias_for_phase2(monkeypatch):
         return expected
     monkeypatch.setattr(service, "analyze_pair", fake_analyze)
     assert service.process_pair(None, None, save_crops=False) is expected
+
+def test_reuses_single_segmentation_pipeline_across_requests(monkeypatch):
+    calibration = _fake_pair_calibration()
+    K = calibration.top_pose["camera_matrix"]
+    service = CVMetrologyService(K, np.zeros(5))
+    monkeypatch.setattr(service, "calibrate_pair", lambda *a: calibration)
+    constructed = []
+
+    class FakePipeline:
+        def __init__(self):
+            constructed.append(self)
+
+        def run(self, top, oblique, calibration, *, save_crops, filter_ground_plane):
+            return PairSegmentation([], [], [])
+
+    monkeypatch.setattr(
+        "backend.app.cv.segmentation.pipeline.SegmentationPipeline",
+        FakePipeline,
+    )
+    frame = np.zeros((10, 10, 3), np.uint8)
+    first = service.analyze_pair(frame, frame, save_crops=False)
+    second = service.analyze_pair(frame, frame, save_crops=False)
+    assert first.items == second.items == []
+    assert len(constructed) == 1
+    assert service._segmentation_pipeline is constructed[0]
