@@ -60,3 +60,9 @@ def quantify_measurement_uncertainty(
     )
 
     return uncertainty, provenance
+
+# Production V3 geometry implementation (Issue #8).
+from .initializer import ClosedFormInitializer
+from .fitter import FastSDFFitter
+
+__all__ = ["estimate_item_dimensions_3d", "quantify_measurement_uncertainty", "ClosedFormInitializer", "FastSDFFitter"]
