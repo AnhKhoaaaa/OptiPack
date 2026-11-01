@@ -105,3 +105,18 @@ the Windows Intel Core i5-13500H CPU and are not controlled P95 latency.
 The old Phase 0 benchmark test file can rewrite its tracked historical
 report and fail latency thresholds on busy Windows systems. It was not
 modified or used as proof of production readiness here.
+
+## PR review changes (2026-11-01)
+
+- The contract `ItemUncertainty` labels values `1-sigma`, but its curvature
+  estimator has not been calibrated on independent physical measurements.
+  Therefore `requires_user_review=True` is **mandatory by default** for
+  every newly fitted measurement until the uncertainty model is explicitly
+  validated; the numerical sigma remains a transparent engineering proxy,
+  not a measured standard-deviation coverage claim.
+- Added `CVMetrologyService.process_pair(top_image, oblique_image)` as the
+  Phase 2 facing alias of `analyze_pair()`. The caller must still handle
+  AI enrichment, item identity review, and API response assembly in #21.
+- These changes intentionally do **not** alter existing T01 measured
+  dimensions/MAE, but review flags must be regenerated when producing a
+  new JSON report using the current production estimator.
