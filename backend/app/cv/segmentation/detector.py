@@ -226,12 +226,13 @@ class YOLOESegmenter:
                     or (x+bw >= patch_w-border and x_offset+patch_w < full_w)
                     or (y+bh >= patch_h-border and y_offset+patch_h < full_h)):
                     continue
-            full_mask = np.zeros((full_h, full_w), np.uint8)
-            full_mask[y_offset:y_offset+patch_h, x_offset:x_offset+patch_w] = clean
             gx, gy = x+x_offset, y+y_offset
+            # Hold only a cropped mask while proposals from five views
+            # compete for NMS. Expanding every rejected candidate into a
+            # 4032x3024 binary canvas can exhaust RAM on 16 GB laptops.
             found.append({
                 "bbox": [gx, gy, gx+bw, gy+bh],
-                "mask": full_mask,
+                "_mask_roi": clean[y:y+bh, x:x+bw].copy(),
                 "contour": contour.reshape(-1, 2).astype(float) + [x_offset, y_offset],
                 "area_px": area,
                 "center": [gx+bw/2, gy+bh/2],
@@ -270,6 +271,16 @@ class YOLOESegmenter:
             ):
                 continue
             keep.append(candidate)
+        # Preserve the public full-resolution mask interface, but allocate
+        # canvases only for retained detections, never all tile proposals.
+        for candidate in keep:
+            roi = candidate.pop("_mask_roi", None)
+            if roi is None:
+                continue  # Supports externally injected candidates in tests.
+            x0, y0, x1, y1 = candidate["bbox"]
+            full_mask = np.zeros((height, width), dtype=np.uint8)
+            full_mask[y0:y1, x0:x1] = roi
+            candidate["mask"] = full_mask
         return keep
 
     def _is_board(self, candidate: Dict, board_mask: np.ndarray) -> bool:

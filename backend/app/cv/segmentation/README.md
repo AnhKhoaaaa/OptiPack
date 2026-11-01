@@ -93,3 +93,13 @@ The ROI JSON is not used for inference, but the camera intrinsics for T01
 are an in-sample estimated profile. Generalization and end-to-end 3D MAE after
 switching to automatic ROI have **not** been verified. Capture new held-out
 photos and run downstream #8 measurements before declaring production-ready.
+
+## PR review: memory footprint
+
+The detector retains only bounding-box-sized binary mask crops for candidate
+proposals during tiled inference, then creates full-resolution masks **after**
+cross-tile deduplication. Public outputs and pixel geometry remain unchanged.
+Trial01 re-evaluation on 2026-11-01 matched 10/10 instances, FP=0, using
+this implementation. This run took 45.96 seconds per pair on an extremely
+memory-constrained Windows session; do not interpret it as a controlled
+performance comparison against earlier warm CPU latency measurements.

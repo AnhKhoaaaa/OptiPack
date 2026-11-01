@@ -244,3 +244,18 @@ def test_auto_roi_frame_margin_rejects_truncated_objects(monkeypatch):
     ])
     got = detector.detect_and_segment(image, K, D, pose)
     assert [item["bbox"] for item in got] == [[10, 10, 60, 60]]
+
+def test_dedup_uses_cropped_mask_until_proposal_selection():
+    model = FakeModel()
+    detector = YOLOESegmenter(min_area_px=20)
+    detector._model = model
+    image = np.zeros((200, 200, 3), np.uint8)
+    intermediate = detector._predict_patch(image, 0, 0, image.shape[:2])
+    assert intermediate
+    assert all("mask" not in prediction for prediction in intermediate)
+    assert all(prediction["_mask_roi"].size < image.shape[0] * image.shape[1]
+               for prediction in intermediate)
+    final = detector._automatic_predictions(image)
+    assert final
+    assert all(item["mask"].shape == image.shape[:2] for item in final)
+    assert all("_mask_roi" not in item for item in final)
