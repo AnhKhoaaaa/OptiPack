@@ -1,0 +1,251 @@
+{
+  "summary": {
+    "model": "yoloe-26n-seg.pt",
+    "imgsz": 1280,
+    "confidence_threshold": 0.15,
+    "parallax_enabled": false,
+    "note": "T01 development images only; manual masks used for scoring, not input",
+    "total_gt": 20,
+    "true_positives": 13,
+    "false_positives": 1,
+    "recall_at_mask_iou_0.5": 0.65,
+    "mean_pair_latency_ms": 4951.8
+  },
+  "scenes": [
+    {
+      "trial": "Trial02",
+      "latency_ms_for_pair": 7982.1,
+      "top": {
+        "gt_count": 5,
+        "prediction_count": 3,
+        "matched_at_iou_0.5": 3,
+        "matched_mask_ious": [
+          0.9489,
+          0.8244,
+          0.665
+        ],
+        "false_positives": 0,
+        "recall": 0.6,
+        "predictions": [
+          {
+            "bbox": [
+              2072,
+              295,
+              2800,
+              743
+            ],
+            "confidence": 0.42823153734207153,
+            "label": "packaged product",
+            "area_px": 297204,
+            "best_mask_iou": 0.9489
+          },
+          {
+            "bbox": [
+              2197,
+              1062,
+              2954,
+              1522
+            ],
+            "confidence": 0.7180784344673157,
+            "label": "packaged product",
+            "area_px": 341947,
+            "best_mask_iou": 0.665
+          },
+          {
+            "bbox": [
+              1306,
+              1334,
+              1719,
+              1599
+            ],
+            "confidence": 0.47871968150138855,
+            "label": "packaged product",
+            "area_px": 105089,
+            "best_mask_iou": 0.8244
+          }
+        ]
+      },
+      "oblique": {
+        "gt_count": 5,
+        "prediction_count": 5,
+        "matched_at_iou_0.5": 4,
+        "matched_mask_ious": [
+          0.9408,
+          0.9075,
+          0.8208,
+          0.6546
+        ],
+        "false_positives": 1,
+        "recall": 0.8,
+        "predictions": [
+          {
+            "bbox": [
+              1021,
+              523,
+              1759,
+              948
+            ],
+            "confidence": 0.1623232215642929,
+            "label": "packaged product",
+            "area_px": 297954,
+            "best_mask_iou": 0.9075
+          },
+          {
+            "bbox": [
+              2064,
+              459,
+              2734,
+              859
+            ],
+            "confidence": 0.6695509552955627,
+            "label": "packaged product",
+            "area_px": 251804,
+            "best_mask_iou": 0.8208
+          },
+          {
+            "bbox": [
+              2195,
+              890,
+              3100,
+              1400
+            ],
+            "confidence": 0.8215863108634949,
+            "label": "packaged product",
+            "area_px": 430687,
+            "best_mask_iou": 0.9408
+          },
+          {
+            "bbox": [
+              1194,
+              1123,
+              1670,
+              1461
+            ],
+            "confidence": 0.5859200358390808,
+            "label": "packaged product",
+            "area_px": 154843,
+            "best_mask_iou": 0.2417
+          },
+          {
+            "bbox": [
+              350,
+              1417,
+              928,
+              1902
+            ],
+            "confidence": 0.23413360118865967,
+            "label": "packaged product",
+            "area_px": 234214,
+            "best_mask_iou": 0.6546
+          }
+        ]
+      },
+      "warnings": []
+    },
+    {
+      "trial": "Trial03",
+      "latency_ms_for_pair": 1921.4,
+      "top": {
+        "gt_count": 5,
+        "prediction_count": 3,
+        "matched_at_iou_0.5": 3,
+        "matched_mask_ious": [
+          0.9103,
+          0.8143,
+          0.6899
+        ],
+        "false_positives": 0,
+        "recall": 0.6,
+        "predictions": [
+          {
+            "bbox": [
+              746,
+              282,
+              1670,
+              865
+            ],
+            "confidence": 0.7515238523483276,
+            "label": "packaged product",
+            "area_px": 521810,
+            "best_mask_iou": 0.8143
+          },
+          {
+            "bbox": [
+              2233,
+              320,
+              3211,
+              840
+            ],
+            "confidence": 0.6808894276618958,
+            "label": "packaged product",
+            "area_px": 483644,
+            "best_mask_iou": 0.9103
+          },
+          {
+            "bbox": [
+              1583,
+              1298,
+              2039,
+              1596
+            ],
+            "confidence": 0.6891078948974609,
+            "label": "packaged product",
+            "area_px": 131372,
+            "best_mask_iou": 0.6899
+          }
+        ]
+      },
+      "oblique": {
+        "gt_count": 5,
+        "prediction_count": 3,
+        "matched_at_iou_0.5": 3,
+        "matched_mask_ious": [
+          0.9796,
+          0.8673,
+          0.7556
+        ],
+        "false_positives": 0,
+        "recall": 0.6,
+        "predictions": [
+          {
+            "bbox": [
+              657,
+              359,
+              1555,
+              856
+            ],
+            "confidence": 0.8355687260627747,
+            "label": "packaged product",
+            "area_px": 414215,
+            "best_mask_iou": 0.8673
+          },
+          {
+            "bbox": [
+              2148,
+              318,
+              2947,
+              793
+            ],
+            "confidence": 0.6528866291046143,
+            "label": "parcel",
+            "area_px": 356267,
+            "best_mask_iou": 0.9796
+          },
+          {
+            "bbox": [
+              1330,
+              1000,
+              1863,
+              1379
+            ],
+            "confidence": 0.34473034739494324,
+            "label": "packaged product",
+            "area_px": 188292,
+            "best_mask_iou": 0.7556
+          }
+        ]
+      },
+      "warnings": []
+    }
+  ]
+}

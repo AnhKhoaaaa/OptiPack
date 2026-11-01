@@ -1,0 +1,47 @@
+{
+  "summary": {
+    "model": "yoloe-26n-seg.pt",
+    "imgsz": 960,
+    "parallax_enabled": false,
+    "note": "T01 development images only; manual masks used for scoring, not input",
+    "total_gt": 10,
+    "true_positives": 9,
+    "false_positives": 5,
+    "recall_at_mask_iou_0.5": 0.9,
+    "mean_pair_latency_ms": 97725.1
+  },
+  "scenes": [
+    {
+      "trial": "Trial01",
+      "latency_ms_for_pair": 97725.1,
+      "top": {
+        "gt_count": 5,
+        "prediction_count": 6,
+        "matched_at_iou_0.5": 5,
+        "matched_mask_ious": [
+          0.984,
+          0.9546,
+          0.9365,
+          0.8512,
+          0.8138
+        ],
+        "false_positives": 1,
+        "recall": 1.0
+      },
+      "oblique": {
+        "gt_count": 5,
+        "prediction_count": 8,
+        "matched_at_iou_0.5": 4,
+        "matched_mask_ious": [
+          0.9825,
+          0.9466,
+          0.9434,
+          0.9257
+        ],
+        "false_positives": 4,
+        "recall": 0.8
+      },
+      "warnings": []
+    }
+  ]
+}
