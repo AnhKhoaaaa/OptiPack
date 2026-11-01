@@ -1,7 +1,7 @@
 # Production Readiness Engineering Review — CV #6–#8
 
 Date: 2026-11-01
-Branch: `feat/m1-production-readiness` (based on stacked #8 PR)
+Integrated into the Issue #21 branch `feat/m1-phase2a-cv-ai-integration` (based on stacked #8 PR). No standalone Production Readiness PR.
 
 ## Verified engineering improvements
 

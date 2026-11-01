@@ -1,7 +1,7 @@
 # Phase 2 Track A — CV + Meta AI Order Analysis (Issue #21)
 
 Date: 2026-11-01
-Branch: `feat/m1-phase2a-cv-ai-integration`, stacked on `feat/m1-production-readiness`.
+Branch: `feat/m1-phase2a-cv-ai-integration`, stacked directly on `feat/m1-pr8-metrology` (#8). Production Readiness hardening is included in this #21 branch (commit `50186dc`), without a separate PR.
 
 ## Implemented
 
