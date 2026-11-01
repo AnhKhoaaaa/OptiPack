@@ -8,7 +8,7 @@
     "wrong_or_unverifiable_stereo_matches": 0,
     "conditional_MAE_LW_mm": 15.666666666666666,
     "conditional_MAE_H_mm": 9.466666666666667,
-    "mean_wall_time_ms": 668.8333333333334
+    "mean_wall_time_ms": 556.1333333333333
   },
   "trials": [
     {
@@ -24,8 +24,14 @@
       "wrong_or_unverifiable_stereo_matches": 0,
       "MAE_LW_on_correctly_measured_mm": 9.4,
       "MAE_H_on_correctly_measured_mm": 9.8,
-      "wall_time_ms": 390.6,
-      "warnings": [],
+      "wall_time_ms": 361.0,
+      "warnings": [
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 4: Uncertainty proxy not calibrated on independent captures"
+      ],
       "measurements": [
         {
           "top_idx": 0,
@@ -46,7 +52,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 16.5,
           "error_h_mm": 9.0
         },
@@ -69,7 +75,7 @@
             "height_sigma_mm": 5.61,
             "safety_margin_mm": 12
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 6.0,
           "error_h_mm": 7.0
         },
@@ -92,7 +98,7 @@
             "height_sigma_mm": 7.21,
             "safety_margin_mm": 15
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 5.0,
           "error_h_mm": 24.0
         },
@@ -115,7 +121,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 15.0,
           "error_h_mm": 1.0
         },
@@ -138,7 +144,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 4.5,
           "error_h_mm": 8.0
         }
@@ -157,9 +163,14 @@
       "wrong_or_unverifiable_stereo_matches": 0,
       "MAE_LW_on_correctly_measured_mm": 22.3,
       "MAE_H_on_correctly_measured_mm": 7.2,
-      "wall_time_ms": 406.0,
+      "wall_time_ms": 340.2,
       "warnings": [
-        "Top detection 4: Low combined detection/matching/fitting confidence"
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 4: Low combined detection/matching/fitting confidence",
+        "Top detection 4: Uncertainty proxy not calibrated on independent captures"
       ],
       "measurements": [
         {
@@ -181,7 +192,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 23.5,
           "error_h_mm": 3.0
         },
@@ -204,7 +215,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 20.5,
           "error_h_mm": 8.0
         },
@@ -227,7 +238,7 @@
             "height_sigma_mm": 6.47,
             "safety_margin_mm": 13
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 32.5,
           "error_h_mm": 14.0
         },
@@ -250,7 +261,7 @@
             "height_sigma_mm": 4.12,
             "safety_margin_mm": 9
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 25.0,
           "error_h_mm": 3.0
         },
@@ -292,8 +303,14 @@
       "wrong_or_unverifiable_stereo_matches": 0,
       "MAE_LW_on_correctly_measured_mm": 15.3,
       "MAE_H_on_correctly_measured_mm": 11.4,
-      "wall_time_ms": 1209.9,
-      "warnings": [],
+      "wall_time_ms": 967.2,
+      "warnings": [
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 4: Uncertainty proxy not calibrated on independent captures"
+      ],
       "measurements": [
         {
           "top_idx": 0,
@@ -314,7 +331,7 @@
             "height_sigma_mm": 6.46,
             "safety_margin_mm": 13
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 8.5,
           "error_h_mm": 7.0
         },
@@ -337,7 +354,7 @@
             "height_sigma_mm": 7.48,
             "safety_margin_mm": 15
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 5.0,
           "error_h_mm": 21.0
         },
@@ -360,7 +377,7 @@
             "height_sigma_mm": 4.25,
             "safety_margin_mm": 9
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 13.0,
           "error_h_mm": 16.0
         },

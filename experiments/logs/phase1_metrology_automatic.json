@@ -8,7 +8,7 @@
     "wrong_or_unverifiable_stereo_matches": 1,
     "conditional_MAE_LW_mm": 9.125,
     "conditional_MAE_H_mm": 9.75,
-    "mean_wall_time_ms": 14204.099999999999
+    "mean_wall_time_ms": 12027.566666666666
   },
   "trials": [
     {
@@ -24,11 +24,16 @@
       "wrong_or_unverifiable_stereo_matches": 0,
       "MAE_LW_on_correctly_measured_mm": 7.1,
       "MAE_H_on_correctly_measured_mm": 12.2,
-      "wall_time_ms": 22081.1,
+      "wall_time_ms": 17851.8,
       "warnings": [
         "Top detection 0: Low combined detection/matching/fitting confidence",
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
         "Top detection 3: Low combined detection/matching/fitting confidence",
-        "Top detection 4: Low combined detection/matching/fitting confidence"
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 4: Low combined detection/matching/fitting confidence",
+        "Top detection 4: Uncertainty proxy not calibrated on independent captures"
       ],
       "measurements": [
         {
@@ -73,7 +78,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 5.0,
           "error_h_mm": 26.0
         },
@@ -96,7 +101,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 2.0,
           "error_h_mm": 4.0
         },
@@ -161,11 +166,15 @@
       "wrong_or_unverifiable_stereo_matches": 1,
       "MAE_LW_on_correctly_measured_mm": 10.833333333333334,
       "MAE_H_on_correctly_measured_mm": 6.666666666666667,
-      "wall_time_ms": 9898.8,
+      "wall_time_ms": 9232.6,
       "warnings": [
         "1 oblique detections lack stereo partners",
         "Top detection 1: Low combined detection/matching/fitting confidence",
-        "Top detection 0: Low combined detection/matching/fitting confidence"
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 0: Low combined detection/matching/fitting confidence",
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures"
       ],
       "measurements": [
         {
@@ -233,7 +242,7 @@
             "height_sigma_mm": 4.79,
             "safety_margin_mm": 10
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 7.5,
           "error_h_mm": 4.0
         },
@@ -256,7 +265,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false
+          "requires_user_review": true
         }
       ]
     },
@@ -273,12 +282,16 @@
       "wrong_or_unverifiable_stereo_matches": 0,
       "MAE_LW_on_correctly_measured_mm": 10.375,
       "MAE_H_on_correctly_measured_mm": 9.0,
-      "wall_time_ms": 10632.4,
+      "wall_time_ms": 8998.3,
       "warnings": [
         "1 oblique detections lack stereo partners",
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
         "Top detection 1: Low combined detection/matching/fitting confidence",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
         "Top detection 3: Low combined detection/matching/fitting confidence",
-        "Top detection 2: Low combined detection/matching/fitting confidence"
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Low combined detection/matching/fitting confidence",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures"
       ],
       "measurements": [
         {
@@ -300,7 +313,7 @@
             "height_sigma_mm": 4.0,
             "safety_margin_mm": 8
           },
-          "requires_user_review": false,
+          "requires_user_review": true,
           "mae_lw_mm": 6.0,
           "error_h_mm": 4.0
         },

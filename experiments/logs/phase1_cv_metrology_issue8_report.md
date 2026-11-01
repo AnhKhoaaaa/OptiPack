@@ -62,10 +62,10 @@ to evaluate identity, stereo association, coverage and MAE.
 
 | Trial | Correctly measured / 5 physical objects | Unverifiable or wrong pairs | Conditional MAE(L/W), mm | Conditional MAE(H), mm | Pair wall time |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Trial01 | 5 | 0 | 7.10 | 12.20 | 22.08 s |
-| Trial02 | 3 | 1 | 10.83 | 6.67 | 9.90 s |
-| Trial03 | 4 | 0 | 10.38 | 9.00 | 10.63 s |
-| **All** | **12/15 (80% measurement coverage)** | **1** | **9.13** | **9.75** | **14.20 s mean** |
+| Trial01 | 5 | 0 | 7.10 | 12.20 | 17.85 s |
+| Trial02 | 3 | 1 | 10.83 | 6.67 | 9.23 s |
+| Trial03 | 4 | 0 | 10.38 | 9.00 | 9.00 s |
+| **All** | **12/15 (80% measurement coverage)** | **1** | **9.13** | **9.75** | **12.03 s mean** |
 
 The code output **13** 3D measurement records, but only **12** have both
 views confirmed against the same ground-truth instance at mask IoU >=0.5.
@@ -87,7 +87,7 @@ the Windows Intel Core i5-13500H CPU and are not controlled P95 latency.
    two-view shape consistency or request human review when ambiguous.
 3. Conditional MAE is not an end-to-end all-item error metric;
    the original 7.48mm / 10.30mm gate cannot be inherited.
-4. **Latency ~14.2s/capture pair** on test CPU. Model loading and tiled
+4. **Latency ~12.0s/capture pair** on test CPU. Model loading and tiled
    detection dominate; optimize runtime independently before production.
 5. **Uncertainty proxies are uncalibrated**; their numeric sigma values
    and safety margin require repeated held-out physical measurements.
@@ -120,3 +120,8 @@ modified or used as proof of production readiness here.
 - These changes intentionally do **not** alter existing T01 measured
   dimensions/MAE, but review flags must be regenerated when producing a
   new JSON report using the current production estimator.
+
+Post-review #8 evaluations were rerun after mandatory uncertainty review was
+enabled. Their fitted dimensions, conditional MAE, coverage and association
+counts exactly matched the pre-review JSON; all measurement review flags
+are now True, and wall-clock times above reflect these verification runs.
