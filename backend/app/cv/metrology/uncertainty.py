@@ -24,6 +24,7 @@ def estimate_fit_uncertainty(
     epipolar_distance_px: float,
     detection_confidence: float,
     height_review_threshold_mm: float = 8.0,
+    uncertainty_calibrated: bool = False,
 ) -> Tuple[ItemUncertainty, MeasurementProvenance, List[str]]:
     """Estimate an uncertainty *proxy*, with conservative degeneracy review.
 
@@ -71,7 +72,15 @@ def estimate_fit_uncertainty(
     ))
     if confidence < .4:
         warnings.append("Low combined detection/matching/fitting confidence")
-    needs_review = bool(sigma_h > height_review_threshold_mm or confidence < .4)
+    # A covariance proxy can look deceptively precise for a biased fit. Until
+    # repeated independent physical measurements validate its coverage, review
+    # is mandatory regardless of the fitted numerical sigma.
+    if not uncertainty_calibrated:
+        warnings.append("Uncertainty proxy not calibrated on independent captures")
+    needs_review = bool(
+        sigma_h > height_review_threshold_mm or confidence < .4
+        or not uncertainty_calibrated
+    )
     uncertainty = ItemUncertainty(
         length_sigma_mm=round(sigma_l, 2),
         width_sigma_mm=round(sigma_w, 2),

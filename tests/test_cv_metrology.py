@@ -260,3 +260,31 @@ def test_analysis_facade_connects_calibration_segmentation_and_metrology(monkeyp
     assert calls == ["calibrate", "segment"]
     assert not batch.items
     assert not batch.matched_pairs
+
+def test_uncalibrated_uncertainty_requires_review_even_when_fit_looks_good():
+    from backend.app.cv.metrology.uncertainty import estimate_fit_uncertainty
+
+    class PerfectResiduals:
+        def evaluate_batch_residual(self, params, evidence):
+            # Full rank, zero residual near the chosen nominal parameters.
+            centers = np.array([0., 0., 100., 60., 45., 0.])
+            return np.repeat((params - centers), 8, axis=1)
+
+    dims = Dimensions3D(length_mm=100, width_mm=60, height_mm=45)
+    unc, prov, warnings = estimate_fit_uncertainty(
+        PerfectResiduals(), np.array([0., 0., 100., 60., 45., 0.]),
+        [{}], dims, .5, .2, 0., 1.0,
+    )
+    assert prov.requires_user_review
+    assert any("not calibrated" in warning for warning in warnings)
+    assert unc.height_sigma_mm >= 4.
+
+
+def test_process_pair_alias_for_phase2(monkeypatch):
+    service = CVMetrologyService(np.eye(3), np.zeros(5))
+    expected = object()
+    def fake_analyze(*args, **kwargs):
+        assert kwargs == {"save_crops": False}
+        return expected
+    monkeypatch.setattr(service, "analyze_pair", fake_analyze)
+    assert service.process_pair(None, None, save_crops=False) is expected

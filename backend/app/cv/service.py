@@ -296,3 +296,15 @@ class CVMetrologyService:
         return self.measure_segmented_pair(
             calibration, segmentation, **measurement_options
         )
+    def process_pair(
+        self,
+        top_image: np.ndarray,
+        oblique_image: np.ndarray,
+        **kwargs,
+    ) -> CVMeasurementBatch:
+        """Stable Phase 2-facing alias for the full live two-image pipeline.
+
+        Ingestion/AI enrichment is implemented by the #21 API integration;
+        this call returns measured CV items only, not OrderAnalysisResponse.
+        """
+        return self.analyze_pair(top_image, oblique_image, **kwargs)
