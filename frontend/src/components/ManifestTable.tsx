@@ -142,9 +142,22 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                     />
                   </td>
                   <td>
-                    <div className="item-title">{item.display_name}</div>
+                    <div className="item-name-row">
+                      <span className="badge-item-number">#{idx + 1}</span>
+                      <strong className="item-title">{item.display_name}</strong>
+                    </div>
                     <div className="item-meta-badges">
-                      <span className="item-id">{item.item_id}</span>
+                      <span
+                        className="item-id-pill"
+                        title={`Full Item ID: ${item.item_id} (Click to copy)`}
+                        onClick={() => {
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(item.item_id);
+                          }
+                        }}
+                      >
+                        {item.item_id.length > 14 ? `${item.item_id.slice(0, 10)}…` : item.item_id}
+                      </span>
                       {isReviewNeeded ? (
                         <span className="badge badge-warning-pulse" title="Height measured via aspect prior fallback">
                           ⚠️ Review Height (±{item.uncertainty_info?.height_sigma_mm}mm)

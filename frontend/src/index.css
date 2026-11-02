@@ -953,3 +953,380 @@ input:checked + .toggle-slider:before {
 }
 
 
+
+/* =========================================================================
+   PHASE 3 / DEMO UX ENHANCEMENTS: AI Bounding Box Overlay, Hero Scorecard & Decluttering
+   ========================================================================= */
+
+/* AI Detection Stage */
+.detection-stage-wrapper {
+  margin-bottom: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.stage-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 8px var(--primary);
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.stage-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-pill-small {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-pill-small.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.stage-viewport {
+  position: relative;
+  width: 100%;
+  background: #060a12;
+  overflow: hidden;
+}
+
+.stage-image-container {
+  position: relative;
+  width: 100%;
+  line-height: 0;
+}
+
+.stage-image {
+  width: 100%;
+  height: auto;
+  max-height: 290px;
+  object-fit: contain;
+  display: block;
+}
+
+.bbox-svg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.bbox-group {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.bbox-rect {
+  transition: all 0.2s ease;
+}
+
+/* Radar / Laser Scanner */
+.scanner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 15, 25, 0.45);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.scanner-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #38bdf8, #818cf8, #38bdf8, transparent);
+  box-shadow: 0 0 16px 4px rgba(56, 189, 248, 0.7);
+  animation: scan-vertical 2s infinite ease-in-out;
+}
+
+@keyframes scan-vertical {
+  0% { top: 0%; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+.scanner-hud-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--primary);
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+}
+
+.scanner-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(56, 189, 248, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* HERO METRICS BANNER */
+.hero-metrics-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 768px) {
+  .hero-metrics-banner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero-metric-card {
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hero-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.hero-save {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+.hero-box {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.hero-util {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border-color: rgba(129, 140, 248, 0.35);
+}
+
+.hero-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.hero-icon {
+  font-size: 18px;
+}
+
+.hero-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  flex: 1;
+  margin-left: 6px;
+}
+
+.badge-success-subtle {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.badge-primary-subtle {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.badge-accent-subtle {
+  background: rgba(129, 140, 248, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+}
+
+.hero-metric-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.hero-save .hero-metric-value {
+  color: var(--success);
+}
+
+.hero-box-code {
+  color: var(--primary);
+  letter-spacing: -0.5px;
+}
+
+.hero-metric-caption {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.hero-progress-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.hero-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* Collapsible Engineering Audit Accordion */
+.audit-accordion {
+  margin-top: 18px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.audit-accordion-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.85);
+  border: none;
+  cursor: pointer;
+  color: var(--text-main);
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.audit-accordion-trigger:hover {
+  background: rgba(30, 41, 59, 0.85);
+}
+
+.audit-trigger-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.audit-arrow {
+  font-size: 10px;
+  color: var(--primary);
+}
+
+.audit-trigger-hint {
+  font-size: 11px;
+  color: var(--primary);
+}
+
+.audit-accordion-content {
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.audit-section-subtitle {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+
+/* Manifest Table UX improvements */
+.item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.badge-item-number {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--primary);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.item-id-pill {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.item-id-pill:hover {
+  color: var(--primary);
+  background: rgba(56, 189, 248, 0.1);
+}

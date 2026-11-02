@@ -17,6 +17,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const itemGroupRef = useRef<THREE.Group | null>(null);
 
   const [currentStep, setCurrentStep] = useState<number>(plan.placements.length);
+  const prevStepRef = useRef<number>(plan.placements.length);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [showSafetyHalo, setShowSafetyHalo] = useState<boolean>(true);
   const [autoRotate, setAutoRotate] = useState<boolean>(false);
@@ -27,6 +28,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   // Sync step count on plan change
   useEffect(() => {
     setCurrentStep(plan.placements.length);
+    prevStepRef.current = plan.placements.length;
     setIsPlaying(false);
   }, [plan]);
 
@@ -42,7 +44,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         }
         return prev + 1;
       });
-    }, 1200);
+    }, 1100);
 
     return () => clearInterval(timer);
   }, [isPlaying, totalSteps]);
@@ -179,11 +181,44 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     scene.add(itemGroup);
     itemGroupRef.current = itemGroup;
 
-    // 8. Animation & Render Loop
+    // 8. Animation & Render Loop with Smooth Dropping Lerp & Pulse Outline
     let animationFrameId: number;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       controls.update();
+
+      const now = performance.now();
+      if (itemGroupRef.current) {
+        itemGroupRef.current.children.forEach((child) => {
+          // Smooth dropping interpolation (easeOutQuad)
+          if (child.userData?.isAnimating) {
+            const elapsed = now - child.userData.startTime;
+            const progress = Math.min(1, elapsed / child.userData.duration);
+            // easeOutQuad formula: 1 - (1 - t)^2
+            const ease = 1 - (1 - progress) * (1 - progress);
+            child.position.y =
+              child.userData.startY +
+              (child.userData.targetY - child.userData.startY) * ease;
+
+            if (progress >= 1) {
+              child.position.y = child.userData.targetY;
+              child.userData.isAnimating = false;
+            }
+          }
+
+          // Active step outline pulsing glow effect
+          if (child.userData?.isActive) {
+            const glow = child.getObjectByName("glowOutline") as
+              | THREE.LineSegments
+              | undefined;
+            if (glow && glow.material instanceof THREE.LineBasicMaterial) {
+              const pulse = 0.5 + 0.5 * Math.sin(now * 0.007);
+              glow.material.opacity = 0.4 + 0.6 * pulse;
+            }
+          }
+        });
+      }
+
       renderer.render(scene, camera);
     };
     animate();
@@ -236,6 +271,9 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
 
     clearAndDisposeGroup(itemGroup);
 
+    const isStepForward = currentStep > prevStepRef.current;
+    prevStepRef.current = currentStep;
+
     const visiblePlacements = plan.placements.filter((p) => p.step_number <= currentStep);
 
     visiblePlacements.forEach((p) => {
@@ -245,8 +283,26 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
 
       const isCurrentActive = p.step_number === currentStep;
 
+      // Create placement container group for unified motion
+      const placementGroup = new THREE.Group();
+      placementGroup.name = `placement_${p.step_number}`;
+
+      const shouldAnimateDrop = isCurrentActive && isStepForward;
+      const dropHeight = Math.max(plan.carton.internal_dimensions_mm.height_mm + 150, y + 150);
+      const initialY = shouldAnimateDrop ? dropHeight : y;
+
+      placementGroup.position.set(x, initialY, z);
+      placementGroup.userData = {
+        targetY: y,
+        startY: dropHeight,
+        startTime: performance.now(),
+        duration: 380, // 380ms drop animation
+        isAnimating: shouldAnimateDrop,
+        isActive: isCurrentActive,
+      };
+
       if (showSafetyHalo) {
-        // A. Nominal Inner Solid Box (with safe fallback if nominal_dimensions_mm is absent)
+        // A. Nominal Inner Solid Box
         const nom = p.nominal_dimensions_mm || p.placed_dimensions_mm;
         const nomDx = nom.dx;
         const nomDy = nom.dy;
@@ -266,7 +322,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
           opacity: 0.94,
         });
         const innerMesh = new THREE.Mesh(innerGeo, innerMat);
-        innerMesh.position.set(x, y, z);
+        innerMesh.position.set(0, 0, 0);
         innerMesh.castShadow = true;
         innerMesh.receiveShadow = true;
 
@@ -276,7 +332,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
           linewidth: 1,
         });
         innerMesh.add(new THREE.LineSegments(innerEdges, innerLineMat));
-        itemGroup.add(innerMesh);
+        placementGroup.add(innerMesh);
 
         // B. Translucent Safety Buffer Halo (+Safety Margin)
         const haloGeo = new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
@@ -287,8 +343,21 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
           opacity: 0.55,
         });
         const haloWire = new THREE.LineSegments(haloEdges, haloLineMat);
-        haloWire.position.set(x, y, z);
-        itemGroup.add(haloWire);
+        haloWire.position.set(0, 0, 0);
+        placementGroup.add(haloWire);
+
+        // C. Glowing Active Step Outline
+        if (isCurrentActive) {
+          const glowMat = new THREE.LineBasicMaterial({
+            color: 0x38bdf8, // Electric cyan glow
+            linewidth: 2.5,
+            transparent: true,
+            opacity: 0.85,
+          });
+          const glowMesh = new THREE.LineSegments(haloEdges, glowMat);
+          glowMesh.name = "glowOutline";
+          placementGroup.add(glowMesh);
+        }
       } else {
         // Standard Solid Box
         const boxGeo = new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
@@ -300,7 +369,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
           opacity: isCurrentActive ? 0.98 : 0.88,
         });
         const mesh = new THREE.Mesh(boxGeo, boxMat);
-        mesh.position.set(x, y, z);
+        mesh.position.set(0, 0, 0);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
@@ -310,8 +379,23 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
           linewidth: isCurrentActive ? 2 : 1,
         });
         mesh.add(new THREE.LineSegments(edges, lineMat));
-        itemGroup.add(mesh);
+        placementGroup.add(mesh);
+
+        // Glowing Active Step Outline
+        if (isCurrentActive) {
+          const glowMat = new THREE.LineBasicMaterial({
+            color: 0x38bdf8,
+            linewidth: 2.5,
+            transparent: true,
+            opacity: 0.85,
+          });
+          const glowMesh = new THREE.LineSegments(edges, glowMat);
+          glowMesh.name = "glowOutline";
+          placementGroup.add(glowMesh);
+        }
       }
+
+      itemGroup.add(placementGroup);
     });
   }, [plan.carton, plan.placements, currentStep, showSafetyHalo]);
 
@@ -340,74 +424,72 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
             <button
               className={`btn-pill ${activePreset === "iso" ? "active" : ""}`}
               onClick={() => setCameraView("iso")}
-              title="Isometric 3D Perspective"
             >
-              Iso
+              Isometric
             </button>
             <button
               className={`btn-pill ${activePreset === "top" ? "active" : ""}`}
               onClick={() => setCameraView("top")}
-              title="Top-Down Orthographic View"
             >
-              Top
+              Top (Zenith)
             </button>
             <button
               className={`btn-pill ${activePreset === "front" ? "active" : ""}`}
               onClick={() => setCameraView("front")}
-              title="Front Elevation View"
             >
               Front
             </button>
             <button
               className={`btn-pill ${activePreset === "side" ? "active" : ""}`}
               onClick={() => setCameraView("side")}
-              title="Side Elevation View"
             >
               Side
             </button>
           </div>
 
-          <label className="checkbox-halo-toggle" title="Show +5mm Uncertainty Buffer Halo">
-            <input
-              type="checkbox"
-              checked={showSafetyHalo}
-              onChange={(e) => setShowSafetyHalo(e.target.checked)}
-            />
-            <span>Safety Buffer Halo</span>
-          </label>
+          <button
+            className={`btn-toggle-halo ${showSafetyHalo ? "active" : ""}`}
+            onClick={() => setShowSafetyHalo((prev) => !prev)}
+            title="Toggle safety margin halos around items"
+          >
+            🛡️ Halo {showSafetyHalo ? "ON" : "OFF"}
+          </button>
 
           <button
-            className={`btn-pill ${autoRotate ? "active" : ""}`}
+            className={`btn-toggle-halo ${autoRotate ? "active" : ""}`}
             onClick={() => setAutoRotate((prev) => !prev)}
-            title="Auto-rotate turntable"
+            title="Toggle 360° turntable spin"
           >
-            {autoRotate ? "Turntable ON" : "Turntable"}
+            🔄 Spin {autoRotate ? "ON" : "OFF"}
           </button>
         </div>
       </div>
 
-      {/* Three.js Canvas Container */}
-      <div className="viewport-container" ref={mountRef}></div>
+      <p className="card-desc">
+        Deterministic CP-SAT packing order with smooth dropping physics. Drag with left mouse to orbit, right mouse to pan, scroll wheel to zoom.
+      </p>
 
-      {/* Step Sequence Controls */}
+      {/* Three.js Viewport Mount */}
+      <div className="viewport-container" ref={mountRef} />
+
+      {/* Step by Step Placement Player */}
       <div className="step-controls">
         <div className="step-slider-header">
-          <div className="step-badge-counter">
-            <span className="step-counter-tag">
-              Step {currentStep} of {totalSteps}
+          <div>
+            <strong>Step Placement:</strong>{" "}
+            <span className="badge badge-accent">
+              {currentStep} / {totalSteps} Items
             </span>
-            {activeItem && (
-              <span className="step-item-name" style={{ color: activeItem.display_color_hex || "#38bdf8" }}>
-                <strong>{activeItem.display_name}</strong>
-              </span>
-            )}
           </div>
 
           {activeItem && (
             <div className="step-item-info">
-              <span>Rot: <code>{activeItem.rotation_code}</code></span>
-              <span>Pos: <code>[{activeItem.position_mm.x}, {activeItem.position_mm.y}, {activeItem.position_mm.z}] mm</code></span>
-              <span>Support: <code>{Math.round(activeItem.support_ratio * 100)}%</code></span>
+              <span
+                className="color-dot inline"
+                style={{ backgroundColor: activeItem.display_color_hex }}
+              />
+              <strong>Step {activeItem.step_number}:</strong> {activeItem.display_name} (
+              {activeItem.rotation_code})
             </div>
           )}
         </div>
@@ -415,7 +497,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         <input
           type="range"
           min={1}
-          max={Math.max(1, totalSteps)}
+          max={totalSteps}
           value={currentStep}
           onChange={(e) => {
             setCurrentStep(parseInt(e.target.value) || 1);

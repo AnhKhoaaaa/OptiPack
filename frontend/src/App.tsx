@@ -196,6 +196,8 @@ export const App: React.FC = () => {
               onAnalysisLoaded={handleAnalysisLoaded}
               loading={loading}
               setLoading={setLoading}
+              analysis={analysis}
+              items={packableItems}
             />
 
             {packableItems.length > 0 && (
@@ -220,6 +222,7 @@ export const App: React.FC = () => {
                 <CostScorecard
                   metrics={activePlan.metrics}
                   validation={activePlan.validation}
+                  carton={activePlan.carton}
                   candidateComparison={solution?.candidate_carton_comparison}
                   overflowPlans={solution?.overflow_plans}
                   unpackedItemIds={solution?.unpacked_item_ids}
