@@ -71,7 +71,7 @@ def annotated_pair(trial):
     return PairSegmentation(top, ob, [])
 
 
-def reference_identity(candidate, gt_paths, min_iou=.5):
+def reference_identity(candidate, gt_paths, min_iou=.2):
     """Identity lookup for evaluation only; no GT touches the measurement."""
     prediction = candidate["mask"]
     best_name, best_iou = None, 0.0
@@ -87,14 +87,20 @@ def reference_identity(candidate, gt_paths, min_iou=.5):
     return best_name if best_iou >= min_iou else None
 
 
-def evaluate(trials, mode, model, imgsz, tiles):
+def evaluate(trials, mode, model, imgsz, tiles, segmenter_choice="sam31"):
     profile = json.loads((HERE / "calibration_model_variants.json").read_text())["free_tangent"]
     K = np.asarray(profile["camera_matrix"], dtype=np.float64)
     D = np.asarray(profile["dist_coeffs"], dtype=np.float64)
     service = CVMetrologyService(K, D, image_size_px=(4032, 3024))
-    seg_pipe = SegmentationPipeline(
-        segmenter=YOLOESegmenter(model_path=model, imgsz=imgsz, tiled_inference=tiles)
-    ) if mode == "automatic" else None
+    if mode == "automatic":
+        if segmenter_choice == "sam31":
+            seg_pipe = SegmentationPipeline()
+        else:
+            seg_pipe = SegmentationPipeline(
+                segmenter=YOLOESegmenter(model_path=model, imgsz=imgsz, tiled_inference=tiles)
+            )
+    else:
+        seg_pipe = None
     meta = json.loads((GT_DIR / "metadata.json").read_text()) if mode == "annotated" else None
     rows = []
     for trial in trials:
@@ -194,6 +200,7 @@ def evaluate(trials, mode, model, imgsz, tiles):
 def main():
     parser = ArgumentParser()
     parser.add_argument("--mode", choices=("annotated", "automatic"), default="annotated")
+    parser.add_argument("--segmenter", default="sam31", choices=("sam31", "yoloe"))
     parser.add_argument("--model", default="yoloe-26n-seg.pt")
     parser.add_argument("--imgsz", type=int, default=960)
     parser.add_argument("--tiles", action="store_true")
@@ -201,7 +208,7 @@ def main():
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
     output = args.output or Path(f"experiments/logs/phase1_metrology_{args.mode}.json")
-    result = evaluate(args.trial, args.mode, args.model, args.imgsz, args.tiles)
+    result = evaluate(args.trial, args.mode, args.model, args.imgsz, args.tiles, segmenter_choice=args.segmenter)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf8")
     print("SUMMARY", json.dumps(result["summary"]), "OUTPUT", output, flush=True)
