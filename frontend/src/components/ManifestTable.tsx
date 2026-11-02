@@ -19,6 +19,8 @@ interface ManifestTableProps {
   setApplyUncertaintyMargin: (val: boolean) => void;
 }
 
+type DimField = "length_mm" | "width_mm" | "height_mm";
+
 export const ManifestTable: React.FC<ManifestTableProps> = ({
   items,
   onUpdateItem,
@@ -29,266 +31,183 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
   applyUncertaintyMargin,
   setApplyUncertaintyMargin,
 }) => {
-  const handleDimensionChange = (
-    index: number,
-    field: "length_mm" | "width_mm" | "height_mm",
-    val: number
-  ) => {
+  const handleDimensionChange = (index: number, field: DimField, val: number) => {
     const item = items[index];
     onUpdateItem(index, {
       ...item,
-      dimensions_mm: {
-        ...item.dimensions_mm,
-        [field]: Math.max(0, val),
-      },
-      // If user manually updates height on a review item, mark review as completed
+      dimensions_mm: { ...item.dimensions_mm, [field]: Math.max(0, val) },
+      // Manually editing a dimension counts as completing the review
       uncertainty_info: item.uncertainty_info
         ? { ...item.uncertainty_info, requires_user_review: false }
         : undefined,
     });
   };
 
-  const handleDimensionBlur = (
-    index: number,
-    field: "length_mm" | "width_mm" | "height_mm"
-  ) => {
+  const handleDimensionBlur = (index: number, field: DimField) => {
     const item = items[index];
-    const currentVal = item.dimensions_mm[field];
-    if (currentVal < 10) {
+    if (item.dimensions_mm[field] < 10) {
       onUpdateItem(index, {
         ...item,
-        dimensions_mm: {
-          ...item.dimensions_mm,
-          [field]: Math.max(10, currentVal),
-        },
+        dimensions_mm: { ...item.dimensions_mm, [field]: 10 },
       });
     }
   };
 
   const handleWeightChange = (index: number, val: number) => {
-    const item = items[index];
-    onUpdateItem(index, {
-      ...item,
-      weight_g: Math.max(0, val),
-      weight_assumed: false,
-    });
+    onUpdateItem(index, { ...items[index], weight_g: Math.max(0, val), weight_assumed: false });
   };
 
   const handleWeightBlur = (index: number) => {
     const item = items[index];
     if (item.weight_g !== null && item.weight_g < 1) {
-      onUpdateItem(index, {
-        ...item,
-        weight_g: 1,
-        weight_assumed: false,
-      });
+      onUpdateItem(index, { ...item, weight_g: 1, weight_assumed: false });
     }
   };
 
   const handleUprightToggle = (index: number, checked: boolean) => {
-    const item = items[index];
     const allowed: RotationCode[] = checked
       ? ["LWH", "WLH"]
       : ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"];
-    onUpdateItem(index, {
-      ...item,
-      keep_upright: checked,
-      allowed_rotations: allowed,
-    });
+    onUpdateItem(index, { ...items[index], keep_upright: checked, allowed_rotations: allowed });
   };
 
+  const reviewCount = items.filter((it) => it.uncertainty_info?.requires_user_review).length;
+
+  const dimInput = (item: ExtendedPackableItem, idx: number, field: DimField, warn = false) => (
+    <input
+      type="number"
+      min={10}
+      className={`num-input ${warn ? "is-warn" : ""}`}
+      value={item.dimensions_mm[field] || ""}
+      onChange={(e) => handleDimensionChange(idx, field, parseInt(e.target.value, 10) || 0)}
+      onBlur={() => handleDimensionBlur(idx, field)}
+    />
+  );
+
   return (
-    <div className="card manifest-card">
-      <div className="card-header">
-        <div className="manifest-header-title">
-          <h2>2. Detected Items Manifest & Verification</h2>
-          <span className="badge badge-accent">{items.length} Items</span>
-        </div>
+    <section className="panel">
+      <header className="panel-head">
+        <h2>
+          Items <span className="muted">{items.length}</span>
+        </h2>
+        {reviewCount > 0 && (
+          <span className="hint-warn">{reviewCount} need height check</span>
+        )}
+      </header>
 
-        <button className="btn btn-sm btn-outline-cyan" onClick={onAddItem} title="Add an uncaptured item manually">
-          + Add Manual Item
-        </button>
-      </div>
-
-      <p className="card-desc">
-        Review detected 3D bounding dimensions and AI handling flags. Items with high measurement uncertainty or assumed weight are highlighted for 1-click confirmation before cartonization.
-      </p>
-
-      <div className="table-responsive">
-        <table className="manifest-table">
-          <thead>
-            <tr>
-              <th>Color</th>
-              <th>Item Name</th>
-              <th>L × W × H (mm)</th>
-              <th>Weight (g)</th>
-              <th>Keep Upright</th>
-              <th>Fragility</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, idx) => {
-              const isReviewNeeded =
-                item.uncertainty_info?.requires_user_review ||
-                (item.uncertainty_info?.height_sigma_mm || 0) > 8;
-
-              return (
-                <tr key={item.item_id} className={isReviewNeeded ? "row-review-highlight" : ""}>
-                  <td>
+      <table className="items">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>L × W × H (mm)</th>
+            <th>Weight (g)</th>
+            <th className="center">Upright</th>
+            <th>Fragility</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, idx) => {
+            const review = !!item.uncertainty_info?.requires_user_review;
+            return (
+              <tr key={item.item_id}>
+                <td>
+                  <div className="item-name">
+                    <span className="dot" style={{ backgroundColor: item.display_color_hex }} />
+                    <span className="truncate" title={item.item_id}>
+                      {item.display_name}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div className="dims">
+                    {dimInput(item, idx, "length_mm")}
+                    {dimInput(item, idx, "width_mm")}
                     <span
-                      className="color-dot"
-                      style={{ backgroundColor: item.display_color_hex }}
-                    />
-                  </td>
-                  <td>
-                    <div className="item-name-row">
-                      <span className="badge-item-number">#{idx + 1}</span>
-                      <strong className="item-title">{item.display_name}</strong>
-                    </div>
-                    <div className="item-meta-badges">
-                      <span
-                        className="item-id-pill"
-                        title={`Full Item ID: ${item.item_id} (Click to copy)`}
-                        onClick={() => {
-                          if (navigator.clipboard) {
-                            navigator.clipboard.writeText(item.item_id);
-                          }
-                        }}
-                      >
-                        {item.item_id.length > 14 ? `${item.item_id.slice(0, 10)}…` : item.item_id}
-                      </span>
-                      {isReviewNeeded ? (
-                        <span className="badge badge-warning-pulse" title="Height measured via aspect prior fallback">
-                          ⚠️ Review Height (±{item.uncertainty_info?.height_sigma_mm}mm)
-                        </span>
-                      ) : (
-                        <span className="badge badge-calibrated" title="High dual-view confidence">
-                          ✓ Calibrated (±{item.safety_margin_mm}mm)
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="dim-inputs">
-                      <input
-                        type="number"
-                        min={10}
-                        value={item.dimensions_mm.length_mm || ""}
-                        onChange={(e) =>
-                          handleDimensionChange(idx, "length_mm", parseInt(e.target.value, 10) || 0)
-                        }
-                        onBlur={() => handleDimensionBlur(idx, "length_mm")}
-                        title="Length (mm)"
-                      />
-                      <span>×</span>
-                      <input
-                        type="number"
-                        min={10}
-                        value={item.dimensions_mm.width_mm || ""}
-                        onChange={(e) =>
-                          handleDimensionChange(idx, "width_mm", parseInt(e.target.value, 10) || 0)
-                        }
-                        onBlur={() => handleDimensionBlur(idx, "width_mm")}
-                        title="Width (mm)"
-                      />
-                      <span>×</span>
-                      <input
-                        type="number"
-                        min={10}
-                        className={isReviewNeeded ? "input-review-alert" : ""}
-                        value={item.dimensions_mm.height_mm || ""}
-                        onChange={(e) =>
-                          handleDimensionChange(idx, "height_mm", parseInt(e.target.value, 10) || 0)
-                        }
-                        onBlur={() => handleDimensionBlur(idx, "height_mm")}
-                        title="Height (mm) - Review required"
-                      />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="weight-cell">
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.weight_g || ""}
-                        placeholder="Est. 450"
-                        onChange={(e) =>
-                          handleWeightChange(idx, parseInt(e.target.value, 10) || 0)
-                        }
-                        onBlur={() => handleWeightBlur(idx)}
-                        title="Weight in grams"
-                      />
-                      {item.weight_assumed && (
-                        <span className="badge badge-warning" title="Density fallback estimate">
-                          Assumed
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <label className="toggle-switch" title="Lock upright orientation (LWH, WLH only)">
-                      <input
-                        type="checkbox"
-                        checked={item.keep_upright}
-                        onChange={(e) => handleUprightToggle(idx, e.target.checked)}
-                      />
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </td>
-                  <td>
-                    <select
-                      value={item.fragility_class}
-                      onChange={(e) =>
-                        onUpdateItem(idx, {
-                          ...item,
-                          fragility_class: e.target.value as PackableItem["fragility_class"],
-                          stackable: e.target.value !== "high",
-                          max_top_load_g: e.target.value === "high" ? 0 : 3000,
-                        })
+                      title={
+                        review
+                          ? `Height uncertain (±${item.uncertainty_info?.height_sigma_mm} mm). Please verify.`
+                          : undefined
                       }
-                      className="select-fragility"
                     >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High (Fragile)</option>
-                    </select>
-                  </td>
-                  <td>
-                    <button
-                      className="btn-icon-delete"
-                      onClick={() => onDeleteItem(idx)}
-                      title="Remove item from manifest"
-                    >
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                      {dimInput(item, idx, "height_mm", review)}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    min={1}
+                    className={`num-input wide ${item.weight_assumed ? "is-soft" : ""}`}
+                    value={item.weight_g || ""}
+                    placeholder="—"
+                    title={item.weight_assumed ? "Estimated weight" : undefined}
+                    onChange={(e) => handleWeightChange(idx, parseInt(e.target.value, 10) || 0)}
+                    onBlur={() => handleWeightBlur(idx)}
+                  />
+                </td>
+                <td className="center">
+                  <input
+                    type="checkbox"
+                    checked={item.keep_upright}
+                    onChange={(e) => handleUprightToggle(idx, e.target.checked)}
+                  />
+                </td>
+                <td>
+                  <select
+                    className="select"
+                    value={item.fragility_class}
+                    onChange={(e) =>
+                      onUpdateItem(idx, {
+                        ...item,
+                        fragility_class: e.target.value as PackableItem["fragility_class"],
+                        stackable: e.target.value !== "high",
+                        max_top_load_g: e.target.value === "high" ? 0 : 3000,
+                      })
+                    }
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">Fragile</option>
+                  </select>
+                </td>
+                <td className="right">
+                  <button
+                    type="button"
+                    className="row-delete"
+                    onClick={() => onDeleteItem(idx)}
+                    aria-label="Remove item"
+                  >
+                    ×
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
 
-      {/* Action Footer: Margin checkbox & Optimize button */}
-      <div className="manifest-footer">
-        <label className="checkbox-margin-setting" title="Expands dimensions by +5mm to guarantee fit against measurement error">
+      <footer className="panel-foot">
+        <button type="button" className="btn-link" onClick={onAddItem}>
+          + Add item
+        </button>
+        <label className="check" title="Adds +5 mm to each item to absorb measurement error">
           <input
             type="checkbox"
             checked={applyUncertaintyMargin}
             onChange={(e) => setApplyUncertaintyMargin(e.target.checked)}
           />
-          <span>Include Measurement Uncertainty Safety Margin (+5mm)</span>
+          Safety margin
         </label>
-
         <button
-          className="btn btn-success btn-lg"
+          type="button"
+          className="btn btn-primary"
           onClick={onPackOrder}
           disabled={packingLoading || items.length === 0}
         >
-          {packingLoading ? "Optimizing Packing & Cost..." : "Optimize Carton & Pack (CP-SAT)"}
+          {packingLoading ? "Packing…" : "Pack"}
         </button>
-      </div>
-    </div>
+      </footer>
+    </section>
   );
 };

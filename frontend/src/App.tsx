@@ -99,7 +99,7 @@ export const App: React.FC = () => {
 
     const newItem: ExtendedPackableItem = {
       item_id: newItemId,
-      display_name: `Manual Item #${packableItems.length + 1}`,
+      display_name: `Item ${packableItems.length + 1}`,
       quantity: 1,
       dimensions_mm: { length_mm: 120, width_mm: 80, height_mm: 50 },
       safety_margin_mm: 5,
@@ -169,76 +169,55 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="app-container">
-      {/* Top Header */}
-      <header className="app-header">
-        <div className="header-brand">
-          <div className="logo-icon">📦</div>
-          <div>
-            <h1>OptiPack</h1>
-            <p className="subtitle">AI & 3D Multi-Item Cartonization MVP (Contract v1.0.0)</p>
-          </div>
-        </div>
-        <div className="header-meta">
-          <span className="badge badge-meta">Meta Model API (muse-spark-1.3)</span>
-          <span className="badge badge-solver">OR-Tools CP-SAT</span>
-          <span className="badge badge-three">Three.js Y-Up</span>
-          <span className="badge badge-outline">Member 4 UI</span>
-        </div>
+    <div className="app">
+      <header className="topbar">
+        <h1>OptiPack</h1>
+        <span className="muted">Smart carton picking</span>
       </header>
 
-      {/* Main Split Grid */}
-      <main className="app-main">
-        <div className="grid-layout">
-          {/* Left Column: Input, Metrology & Manifest */}
-          <div className="grid-column-left">
-            <UploadPanel
-              onAnalysisLoaded={handleAnalysisLoaded}
-              loading={loading}
-              setLoading={setLoading}
-              analysis={analysis}
+      <main className="layout">
+        <div className="col">
+          <UploadPanel
+            onAnalysisLoaded={handleAnalysisLoaded}
+            loading={loading}
+            setLoading={setLoading}
+            analysis={analysis}
+            items={packableItems}
+          />
+          {packableItems.length > 0 && (
+            <ManifestTable
               items={packableItems}
+              onUpdateItem={handleUpdateItem}
+              onAddItem={handleAddItem}
+              onDeleteItem={handleDeleteItem}
+              onPackOrder={handlePackOrder}
+              packingLoading={packingLoading}
+              applyUncertaintyMargin={applyUncertaintyMargin}
+              setApplyUncertaintyMargin={setApplyUncertaintyMargin}
             />
+          )}
+        </div>
 
-            {packableItems.length > 0 && (
-              <ManifestTable
-                items={packableItems}
-                onUpdateItem={handleUpdateItem}
-                onAddItem={handleAddItem}
-                onDeleteItem={handleDeleteItem}
-                onPackOrder={handlePackOrder}
-                packingLoading={packingLoading}
-                applyUncertaintyMargin={applyUncertaintyMargin}
-                setApplyUncertaintyMargin={setApplyUncertaintyMargin}
+        <div className="col">
+          {activePlan ? (
+            <>
+              <CostScorecard
+                metrics={activePlan.metrics}
+                validation={activePlan.validation}
+                carton={activePlan.carton}
+                candidateComparison={solution?.candidate_carton_comparison}
+                overflowPlans={solution?.overflow_plans}
+                unpackedItemIds={solution?.unpacked_item_ids}
+                activePlanIndex={activePlanIndex}
+                onSelectPlan={setActivePlanIndex}
               />
-            )}
-          </div>
-
-          {/* Right Column: 3D Visualization & Cost Scorecard */}
-          <div className="grid-column-right">
-            {activePlan ? (
-              <>
-                <PackingViewer3D plan={activePlan} />
-                <CostScorecard
-                  metrics={activePlan.metrics}
-                  validation={activePlan.validation}
-                  carton={activePlan.carton}
-                  candidateComparison={solution?.candidate_carton_comparison}
-                  overflowPlans={solution?.overflow_plans}
-                  unpackedItemIds={solution?.unpacked_item_ids}
-                  activePlanIndex={activePlanIndex}
-                  onSelectPlan={setActivePlanIndex}
-                />
-              </>
-            ) : (
-              <div className="card placeholder-card">
-                <h3>Packing Viewer Ready</h3>
-                <p>
-                  Upload packing images or load one of the 3 Demo Presets on the left to inspect 3D packing sequence.
-                </p>
-              </div>
-            )}
-          </div>
+              <PackingViewer3D plan={activePlan} />
+            </>
+          ) : (
+            <section className="panel empty">
+              <p className="muted">Analyze a capture or pick a preset to see the packing plan.</p>
+            </section>
+          )}
         </div>
       </main>
     </div>

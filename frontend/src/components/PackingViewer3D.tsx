@@ -1,14 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { PackingPlan, PlacedItem } from "../types/contract";
+import { PackingPlan } from "../types/contract";
 import { mapPlacementToThreeJSFloor } from "../utils/coordinateTransform";
 
 interface PackingViewer3DProps {
   plan: PackingPlan;
 }
 
-type CameraPreset = "iso" | "top" | "front" | "side";
+type CameraPreset = "iso" | "top" | "front";
+
+const VIEWPORT_HEIGHT = 400;
+const DROP_HEIGHT_MM = 150;
+const DROP_DURATION_MS = 380;
 
 export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -19,13 +23,11 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const [currentStep, setCurrentStep] = useState<number>(plan.placements.length);
   const prevStepRef = useRef<number>(plan.placements.length);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [showSafetyHalo, setShowSafetyHalo] = useState<boolean>(true);
-  const [autoRotate, setAutoRotate] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<CameraPreset>("iso");
 
   const totalSteps = plan.placements.length;
 
-  // Sync step count on plan change
+  // Reset step on plan change
   useEffect(() => {
     setCurrentStep(plan.placements.length);
     prevStepRef.current = plan.placements.length;
@@ -35,7 +37,6 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   // Auto-play timer
   useEffect(() => {
     if (!isPlaying) return;
-
     const timer = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev >= totalSteps) {
@@ -44,68 +45,46 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         }
         return prev + 1;
       });
-    }, 1100);
-
+    }, 900);
     return () => clearInterval(timer);
   }, [isPlaying, totalSteps]);
 
-  // Camera preset handler
   const setCameraView = (preset: CameraPreset) => {
     setActivePreset(preset);
     const camera = cameraRef.current;
     const controls = controlsRef.current;
     if (!camera || !controls) return;
 
-    const cartonDims = plan.carton.internal_dimensions_mm;
-    const targetY = cartonDims.height_mm / 2;
+    const targetY = plan.carton.internal_dimensions_mm.height_mm / 2;
     controls.target.set(0, targetY, 0);
-
-    switch (preset) {
-      case "iso":
-        camera.position.set(380, 320, 480);
-        break;
-      case "top":
-        camera.position.set(0, 680, 1); // Slight offset on Z to prevent gimbal lock
-        break;
-      case "front":
-        camera.position.set(0, targetY, 560);
-        break;
-      case "side":
-        camera.position.set(560, targetY, 0);
-        break;
-    }
+    if (preset === "iso") camera.position.set(380, 320, 480);
+    if (preset === "top") camera.position.set(0, 680, 1); // Small Z offset avoids gimbal lock
+    if (preset === "front") camera.position.set(0, targetY, 560);
     controls.update();
   };
 
-  // Helper to safely dispose geometries and materials inside a group
+  // Dispose geometries and materials inside a group
   const clearAndDisposeGroup = (group: THREE.Group) => {
     group.traverse((obj) => {
       if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
-        if (obj.geometry) {
-          obj.geometry.dispose();
-        }
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach((m) => m.dispose());
-        } else if (obj.material) {
-          obj.material.dispose();
-        }
+        obj.geometry?.dispose();
+        if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
+        else obj.material?.dispose();
       }
     });
     group.clear();
   };
 
-  // Effect 1: Initialize Scene, Camera, Renderer, Controls & Carton Wireframe
-  // Only re-runs when carton dimensions/ID change, preserving camera angle across steps
+  // Effect 1: Scene, camera, renderer, controls & carton. Re-runs only when the carton changes.
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
     const width = container.clientWidth || 600;
-    const height = 440;
+    const height = VIEWPORT_HEIGHT;
 
-    // 1. Scene, Camera, Renderer
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0f1d); // Sleek deep space dark mode
+    scene.background = new THREE.Color(0xf5f5f7);
 
     const cartonDims = plan.carton.internal_dimensions_mm;
     const camera = new THREE.PerspectiveCamera(45, width / height, 1, 3000);
@@ -115,117 +94,81 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
-    // 2. OrbitControls (Mouse drag to rotate, scroll to zoom, right click to pan)
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.maxPolarAngle = Math.PI / 2 + 0.12; // Prevent going deeply underground
+    controls.dampingFactor = 0.08;
+    controls.maxPolarAngle = Math.PI / 2 + 0.12;
     controls.minDistance = 150;
     controls.maxDistance = 1400;
     controls.target.set(0, cartonDims.height_mm / 2, 0);
-    controls.autoRotate = autoRotate;
-    controls.autoRotateSpeed = 1.2;
     controlsRef.current = controls;
 
-    // 3. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
-    scene.add(ambientLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    keyLight.position.set(250, 450, 300);
+    scene.add(keyLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.9);
-    dirLight1.position.set(250, 450, 300);
-    dirLight1.castShadow = true;
-    scene.add(dirLight1);
-
-    const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.35); // Subtle cyan fill
-    dirLight2.position.set(-300, 150, -200);
-    scene.add(dirLight2);
-
-    // 4. Ground Grid
-    const grid = new THREE.GridHelper(900, 30, 0x1e293b, 0x0f172a);
+    const grid = new THREE.GridHelper(900, 30, 0xd2d2d7, 0xe8e8ed);
     grid.position.y = -1;
     scene.add(grid);
 
-    // 5. Carton Wireframe
-    const cartonGeo = new THREE.BoxGeometry(
-      cartonDims.length_mm,
-      cartonDims.height_mm,
-      cartonDims.width_mm
+    // Carton outline
+    const cartonGeo = new THREE.BoxGeometry(cartonDims.length_mm, cartonDims.height_mm, cartonDims.width_mm);
+    const cartonWire = new THREE.LineSegments(
+      new THREE.EdgesGeometry(cartonGeo),
+      new THREE.LineBasicMaterial({ color: 0x86868b })
     );
-    const wireGeo = new THREE.EdgesGeometry(cartonGeo);
-    const wireMat = new THREE.LineBasicMaterial({
-      color: 0x38bdf8, // OptiPack Cyan
-      linewidth: 2,
-    });
-    const cartonWire = new THREE.LineSegments(wireGeo, wireMat);
+    cartonGeo.dispose();
     cartonWire.position.set(0, cartonDims.height_mm / 2, 0);
     scene.add(cartonWire);
 
-    // 6. Carton Floor Surface
+    // Carton floor
     const floorGeo = new THREE.PlaneGeometry(cartonDims.length_mm, cartonDims.width_mm);
     floorGeo.rotateX(-Math.PI / 2);
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x111c30,
-      roughness: 0.85,
-      metalness: 0.15,
-    });
-    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-    floorMesh.position.y = 0;
+    const floorMesh = new THREE.Mesh(
+      floorGeo,
+      new THREE.MeshStandardMaterial({ color: 0xe8e8ed, roughness: 0.9 })
+    );
     scene.add(floorMesh);
 
-    // 7. Dedicated Group for Placed Items (updated independently in Effect 2)
     const itemGroup = new THREE.Group();
     scene.add(itemGroup);
     itemGroupRef.current = itemGroup;
 
-    // 8. Animation & Render Loop with Smooth Dropping Lerp & Pulse Outline
+    // Render loop: drop easing + active outline pulse
     let animationFrameId: number;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
       controls.update();
 
       const now = performance.now();
-      if (itemGroupRef.current) {
-        itemGroupRef.current.children.forEach((child) => {
-          // Smooth dropping interpolation (easeOutQuad)
-          if (child.userData?.isAnimating) {
-            const elapsed = now - child.userData.startTime;
-            const progress = Math.min(1, elapsed / child.userData.duration);
-            // easeOutQuad formula: 1 - (1 - t)^2
-            const ease = 1 - (1 - progress) * (1 - progress);
-            child.position.y =
-              child.userData.startY +
-              (child.userData.targetY - child.userData.startY) * ease;
-
-            if (progress >= 1) {
-              child.position.y = child.userData.targetY;
-              child.userData.isAnimating = false;
-            }
+      itemGroupRef.current?.children.forEach((child) => {
+        const d = child.userData;
+        if (d?.isAnimating) {
+          const t = Math.min(1, (now - d.startTime) / d.duration);
+          const ease = 1 - (1 - t) * (1 - t); // easeOutQuad
+          child.position.y = d.startY + (d.targetY - d.startY) * ease;
+          if (t >= 1) {
+            child.position.y = d.targetY;
+            d.isAnimating = false;
           }
-
-          // Active step outline pulsing glow effect
-          if (child.userData?.isActive) {
-            const glow = child.getObjectByName("glowOutline") as
-              | THREE.LineSegments
-              | undefined;
-            if (glow && glow.material instanceof THREE.LineBasicMaterial) {
-              const pulse = 0.5 + 0.5 * Math.sin(now * 0.007);
-              glow.material.opacity = 0.4 + 0.6 * pulse;
-            }
+        }
+        if (d?.isActive) {
+          const outline = child.getObjectByName("activeOutline") as THREE.LineSegments | undefined;
+          if (outline && outline.material instanceof THREE.LineBasicMaterial) {
+            outline.material.opacity = 0.55 + 0.45 * Math.sin(now * 0.006);
           }
-        });
-      }
+        }
+      });
 
       renderer.render(scene, camera);
     };
     animate();
 
-    // 9. Resize observer for responsive layout
     const handleResize = () => {
-      if (!container) return;
       const newWidth = container.clientWidth;
       camera.aspect = newWidth / height;
       camera.updateProjectionMatrix();
@@ -239,22 +182,16 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
       controls.dispose();
       itemGroupRef.current = null;
 
-      // Professional GPU Memory Cleanup: dispose all meshes, geometries, and materials
+      // GPU memory cleanup
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
-          if (obj.geometry) {
-            obj.geometry.dispose();
-          }
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose());
-          } else if (obj.material) {
-            obj.material.dispose();
-          }
+          obj.geometry?.dispose();
+          if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose());
+          else obj.material?.dispose();
         }
       });
-
       renderer.dispose();
-      if (container) container.innerHTML = "";
+      container.innerHTML = "";
     };
   }, [
     plan.carton.carton_id,
@@ -263,8 +200,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     plan.carton.internal_dimensions_mm.height_mm,
   ]);
 
-  // Effect 2: Update Placed Item Meshes when step, halo toggle, or placements change
-  // Preserves user's current camera angle, zoom, and pan
+  // Effect 2: Rebuild item meshes when the step or placements change (camera state is preserved)
   useEffect(() => {
     const itemGroup = itemGroupRef.current;
     if (!itemGroup) return;
@@ -274,299 +210,143 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     const isStepForward = currentStep > prevStepRef.current;
     prevStepRef.current = currentStep;
 
-    const visiblePlacements = plan.placements.filter((p) => p.step_number <= currentStep);
+    plan.placements
+      .filter((p) => p.step_number <= currentStep)
+      .forEach((p) => {
+        const { size, position } = mapPlacementToThreeJSFloor(plan.carton, p);
+        const [wPlaced, hPlaced, dPlaced] = size; // placed dimensions incl. safety margin
+        const [x, y, z] = position;
+        const isActive = p.step_number === currentStep;
 
-    visiblePlacements.forEach((p) => {
-      const transform = mapPlacementToThreeJSFloor(plan.carton, p);
-      const [wPlaced, hPlaced, dPlaced] = transform.size; // placed dimensions (with margin)
-      const [x, y, z] = transform.position;
+        const group = new THREE.Group();
+        const animateDrop = isActive && isStepForward;
+        const startY = Math.max(plan.carton.internal_dimensions_mm.height_mm + DROP_HEIGHT_MM, y + DROP_HEIGHT_MM);
+        group.position.set(x, animateDrop ? startY : y, z);
+        group.userData = {
+          targetY: y,
+          startY,
+          startTime: performance.now(),
+          duration: DROP_DURATION_MS,
+          isAnimating: animateDrop,
+          isActive,
+        };
 
-      const isCurrentActive = p.step_number === currentStep;
-
-      // Create placement container group for unified motion
-      const placementGroup = new THREE.Group();
-      placementGroup.name = `placement_${p.step_number}`;
-
-      const shouldAnimateDrop = isCurrentActive && isStepForward;
-      const dropHeight = Math.max(plan.carton.internal_dimensions_mm.height_mm + 150, y + 150);
-      const initialY = shouldAnimateDrop ? dropHeight : y;
-
-      placementGroup.position.set(x, initialY, z);
-      placementGroup.userData = {
-        targetY: y,
-        startY: dropHeight,
-        startTime: performance.now(),
-        duration: 380, // 380ms drop animation
-        isAnimating: shouldAnimateDrop,
-        isActive: isCurrentActive,
-      };
-
-      if (showSafetyHalo) {
-        // A. Nominal Inner Solid Box
+        // Solid nominal box (fallback to placed dims when nominal is absent)
         const nom = p.nominal_dimensions_mm || p.placed_dimensions_mm;
-        const nomDx = nom.dx;
-        const nomDy = nom.dy;
-        const nomDz = nom.dz;
-
-        // Determine orientation scaling based on placed dimensions
-        const innerGeo = new THREE.BoxGeometry(
-          Math.min(nomDx, wPlaced),
-          Math.min(nomDz, hPlaced),
-          Math.min(nomDy, dPlaced)
+        const solidGeo = new THREE.BoxGeometry(
+          Math.min(nom.dx, wPlaced),
+          Math.min(nom.dz, hPlaced),
+          Math.min(nom.dy, dPlaced)
         );
-        const innerMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(p.display_color_hex || "#3b82f6"),
-          roughness: 0.35,
-          metalness: 0.1,
-          transparent: true,
-          opacity: 0.94,
-        });
-        const innerMesh = new THREE.Mesh(innerGeo, innerMat);
-        innerMesh.position.set(0, 0, 0);
-        innerMesh.castShadow = true;
-        innerMesh.receiveShadow = true;
+        const solid = new THREE.Mesh(
+          solidGeo,
+          new THREE.MeshStandardMaterial({
+            color: new THREE.Color(p.display_color_hex || "#0071e3"),
+            roughness: 0.55,
+            transparent: !isActive && currentStep < totalSteps,
+            opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
+          })
+        );
+        solid.add(
+          new THREE.LineSegments(
+            new THREE.EdgesGeometry(solidGeo),
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
+          )
+        );
+        group.add(solid);
 
-        const innerEdges = new THREE.EdgesGeometry(innerGeo);
-        const innerLineMat = new THREE.LineBasicMaterial({
-          color: 0xffffff,
-          linewidth: 1,
-        });
-        innerMesh.add(new THREE.LineSegments(innerEdges, innerLineMat));
-        placementGroup.add(innerMesh);
-
-        // B. Translucent Safety Buffer Halo (+Safety Margin)
+        // Safety margin envelope (subtle)
         const haloGeo = new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
         const haloEdges = new THREE.EdgesGeometry(haloGeo);
-        const haloLineMat = new THREE.LineBasicMaterial({
-          color: isCurrentActive ? 0xfacc15 : 0x94a3b8, // Amber for active step, slate for past
-          transparent: true,
-          opacity: 0.55,
-        });
-        const haloWire = new THREE.LineSegments(haloEdges, haloLineMat);
-        haloWire.position.set(0, 0, 0);
-        placementGroup.add(haloWire);
+        haloGeo.dispose();
+        group.add(
+          new THREE.LineSegments(
+            haloEdges,
+            new THREE.LineBasicMaterial({ color: 0x86868b, transparent: true, opacity: 0.35 })
+          )
+        );
 
-        // C. Glowing Active Step Outline
-        if (isCurrentActive) {
-          const glowMat = new THREE.LineBasicMaterial({
-            color: 0x38bdf8, // Electric cyan glow
-            linewidth: 2.5,
-            transparent: true,
-            opacity: 0.85,
-          });
-          const glowMesh = new THREE.LineSegments(haloEdges, glowMat);
-          glowMesh.name = "glowOutline";
-          placementGroup.add(glowMesh);
+        // Active step outline
+        if (isActive) {
+          const outline = new THREE.LineSegments(
+            haloEdges.clone(),
+            new THREE.LineBasicMaterial({ color: 0x0071e3, transparent: true, opacity: 1 })
+          );
+          outline.name = "activeOutline";
+          group.add(outline);
         }
-      } else {
-        // Standard Solid Box
-        const boxGeo = new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
-        const boxMat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(p.display_color_hex || "#3b82f6"),
-          roughness: 0.3,
-          metalness: 0.1,
-          transparent: true,
-          opacity: isCurrentActive ? 0.98 : 0.88,
-        });
-        const mesh = new THREE.Mesh(boxGeo, boxMat);
-        mesh.position.set(0, 0, 0);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
 
-        const edges = new THREE.EdgesGeometry(boxGeo);
-        const lineMat = new THREE.LineBasicMaterial({
-          color: isCurrentActive ? 0xfacc15 : 0xffffff,
-          linewidth: isCurrentActive ? 2 : 1,
-        });
-        mesh.add(new THREE.LineSegments(edges, lineMat));
-        placementGroup.add(mesh);
-
-        // Glowing Active Step Outline
-        if (isCurrentActive) {
-          const glowMat = new THREE.LineBasicMaterial({
-            color: 0x38bdf8,
-            linewidth: 2.5,
-            transparent: true,
-            opacity: 0.85,
-          });
-          const glowMesh = new THREE.LineSegments(edges, glowMat);
-          glowMesh.name = "glowOutline";
-          placementGroup.add(glowMesh);
-        }
-      }
-
-      itemGroup.add(placementGroup);
-    });
-  }, [plan.carton, plan.placements, currentStep, showSafetyHalo]);
-
-  // Effect 3: Update Turntable autoRotate without touching Scene or Camera
-  useEffect(() => {
-    if (controlsRef.current) {
-      controlsRef.current.autoRotate = autoRotate;
-    }
-  }, [autoRotate]);
+        itemGroup.add(group);
+      });
+  }, [plan.carton, plan.placements, currentStep, totalSteps]);
 
   const activeItem = plan.placements.find((p) => p.step_number === currentStep);
 
+  const togglePlay = () => {
+    if (isPlaying) {
+      setIsPlaying(false);
+      return;
+    }
+    if (currentStep >= totalSteps) {
+      prevStepRef.current = 0;
+      setCurrentStep(1);
+    }
+    setIsPlaying(true);
+  };
+
   return (
-    <div className="card viewer-card">
-      <div className="card-header">
-        <div className="viewer-title-group">
-          <h2>3. Interactive 3D Packing Viewport</h2>
-          <span className="badge badge-success">
-            {plan.carton.carton_id} ({plan.carton.display_name})
-          </span>
+    <section className="panel panel-flush">
+      <header className="panel-head padded">
+        <h2>
+          Packing <span className="muted">{plan.carton.display_name || plan.carton.carton_id}</span>
+        </h2>
+        <div className="segmented">
+          {(["iso", "top", "front"] as CameraPreset[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={activePreset === p ? "is-active" : ""}
+              onClick={() => setCameraView(p)}
+            >
+              {p === "iso" ? "3D" : p === "top" ? "Top" : "Front"}
+            </button>
+          ))}
         </div>
+      </header>
 
-        {/* Camera Presets & Halo Toggle */}
-        <div className="viewer-actions-top">
-          <div className="btn-group-pill">
-            <button
-              className={`btn-pill ${activePreset === "iso" ? "active" : ""}`}
-              onClick={() => setCameraView("iso")}
-            >
-              Isometric
-            </button>
-            <button
-              className={`btn-pill ${activePreset === "top" ? "active" : ""}`}
-              onClick={() => setCameraView("top")}
-            >
-              Top (Zenith)
-            </button>
-            <button
-              className={`btn-pill ${activePreset === "front" ? "active" : ""}`}
-              onClick={() => setCameraView("front")}
-            >
-              Front
-            </button>
-            <button
-              className={`btn-pill ${activePreset === "side" ? "active" : ""}`}
-              onClick={() => setCameraView("side")}
-            >
-              Side
-            </button>
-          </div>
+      <div className="viewport" ref={mountRef} />
 
-          <button
-            className={`btn-toggle-halo ${showSafetyHalo ? "active" : ""}`}
-            onClick={() => setShowSafetyHalo((prev) => !prev)}
-            title="Toggle safety margin halos around items"
-          >
-            🛡️ Halo {showSafetyHalo ? "ON" : "OFF"}
-          </button>
-
-          <button
-            className={`btn-toggle-halo ${autoRotate ? "active" : ""}`}
-            onClick={() => setAutoRotate((prev) => !prev)}
-            title="Toggle 360° turntable spin"
-          >
-            🔄 Spin {autoRotate ? "ON" : "OFF"}
-          </button>
-        </div>
-      </div>
-
-      <p className="card-desc">
-        Deterministic CP-SAT packing order with smooth dropping physics. Drag with left mouse to orbit, right mouse to pan, scroll wheel to zoom.
-      </p>
-
-      {/* Three.js Viewport Mount */}
-      <div className="viewport-container" ref={mountRef} />
-
-      {/* Step by Step Placement Player */}
-      <div className="step-controls">
-        <div className="step-slider-header">
-          <div>
-            <strong>Step Placement:</strong>{" "}
-            <span className="badge badge-accent">
-              {currentStep} / {totalSteps} Items
-            </span>
-          </div>
-
-          {activeItem && (
-            <div className="step-item-info">
-              <span
-                className="color-dot inline"
-                style={{ backgroundColor: activeItem.display_color_hex }}
-              />
-              <strong>Step {activeItem.step_number}:</strong> {activeItem.display_name} (
-              {activeItem.rotation_code})
-            </div>
-          )}
-        </div>
-
+      <div className="player">
+        <button
+          type="button"
+          className="play-btn"
+          onClick={togglePlay}
+          aria-label={isPlaying ? "Pause" : "Play"}
+        >
+          {isPlaying ? "❚❚" : "▶"}
+        </button>
         <input
           type="range"
           min={1}
           max={totalSteps}
           value={currentStep}
           onChange={(e) => {
-            setCurrentStep(parseInt(e.target.value) || 1);
+            setCurrentStep(parseInt(e.target.value, 10) || 1);
             setIsPlaying(false);
           }}
-          className="step-slider"
+          className="slider"
         />
-
-        <div className="step-btn-bar">
-          <button
-            className={`btn btn-sm ${isPlaying ? "btn-warning" : "btn-primary"}`}
-            onClick={() => {
-              if (isPlaying) {
-                setIsPlaying(false);
-              } else {
-                if (currentStep >= totalSteps) setCurrentStep(1);
-                setIsPlaying(true);
-              }
-            }}
-          >
-            {isPlaying ? "⏸ Pause Step Tour" : "▶ Auto Play Sequence"}
-          </button>
-
-          <button
-            className="btn btn-sm"
-            onClick={() => {
-              setCurrentStep(1);
-              setIsPlaying(false);
-            }}
-            disabled={currentStep <= 1}
-            title="First Step"
-          >
-            |◀ First
-          </button>
-
-          <button
-            className="btn btn-sm"
-            onClick={() => {
-              setCurrentStep((prev) => Math.max(1, prev - 1));
-              setIsPlaying(false);
-            }}
-            disabled={currentStep <= 1}
-          >
-            ◀ Prev
-          </button>
-
-          <button
-            className="btn btn-sm"
-            onClick={() => {
-              setCurrentStep((prev) => Math.min(totalSteps, prev + 1));
-              setIsPlaying(false);
-            }}
-            disabled={currentStep >= totalSteps}
-          >
-            Next ▶
-          </button>
-
-          <button
-            className="btn btn-sm btn-secondary"
-            onClick={() => {
-              setCurrentStep(totalSteps);
-              setIsPlaying(false);
-            }}
-            title="Show All Steps At Once"
-          >
-            Show All ({totalSteps})
-          </button>
-        </div>
+        <span className="player-step">
+          {currentStep}/{totalSteps}
+        </span>
       </div>
-    </div>
+      {activeItem && (
+        <p className="player-caption">
+          <span className="dot" style={{ backgroundColor: activeItem.display_color_hex }} />
+          {activeItem.display_name}
+          <span className="muted"> · {activeItem.rotation_code}</span>
+        </p>
+      )}
+    </section>
   );
 };
