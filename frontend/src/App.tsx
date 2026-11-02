@@ -247,6 +247,7 @@ export const App: React.FC = () => {
               <>
                 <PackingViewer3D plan={activePlan} />
                 <CostScorecard
+                  carton={activePlan.carton}
                   metrics={activePlan.metrics}
                   validation={activePlan.validation}
                   candidateComparison={solution?.candidate_carton_comparison}

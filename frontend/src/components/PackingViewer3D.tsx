@@ -324,14 +324,27 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
 
   const activeItem = plan.placements.find((p) => p.step_number === currentStep);
 
+  const dims = plan.carton.internal_dimensions_mm;
+  const volLiters = ((dims.length_mm * dims.width_mm * dims.height_mm) / 1_000_000).toFixed(1);
+  const maxPayloadKg = (plan.carton.max_payload_g / 1000).toFixed(1);
+
   return (
     <div className="card viewer-card">
       <div className="card-header">
         <div className="viewer-title-group">
           <h2>3. Interactive 3D Packing Viewport</h2>
-          <span className="badge badge-success">
-            {plan.carton.carton_id} ({plan.carton.display_name})
-          </span>
+          <div className="carton-specs-badge-group">
+            <span className="badge badge-success">
+              📦 {plan.carton.carton_id} ({plan.carton.display_name})
+            </span>
+            <span className="carton-specs-pill">
+              📏 {dims.length_mm} × {dims.width_mm} × {dims.height_mm} mm
+              <span className="carton-spec-divider">•</span>
+              🧴 {volLiters} L
+              <span className="carton-spec-divider">•</span>
+              ⚖️ Max {maxPayloadKg} kg
+            </span>
+          </div>
         </div>
 
         {/* Camera Presets & Halo Toggle */}

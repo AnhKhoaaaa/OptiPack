@@ -347,14 +347,15 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
         )
         ep_results[carton.carton_id] = (True, ep_placements, ep_plan)
 
-    # Sort feasible candidates by total estimated cost ascending
+    # Sort feasible candidates: Volume-First (Smallest enclosing carton with maximum space utilization)
+    # Tie-break by lowest total estimated cost
     feasible_carton_candidates: List[Tuple[float, CartonSpec, List[PlacedItem], PackingPlan]] = []
     for carton in STANDARD_CARTONS:
         if carton.carton_id in ep_results and ep_results[carton.carton_id][0]:
             _, pl, plan = ep_results[carton.carton_id]
             feasible_carton_candidates.append((plan.metrics.total_estimated_cost_usd, carton, pl, plan))
 
-    feasible_carton_candidates.sort(key=lambda x: x[0])
+    feasible_carton_candidates.sort(key=lambda x: (get_carton_volume_mm3(x[1]), x[0]))
 
     # 3. Tier 2 CP-SAT optimization on lowest-cost candidate cartons
     best_final_plan: Optional[PackingPlan] = None
@@ -417,7 +418,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
                 CandidateCartonEvaluation(
                     carton_id=carton.carton_id,
                     feasible=False,
-                    rejection_reason=f"Geometrically could not pack all {len(items)} items into {carton.carton_id}.",
+                    rejection_reason=f"Item dimensions exceed internal boundary of {carton.carton_id} ({carton.internal_dimensions_mm.length_mm}x{carton.internal_dimensions_mm.width_mm}x{carton.internal_dimensions_mm.height_mm}mm).",
                 )
             )
 
