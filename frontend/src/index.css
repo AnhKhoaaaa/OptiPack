@@ -697,3 +697,9 @@ select {
   padding: 6px 16px 14px 56px;
   font-size: 12px;
 }
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

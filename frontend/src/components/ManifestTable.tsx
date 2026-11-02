@@ -71,7 +71,10 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
     onUpdateItem(index, { ...items[index], keep_upright: checked, allowed_rotations: allowed });
   };
 
-  const reviewCount = items.filter((it) => it.uncertainty_info?.requires_user_review).length;
+  // Review needed when flagged by metrology OR height uncertainty exceeds 8 mm
+  const needsReview = (it: ExtendedPackableItem) =>
+    !!it.uncertainty_info?.requires_user_review || (it.uncertainty_info?.height_sigma_mm || 0) > 8;
+  const reviewCount = items.filter(needsReview).length;
 
   const dimInput = (item: ExtendedPackableItem, idx: number, field: DimField, warn = false) => (
     <input
@@ -108,7 +111,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
         </thead>
         <tbody>
           {items.map((item, idx) => {
-            const review = !!item.uncertainty_info?.requires_user_review;
+            const review = needsReview(item);
             return (
               <tr key={item.item_id}>
                 <td>

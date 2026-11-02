@@ -8,7 +8,7 @@ interface PackingViewer3DProps {
   plan: PackingPlan;
 }
 
-type CameraPreset = "iso" | "top" | "front";
+type CameraPreset = "iso" | "top" | "front" | "side";
 
 const VIEWPORT_HEIGHT = 400;
 const DROP_HEIGHT_MM = 150;
@@ -24,6 +24,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const prevStepRef = useRef<number>(plan.placements.length);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<CameraPreset>("iso");
+  const [showSafetyHalo, setShowSafetyHalo] = useState<boolean>(true);
 
   const totalSteps = plan.placements.length;
 
@@ -45,7 +46,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         }
         return prev + 1;
       });
-    }, 900);
+    }, 1200);
     return () => clearInterval(timer);
   }, [isPlaying, totalSteps]);
 
@@ -60,6 +61,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     if (preset === "iso") camera.position.set(380, 320, 480);
     if (preset === "top") camera.position.set(0, 680, 1); // Small Z offset avoids gimbal lock
     if (preset === "front") camera.position.set(0, targetY, 560);
+    if (preset === "side") camera.position.set(560, targetY, 0);
     controls.update();
   };
 
@@ -231,13 +233,11 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
           isActive,
         };
 
-        // Solid nominal box (fallback to placed dims when nominal is absent)
+        // Halo ON: nominal box + margin envelope. Halo OFF: solid box at placed dims.
         const nom = p.nominal_dimensions_mm || p.placed_dimensions_mm;
-        const solidGeo = new THREE.BoxGeometry(
-          Math.min(nom.dx, wPlaced),
-          Math.min(nom.dz, hPlaced),
-          Math.min(nom.dy, dPlaced)
-        );
+        const solidGeo = showSafetyHalo
+          ? new THREE.BoxGeometry(Math.min(nom.dx, wPlaced), Math.min(nom.dz, hPlaced), Math.min(nom.dy, dPlaced))
+          : new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
         const solid = new THREE.Mesh(
           solidGeo,
           new THREE.MeshStandardMaterial({
@@ -259,12 +259,14 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         const haloGeo = new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
         const haloEdges = new THREE.EdgesGeometry(haloGeo);
         haloGeo.dispose();
-        group.add(
-          new THREE.LineSegments(
-            haloEdges,
-            new THREE.LineBasicMaterial({ color: 0x86868b, transparent: true, opacity: 0.35 })
-          )
-        );
+        if (showSafetyHalo) {
+          group.add(
+            new THREE.LineSegments(
+              haloEdges.clone(),
+              new THREE.LineBasicMaterial({ color: 0x86868b, transparent: true, opacity: 0.35 })
+            )
+          );
+        }
 
         // Active step outline
         if (isActive) {
@@ -275,10 +277,11 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
           outline.name = "activeOutline";
           group.add(outline);
         }
+        haloEdges.dispose();
 
         itemGroup.add(group);
       });
-  }, [plan.carton, plan.placements, currentStep, totalSteps]);
+  }, [plan.carton, plan.placements, currentStep, totalSteps, showSafetyHalo]);
 
   const activeItem = plan.placements.find((p) => p.step_number === currentStep);
 
@@ -300,17 +303,27 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         <h2>
           Packing <span className="muted">{plan.carton.display_name || plan.carton.carton_id}</span>
         </h2>
+        <div className="head-actions">
+        <label className="check" title="Show the measurement safety margin around each item">
+          <input
+            type="checkbox"
+            checked={showSafetyHalo}
+            onChange={(e) => setShowSafetyHalo(e.target.checked)}
+          />
+          Margin
+        </label>
         <div className="segmented">
-          {(["iso", "top", "front"] as CameraPreset[]).map((p) => (
+          {(["iso", "top", "front", "side"] as CameraPreset[]).map((p) => (
             <button
               key={p}
               type="button"
               className={activePreset === p ? "is-active" : ""}
               onClick={() => setCameraView(p)}
             >
-              {p === "iso" ? "3D" : p === "top" ? "Top" : "Front"}
+              {{ iso: "3D", top: "Top", front: "Front", side: "Side" }[p]}
             </button>
           ))}
+        </div>
         </div>
       </header>
 

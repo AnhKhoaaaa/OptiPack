@@ -99,7 +99,7 @@ export const App: React.FC = () => {
 
     const newItem: ExtendedPackableItem = {
       item_id: newItemId,
-      display_name: `Item ${packableItems.length + 1}`,
+      display_name: `Manual Item #${packableItems.length + 1}`,
       quantity: 1,
       dimensions_mm: { length_mm: 120, width_mm: 80, height_mm: 50 },
       safety_margin_mm: 5,

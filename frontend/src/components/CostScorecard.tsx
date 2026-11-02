@@ -63,7 +63,7 @@ export const CostScorecard: React.FC<CostScorecardProps> = ({
             className={activePlanIndex === 1 ? "is-active" : ""}
             onClick={() => onSelectPlan?.(1)}
           >
-            Box 1
+            Box 1 · {usd(metrics.total_estimated_cost_usd)}
           </button>
           {overflowPlans.map((op, idx) => (
             <button
@@ -72,7 +72,7 @@ export const CostScorecard: React.FC<CostScorecardProps> = ({
               className={activePlanIndex === idx + 2 ? "is-active" : ""}
               onClick={() => onSelectPlan?.(idx + 2)}
             >
-              Box {idx + 2}
+              Box {idx + 2} · {usd(op.metrics.total_estimated_cost_usd)}
             </button>
           ))}
         </div>
@@ -110,7 +110,7 @@ export const CostScorecard: React.FC<CostScorecardProps> = ({
       {(unpackedItemIds.length > 0 || !validation.is_valid) && (
         <p className="notice">
           {unpackedItemIds.length > 0
-            ? `${unpackedItemIds.length} item(s) don't fit any carton.`
+            ? `${unpackedItemIds.length} item(s) don't fit any carton: ${unpackedItemIds.join(", ")}`
             : `${6 - passedCount} geometry check(s) failed.`}
         </p>
       )}

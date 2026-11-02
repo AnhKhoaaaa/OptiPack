@@ -60,9 +60,6 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
   const handleLoadPreset = (presetNumber: number) => {
     setSelectedPreset(presetNumber);
-    setTopFile(null);
-    setObliqueFile(null);
-    setTopPreview(SAMPLE_TOP);
     setLoading(true);
 
     setTimeout(() => {
@@ -84,15 +81,13 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   };
 
   const handleAnalyze = async () => {
+    if (!topFile) {
+      alert("Please select a top-down image or choose a preset.");
+      return;
+    }
     setLoading(true);
     const formData = new FormData();
-    if (topFile) {
-      formData.append("top_image", topFile);
-    } else {
-      // Use the bundled sample capture when no file is chosen
-      const blob = await fetch(SAMPLE_TOP).then((r) => r.blob());
-      formData.append("top_image", blob, "topdown_sample.jpg");
-    }
+    formData.append("top_image", topFile);
     if (obliqueFile) formData.append("oblique_image", obliqueFile);
     formData.append("capture_mode", obliqueFile ? "dual_photo" : "single_top_photo");
 
@@ -149,7 +144,9 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
               const h = Math.max(10, y2 - y1);
               const color = item.visual_evidence?.display_color_hex || "#0071e3";
               const hovered = hoveredItemId === item.item_id;
-              const review = item.measurement_provenance?.requires_user_review;
+              const review =
+                item.measurement_provenance?.requires_user_review ||
+                (item.uncertainty_mm?.height_sigma_mm || 0) > 8;
               const m = items.find((mi) => mi.item_id === item.item_id)?.dimensions_mm || item.dimensions_mm;
               const label = hovered
                 ? `${item.display_name} · ${m.length_mm}×${m.width_mm}×${m.height_mm} mm`
@@ -199,7 +196,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         <label className="file-chip" title="Top-down photo">
           <input type="file" accept="image/*" onChange={handleTopFileChange} />
           <span className="file-chip-key">Top</span>
-          <span className="file-chip-val">{topFile ? topFile.name : "Sample"}</span>
+          <span className="file-chip-val">{topFile ? topFile.name : "Choose…"}</span>
         </label>
         <label className="file-chip" title="Oblique photo (optional)">
           <input type="file" accept="image/*" onChange={handleObliqueFileChange} />
