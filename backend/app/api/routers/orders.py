@@ -93,7 +93,7 @@ async def analyze_order(
         warnings.append("No 3D items measured. Check the capture and confirm all objects manually")
 
     if not enable_muse_semantics or not items:
-        for item in items:
+        for idx, item in enumerate(items):
             item.physical_attributes = sanitize_physical_attributes({})
             item.allowed_rotations = derive_allowed_rotations(False)
         warnings.append("AI semantics disabled or no measurable items; safe unknown-weight defaults retained")
@@ -109,7 +109,7 @@ async def analyze_order(
             # Use Member 2's batched Muse path: one network call for uncached
             # items and existing SHA-256 cache/sanitizer for cached items.
             semantics = await analyze_items_with_muse_spark(
-                top_bytes, crops, timeout_sec=4.0,
+                top_bytes, crops, timeout_sec=12.0,
             )
         except (ValueError, OSError, RuntimeError) as exc:
             warnings.append(f"AI crop preparation/semantics unavailable; using safe defaults: {exc}")
@@ -128,8 +128,11 @@ async def analyze_order(
             )
             # Map human-readable label and product category from Muse AI semantics
             ai_name = raw.get("display_name")
-            if ai_name and str(ai_name).strip() and str(ai_name).strip().lower() != "packaged product":
+            if ai_name and str(ai_name).strip() and str(ai_name).strip().lower() not in ("packaged product", "item", "generic package"):
                 item.display_name = str(ai_name).strip()
+            elif not item.display_name or item.display_name.lower() in ("item", "detected object"):
+                clean_cat = item.category.replace("_", " ").title()
+                item.display_name = f"Item #{idx + 1:02d} ({clean_cat})" 
             ai_cat = raw.get("category")
             if ai_cat and str(ai_cat).strip():
                 item.category = str(ai_cat).strip()

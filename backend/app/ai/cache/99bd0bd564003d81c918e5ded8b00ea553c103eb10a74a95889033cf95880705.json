@@ -1,0 +1,15 @@
+{
+  "item_id": "item_05",
+  "display_name": "GoChek Mic Case",
+  "category": "electronics_boxed",
+  "visible_labels": [
+    "GoChek"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Small GoChek black case"
+}

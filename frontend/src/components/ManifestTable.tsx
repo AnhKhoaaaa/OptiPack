@@ -169,9 +169,23 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                     )}
                   </td>
                   <td>
-                    <div className="item-title">{item.display_name}</div>
+                    <div className="item-title-wrapper">
+                      <input
+                        type="text"
+                        className="item-name-input"
+                        value={item.display_name}
+                        onChange={(e) =>
+                          onUpdateItem(idx, {
+                            ...item,
+                            display_name: e.target.value,
+                          })
+                        }
+                        placeholder={`Item #${idx + 1}`}
+                        title="Click to rename item"
+                      />
+                    </div>
                     <div className="item-meta-badges">
-                      <span className="item-id">{item.item_id}</span>
+                      <span className="item-id">#{idx + 1} ({item.item_id})</span>
                       <span
                         className={`badge ${
                           item.provenance_source === "AI-Extracted"

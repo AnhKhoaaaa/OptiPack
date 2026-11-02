@@ -1,0 +1,13 @@
+{
+  "item_id": "item_01",
+  "display_name": "Wooden Box Corner Detail",
+  "category": "other_rigid",
+  "visible_labels": [],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "No brand or labels visible"
+}

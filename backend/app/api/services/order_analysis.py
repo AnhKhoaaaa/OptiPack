@@ -53,7 +53,7 @@ def get_cv_service() -> CVMetrologyService | None:
     try:
         profile = json.loads(path.read_text(encoding="utf-8"))
         if "camera_matrix" not in profile:
-            name = os.getenv("OPTIPACK_CAMERA_PROFILE_NAME", "").strip() or "baseline"
+            name = os.getenv("OPTIPACK_CAMERA_PROFILE_NAME", "").strip() or "free_tangent"
             if name not in profile:
                 raise ValueError(f"Profile '{name}' not found in calibration profile JSON")
             profile = profile[name]

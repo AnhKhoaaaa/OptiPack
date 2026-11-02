@@ -115,6 +115,8 @@ export interface SolverConfig {
   apply_uncertainty_margin: boolean;
   min_support_ratio: number;
   allow_multi_carton_split: boolean;
+  target_carton_id?: string;
+  custom_carton_dimensions?: Dimensions3D;
 }
 
 export interface PackableItem {

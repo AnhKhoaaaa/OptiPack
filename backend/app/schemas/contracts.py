@@ -167,6 +167,8 @@ class SolverConfig(BaseModel):
     apply_uncertainty_margin: bool = Field(True, description="Inflate item dimensions by safety_margin_mm")
     min_support_ratio: float = Field(0.60, ge=0.0, le=1.0, description="Minimum base support area ratio")
     allow_multi_carton_split: bool = Field(True, description="Allow splitting order if single box cannot fit")
+    target_carton_id: Optional[str] = Field(None, description="Optional target standard carton SKU (e.g. BOX-S, BOX-M)")
+    custom_carton_dimensions: Optional[Dimensions3D] = Field(None, description="Optional custom user-specified carton dimensions in mm")
 
 
 class PackableItem(BaseModel):

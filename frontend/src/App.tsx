@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   DetectedItemMeasurement,
+  Dimensions3D,
   OrderAnalysisResponse,
   PackingPlan,
   PackingRequest,
@@ -10,6 +11,7 @@ import { UploadPanel } from "./components/UploadPanel";
 import { ExtendedPackableItem, ManifestTable } from "./components/ManifestTable";
 import { PackingViewer3D } from "./components/PackingViewer3D";
 import { CostScorecard } from "./components/CostScorecard";
+import { CartonControlBar } from "./components/CartonControlBar";
 import { OptiPackClient } from "./api/optipackClient";
 import orderAnalysisSample from "./mocks/orderAnalysisSample.json";
 import packingSolutionSample from "./mocks/packingSolutionSample.json";
@@ -62,6 +64,13 @@ export const App: React.FC = () => {
   );
   const [activePlanIndex, setActivePlanIndex] = useState<number>(1);
   const [applyUncertaintyMargin, setApplyUncertaintyMargin] = useState<boolean>(true);
+  const [cartonMode, setCartonMode] = useState<"auto" | "preset" | "custom">("auto");
+  const [selectedCartonSku, setSelectedCartonSku] = useState<string>("BOX-M");
+  const [customCartonDims, setCustomCartonDims] = useState<Dimensions3D>({
+    length_mm: 300,
+    width_mm: 220,
+    height_mm: 150,
+  });
 
   const [loading, setLoading] = useState<boolean>(false);
   const [packingLoading, setPackingLoading] = useState<boolean>(false);
@@ -159,7 +168,9 @@ export const App: React.FC = () => {
     setPackableItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handlePackOrder = async () => {
+  const handlePackOrder = async (
+    overrideConfig?: Partial<PackingRequest["solver_config"]>
+  ) => {
     if (!analysis || packableItems.length === 0) return;
 
     setPackingLoading(true);
@@ -172,6 +183,9 @@ export const App: React.FC = () => {
         apply_uncertainty_margin: applyUncertaintyMargin,
         min_support_ratio: 0.6,
         allow_multi_carton_split: true,
+        ...(cartonMode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
+        ...(cartonMode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
+        ...overrideConfig,
       },
       items: packableItems,
     };
@@ -250,6 +264,32 @@ export const App: React.FC = () => {
 
           {/* Right Column: 3D Visualization & Cost Scorecard */}
           <div className="grid-column-right">
+            {packableItems.length > 0 && (
+              <CartonControlBar
+                cartonMode={cartonMode}
+                setCartonMode={(mode) => {
+                  setCartonMode(mode);
+                  if (mode === "auto") {
+                    handlePackOrder({ target_carton_id: undefined, custom_carton_dimensions: undefined });
+                  } else if (mode === "preset") {
+                    handlePackOrder({ target_carton_id: selectedCartonSku, custom_carton_dimensions: undefined });
+                  } else if (mode === "custom") {
+                    handlePackOrder({ target_carton_id: undefined, custom_carton_dimensions: customCartonDims });
+                  }
+                }}
+                selectedCartonSku={selectedCartonSku}
+                setSelectedCartonSku={(sku) => {
+                  setSelectedCartonSku(sku);
+                }}
+                customCartonDims={customCartonDims}
+                setCustomCartonDims={setCustomCartonDims}
+                onApply={() => handlePackOrder()}
+                loading={packingLoading}
+                currentCartonSku={activePlan?.carton.carton_id}
+                currentCartonDims={activePlan?.carton.internal_dimensions_mm}
+              />
+            )}
+
             {activePlan ? (
               <>
                 <PackingViewer3D plan={activePlan} />

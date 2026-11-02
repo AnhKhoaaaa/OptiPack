@@ -1,0 +1,16 @@
+{
+  "item_id": "item_02",
+  "display_name": "Top Gia Paper Tissue Pack",
+  "category": "generic_carton",
+  "visible_labels": [
+    "TOP GIA",
+    "KHAN GIAY CAO CAP"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Tissue pack no markings"
+}

@@ -172,7 +172,7 @@ class CVMetrologyService:
         matches = matcher.match_views(
             top, oblique, calibration.top_pose, calibration.oblique_pose,
             self.K, self.D,
-            top_image=top_image, ob_image=oblique_image, sam_segmenter=sam_seg,
+            top_image=top_image, ob_image=oblique_image, sam_segmenter=None,
         )
         matched_top = {i for i, _, _ in matches}
         matched_oblique = {j for _, j, _ in matches}
@@ -269,10 +269,10 @@ class CVMetrologyService:
                         f"Top detection {top_idx}: {msg}" for msg in fit_warnings
                     )
                 bbox = [int(v) for v in item_top["bbox"]]
-                item_id = str(item_top.get("item_id") or f"item_{top_idx + 1:02d}")
+                item_id = f"item_{top_idx + 1:02d}"
                 result_items.append(DetectedItemMeasurement(
                     item_id=item_id,
-                    display_name=str(item_top.get("class_name") or "Detected object"),
+                    display_name=str(item_top.get("class_name") or f"Item #{top_idx + 1:02d}"),
                     category="general_box" if shape_res["shape_class"] == "rigid_cuboid" else shape_res["shape_class"],
                     dimensions_mm=dims,
                     uncertainty_mm=uncertainty,
