@@ -1,4 +1,4 @@
-"""Camera-pair calibration facade for OptiPack Phase 1 (Issue #6).
+"""OptiPack Phase 1 calibrated two-view CV and 3D metrology facade (#6–#8).
 
 Uses real image pixels and the existing four-marker A4 ArUco detector.
 No cached camera poses, manual ROIs, or experiment metadata are inputs.
@@ -8,12 +8,20 @@ Note: The 3x3 planar homography is exact in *undistorted* pixel
 coordinates. Raw distorted images require undistortion before warping.
 """
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 
 from backend.app.cv.aruco_detector import detect_aruco_calibration_sheet
-from backend.app.schemas.contracts import CalibrationInfo
+from backend.app.schemas.contracts import (
+    CalibrationInfo, Dimensions3D, DetectedItemMeasurement, VisualEvidence,
+)
+from backend.app.cv.association import EpipolarMatcher
+from backend.app.cv.metrology import FastSDFFitter, ClosedFormInitializer
+from backend.app.cv.metrology.uncertainty import estimate_fit_uncertainty
+
+if TYPE_CHECKING:
+    from backend.app.cv.segmentation.pipeline import PairSegmentation, SegmentationPipeline
 
 
 class CVCalibrationError(ValueError):
@@ -27,6 +35,17 @@ class PairCalibration:
     top_pose: Dict[str, np.ndarray]
     oblique_pose: Dict[str, np.ndarray]
     homography_oblique_to_top: np.ndarray
+
+
+@dataclass
+class CVMeasurementBatch:
+    """Measured two-view items and explicit unmatched/malformed item warnings."""
+    calibration: PairCalibration
+    items: List[DetectedItemMeasurement]
+    matched_pairs: List[Tuple[int, int, float]]
+    unmatched_top_indices: List[int]
+    unmatched_oblique_indices: List[int]
+    warnings: List[str]
 
 
 class CVMetrologyService:
@@ -129,3 +148,163 @@ class CVMetrologyService:
             oblique_pose=ob_pose,
             homography_oblique_to_top=H,
         )
+
+    def measure_segmented_pair(
+        self,
+        calibration: PairCalibration,
+        segmentation: "PairSegmentation",
+        *,
+        max_epipolar_dist_px: float = 150.0,
+        height_review_threshold_mm: float = 8.0,
+        max_fit_iterations: int = 6,
+    ) -> CVMeasurementBatch:
+        """Associate independently detected masks and fit valid two-view cuboids.
+
+        No manual ROI/ground-truth file is read; unmatched items are reported,
+        not assigned fabricated dimensions. Input masks use raw camera pixels.
+        """
+        if max_epipolar_dist_px <= 0 or height_review_threshold_mm <= 0:
+            raise ValueError("Matching and review thresholds must be positive")
+        if max_fit_iterations < 1:
+            raise ValueError("max_fit_iterations must be positive")
+        top = segmentation.top_items
+        oblique = segmentation.oblique_items
+        warnings = list(segmentation.warnings)
+        matcher = EpipolarMatcher(max_epipolar_dist_px=max_epipolar_dist_px)
+        fitter = FastSDFFitter(self.K, self.D)
+        matches = matcher.match_views(
+            top, oblique, calibration.top_pose, calibration.oblique_pose,
+            self.K, self.D,
+        )
+        matched_top = {i for i, _, _ in matches}
+        matched_oblique = {j for _, j, _ in matches}
+        unmatched_top = sorted(set(range(len(top))) - matched_top)
+        unmatched_oblique = sorted(set(range(len(oblique))) - matched_oblique)
+        if unmatched_top:
+            warnings.append(f"{len(unmatched_top)} top-view detections lack stereo partners")
+        if unmatched_oblique:
+            warnings.append(f"{len(unmatched_oblique)} oblique detections lack stereo partners")
+        result_items = []
+        for top_idx, ob_idx, epi_dist in matches:
+            item_top, item_ob = top[top_idx], oblique[ob_idx]
+            try:
+                contour_top = np.asarray(item_top["contour"], dtype=np.float64).reshape(-1, 2)
+                contour_ob = np.asarray(item_ob["contour"], dtype=np.float64).reshape(-1, 2)
+                if len(contour_top) < 3 or len(contour_ob) < 3:
+                    raise ValueError("Contour requires at least three vertices")
+                p0 = ClosedFormInitializer.compute_initial_guess(
+                    contour_top, contour_ob,
+                    calibration.top_pose, calibration.oblique_pose, self.K, self.D,
+                )
+                if not np.isfinite(p0).all():
+                    raise ValueError("3D initializer returned nonfinite values")
+                crops = [
+                    fitter.prepare_crop_evidence(
+                        item_top["mask"], contour_top, calibration.top_pose
+                    ),
+                    fitter.prepare_crop_evidence(
+                        item_ob["mask"], contour_ob, calibration.oblique_pose
+                    ),
+                ]
+                fitted, cost = fitter.fit_cuboid(
+                    p0, crops, max_iter=max_fit_iterations
+                )
+                if not np.isfinite(fitted).all() or not np.isfinite(cost):
+                    raise ValueError("3D fit returned nonfinite values")
+                if np.any(fitted[2:5] <= 0):
+                    raise ValueError("3D fit returned nonpositive dimensions")
+                length, width = sorted((float(fitted[2]), float(fitted[3])), reverse=True)
+                dims = Dimensions3D(
+                    length_mm=max(1, int(round(length))),
+                    width_mm=max(1, int(round(width))),
+                    height_mm=max(1, int(round(float(fitted[4])))),
+                )
+                probs = [
+                    float(c) for c in (
+                        item_top.get("confidence"), item_ob.get("confidence")
+                    ) if c is not None
+                ]
+                detection_confidence = min(probs) if probs else 0.7
+                reproj_px = max(
+                    calibration.top_info.reprojection_error_px,
+                    calibration.oblique_info.reprojection_error_px,
+                )
+                uncertainty, provenance, fit_warnings = estimate_fit_uncertainty(
+                    fitter, fitted, crops, dims,
+                    reprojection_error_px=reproj_px,
+                    scale_mm_per_px=calibration.top_info.scale_mm_per_px_at_z0,
+                    epipolar_distance_px=epi_dist,
+                    detection_confidence=detection_confidence,
+                    height_review_threshold_mm=height_review_threshold_mm,
+                )
+                # A review flag includes unsafe measurements, not only low H confidence.
+                if fit_warnings:
+                    warnings.extend(
+                        f"Top detection {top_idx}: {msg}" for msg in fit_warnings
+                    )
+                bbox = [int(v) for v in item_top["bbox"]]
+                item_id = str(item_top.get("item_id") or f"item_{top_idx + 1:02d}")
+                result_items.append(DetectedItemMeasurement(
+                    item_id=item_id,
+                    display_name=str(item_top.get("class_name") or "Detected object"),
+                    category="general_box",
+                    dimensions_mm=dims,
+                    uncertainty_mm=uncertainty,
+                    measurement_provenance=provenance,
+                    visual_evidence=VisualEvidence(
+                        bbox_2d_px=bbox,
+                        crop_url=item_top.get("crop_url"),
+                    ),
+                ))
+            except (ValueError, KeyError, TypeError, FloatingPointError, np.linalg.LinAlgError) as exc:
+                warnings.append(
+                    f"3D metrology failed for top index {top_idx} / "
+                    f"oblique index {ob_idx}: {exc}"
+                )
+        return CVMeasurementBatch(
+            calibration=calibration,
+            items=result_items,
+            matched_pairs=matches,
+            unmatched_top_indices=unmatched_top,
+            unmatched_oblique_indices=unmatched_oblique,
+            warnings=warnings,
+        )
+
+    def analyze_pair(
+        self,
+        top_image: np.ndarray,
+        oblique_image: np.ndarray,
+        *,
+        segmentation_pipeline: Optional["SegmentationPipeline"] = None,
+        save_crops: bool = True,
+        filter_ground_plane: bool = True,
+        **measurement_options,
+    ) -> CVMeasurementBatch:
+        """Complete #6 -> #7 -> #8 live-image pipeline.
+
+        YOLOE checkpoint loading is deferred to segmentation inference.
+        No ROI annotation JSON is accepted by this interface.
+        """
+        from backend.app.cv.segmentation.pipeline import SegmentationPipeline
+
+        calibration = self.calibrate_pair(top_image, oblique_image)
+        pipeline = segmentation_pipeline or SegmentationPipeline()
+        segmentation = pipeline.run(
+            top_image, oblique_image, calibration,
+            save_crops=save_crops, filter_ground_plane=filter_ground_plane,
+        )
+        return self.measure_segmented_pair(
+            calibration, segmentation, **measurement_options
+        )
+    def process_pair(
+        self,
+        top_image: np.ndarray,
+        oblique_image: np.ndarray,
+        **kwargs,
+    ) -> CVMeasurementBatch:
+        """Stable Phase 2-facing alias for the full live two-image pipeline.
+
+        Ingestion/AI enrichment is implemented by the #21 API integration;
+        this call returns measured CV items only, not OrderAnalysisResponse.
+        """
+        return self.analyze_pair(top_image, oblique_image, **kwargs)

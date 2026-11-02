@@ -1,0 +1,393 @@
+{
+  "summary": {
+    "mode": "automatic",
+    "trials": 3,
+    "total_physical_items": 15,
+    "correctly_measured_physical_items": 12,
+    "measurement_coverage": 0.8,
+    "wrong_or_unverifiable_stereo_matches": 1,
+    "conditional_MAE_LW_mm": 9.125,
+    "conditional_MAE_H_mm": 9.75,
+    "mean_wall_time_ms": 12027.566666666666
+  },
+  "trials": [
+    {
+      "trial": "Trial01",
+      "mode": "automatic",
+      "ground_truth_physical_items": 5,
+      "top_candidates": 5,
+      "oblique_candidates": 5,
+      "stereo_matches": 5,
+      "measured_item_count": 5,
+      "correctly_measured_physical_items": 5,
+      "coverage": 1.0,
+      "wrong_or_unverifiable_stereo_matches": 0,
+      "MAE_LW_on_correctly_measured_mm": 7.1,
+      "MAE_H_on_correctly_measured_mm": 12.2,
+      "wall_time_ms": 17851.8,
+      "warnings": [
+        "Top detection 0: Low combined detection/matching/fitting confidence",
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 3: Low combined detection/matching/fitting confidence",
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 4: Low combined detection/matching/fitting confidence",
+        "Top detection 4: Uncertainty proxy not calibrated on independent captures"
+      ],
+      "measurements": [
+        {
+          "top_idx": 0,
+          "oblique_idx": 0,
+          "top_gt_identity": "wood",
+          "oblique_gt_identity": "wood",
+          "matching_correct": true,
+          "epi_distance_px": 48.26,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 72,
+            "width_mm": 47,
+            "height_mm": 51
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.0,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 8.85,
+            "safety_margin_mm": 18
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 2.5,
+          "error_h_mm": 16.0
+        },
+        {
+          "top_idx": 2,
+          "oblique_idx": 1,
+          "top_gt_identity": "paper",
+          "oblique_gt_identity": "paper",
+          "matching_correct": true,
+          "epi_distance_px": 16.64,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 147,
+            "width_mm": 77,
+            "height_mm": 76
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.21,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 5.0,
+          "error_h_mm": 26.0
+        },
+        {
+          "top_idx": 1,
+          "oblique_idx": 2,
+          "top_gt_identity": "white",
+          "oblique_gt_identity": "white",
+          "matching_correct": true,
+          "epi_distance_px": 7.98,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 137,
+            "width_mm": 47,
+            "height_mm": 69
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.05,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 2.0,
+          "error_h_mm": 4.0
+        },
+        {
+          "top_idx": 3,
+          "oblique_idx": 3,
+          "top_gt_identity": "black",
+          "oblique_gt_identity": "black",
+          "matching_correct": true,
+          "epi_distance_px": 9.98,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 143,
+            "width_mm": 68,
+            "height_mm": 58
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.15,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 13.0,
+          "error_h_mm": 12.0
+        },
+        {
+          "top_idx": 4,
+          "oblique_idx": 4,
+          "top_gt_identity": "gocheck",
+          "oblique_gt_identity": "gocheck",
+          "matching_correct": true,
+          "epi_distance_px": 28.15,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 79,
+            "width_mm": 77,
+            "height_mm": 33
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.14,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 5.16,
+            "safety_margin_mm": 11
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 13.0,
+          "error_h_mm": 3.0
+        }
+      ]
+    },
+    {
+      "trial": "Trial02",
+      "mode": "automatic",
+      "ground_truth_physical_items": 5,
+      "top_candidates": 4,
+      "oblique_candidates": 5,
+      "stereo_matches": 4,
+      "measured_item_count": 4,
+      "correctly_measured_physical_items": 3,
+      "coverage": 0.6,
+      "wrong_or_unverifiable_stereo_matches": 1,
+      "MAE_LW_on_correctly_measured_mm": 10.833333333333334,
+      "MAE_H_on_correctly_measured_mm": 6.666666666666667,
+      "wall_time_ms": 9232.6,
+      "warnings": [
+        "1 oblique detections lack stereo partners",
+        "Top detection 1: Low combined detection/matching/fitting confidence",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 0: Low combined detection/matching/fitting confidence",
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures"
+      ],
+      "measurements": [
+        {
+          "top_idx": 1,
+          "oblique_idx": 0,
+          "top_gt_identity": "black",
+          "oblique_gt_identity": "black",
+          "matching_correct": true,
+          "epi_distance_px": 2.81,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 142,
+            "width_mm": 62,
+            "height_mm": 62
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.41,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 9.5,
+          "error_h_mm": 8.0
+        },
+        {
+          "top_idx": 0,
+          "oblique_idx": 1,
+          "top_gt_identity": "white",
+          "oblique_gt_identity": "white",
+          "matching_correct": true,
+          "epi_distance_px": 12.87,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 140,
+            "width_mm": 71,
+            "height_mm": 57
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.97,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 15.5,
+          "error_h_mm": 8.0
+        },
+        {
+          "top_idx": 2,
+          "oblique_idx": 2,
+          "top_gt_identity": "paper",
+          "oblique_gt_identity": "paper",
+          "matching_correct": true,
+          "epi_distance_px": 22.39,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 145,
+            "width_mm": 90,
+            "height_mm": 54
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.17,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.79,
+            "safety_margin_mm": 10
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 7.5,
+          "error_h_mm": 4.0
+        },
+        {
+          "top_idx": 3,
+          "oblique_idx": 3,
+          "top_gt_identity": "wood",
+          "oblique_gt_identity": null,
+          "matching_correct": false,
+          "epi_distance_px": 13.98,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 78,
+            "width_mm": 48,
+            "height_mm": 37
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.0,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true
+        }
+      ]
+    },
+    {
+      "trial": "Trial03",
+      "mode": "automatic",
+      "ground_truth_physical_items": 5,
+      "top_candidates": 4,
+      "oblique_candidates": 5,
+      "stereo_matches": 4,
+      "measured_item_count": 4,
+      "correctly_measured_physical_items": 4,
+      "coverage": 0.8,
+      "wrong_or_unverifiable_stereo_matches": 0,
+      "MAE_LW_on_correctly_measured_mm": 10.375,
+      "MAE_H_on_correctly_measured_mm": 9.0,
+      "wall_time_ms": 8998.3,
+      "warnings": [
+        "1 oblique detections lack stereo partners",
+        "Top detection 0: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 1: Low combined detection/matching/fitting confidence",
+        "Top detection 1: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 3: Low combined detection/matching/fitting confidence",
+        "Top detection 3: Uncertainty proxy not calibrated on independent captures",
+        "Top detection 2: Low combined detection/matching/fitting confidence",
+        "Top detection 2: Uncertainty proxy not calibrated on independent captures"
+      ],
+      "measurements": [
+        {
+          "top_idx": 0,
+          "oblique_idx": 0,
+          "top_gt_identity": "paper",
+          "oblique_gt_identity": "paper",
+          "matching_correct": true,
+          "epi_distance_px": 18.38,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 148,
+            "width_mm": 84,
+            "height_mm": 54
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.22,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 6.0,
+          "error_h_mm": 4.0
+        },
+        {
+          "top_idx": 1,
+          "oblique_idx": 1,
+          "top_gt_identity": "white",
+          "oblique_gt_identity": "white",
+          "matching_correct": true,
+          "epi_distance_px": 40.67,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 154,
+            "width_mm": 85,
+            "height_mm": 58
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 6.46,
+            "width_sigma_mm": 4.4,
+            "height_sigma_mm": 7.46,
+            "safety_margin_mm": 15
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 29.5,
+          "error_h_mm": 7.0
+        },
+        {
+          "top_idx": 3,
+          "oblique_idx": 3,
+          "top_gt_identity": "gocheck",
+          "oblique_gt_identity": "gocheck",
+          "matching_correct": true,
+          "epi_distance_px": 41.0,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 71,
+            "width_mm": 65,
+            "height_mm": 54
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.0,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 7.52,
+            "safety_margin_mm": 16
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 3.0,
+          "error_h_mm": 24.0
+        },
+        {
+          "top_idx": 2,
+          "oblique_idx": 4,
+          "top_gt_identity": "wood",
+          "oblique_gt_identity": "wood",
+          "matching_correct": true,
+          "epi_distance_px": 17.7,
+          "measured": true,
+          "dimensions_mm": {
+            "length_mm": 77,
+            "width_mm": 49,
+            "height_mm": 36
+          },
+          "uncertainty_mm": {
+            "length_sigma_mm": 2.0,
+            "width_sigma_mm": 2.0,
+            "height_sigma_mm": 4.0,
+            "safety_margin_mm": 8
+          },
+          "requires_user_review": true,
+          "mae_lw_mm": 3.0,
+          "error_h_mm": 1.0
+        }
+      ]
+    }
+  ],
+  "limitations": "T01 development set; uncertainty is an uncalibrated proxy. Annotated mode uses golden masks and saved poses for geometry migration regression only."
+}
