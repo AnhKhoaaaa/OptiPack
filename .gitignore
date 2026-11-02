@@ -37,3 +37,8 @@ backend/app/api/static/crops/*
 !backend/app/api/static/crops/.gitkeep
 
 scratch/
+# Issue #7 optional pretrained weights and prompt caches
+yoloe-*.pt
+mobileclip*_b.ts
+backend/app/cv/segmentation/.cache/
+yoloe-*.onnx
