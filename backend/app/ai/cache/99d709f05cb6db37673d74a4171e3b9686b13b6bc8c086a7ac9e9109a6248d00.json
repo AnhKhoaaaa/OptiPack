@@ -1,0 +1,13 @@
+{
+  "item_id": "item_df7de91d84c041f8a00cc37146958efc",
+  "display_name": "Black dual holder",
+  "category": "other_rigid",
+  "visible_labels": [],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": false,
+  "reasoning_note": "Black plastic dual holder"
+}

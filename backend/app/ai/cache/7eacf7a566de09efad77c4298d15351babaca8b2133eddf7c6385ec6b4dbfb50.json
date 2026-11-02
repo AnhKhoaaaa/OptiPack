@@ -1,0 +1,15 @@
+{
+  "item_id": "item_b6bd172f661f486ca2d0a27b7561a587",
+  "display_name": "GoChek black box",
+  "category": "electronics_boxed",
+  "visible_labels": [
+    "GoChek"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Small black GoChek box"
+}

@@ -185,6 +185,8 @@ def test_live_cv_crop_to_muse_contract_and_rotations(client, monkeypatch):
             "status": "cached", "latency_ms": 3,
             "fallback_activated": False,
             "items": {"item_test_001": {
+                "display_name": "Sennheiser Wooden Box",
+                "category": "electronics_boxed",
                 "weight_g": None, "weight_source": "unknown",
                 "fragility_class": "high", "fragility_source": "visible_label",
                 "keep_upright": True, "orientation_source": "label_this_side_up",
@@ -204,6 +206,8 @@ def test_live_cv_crop_to_muse_contract_and_rotations(client, monkeypatch):
     assert len(cv.calls) == 1 and cv.calls[0][2]["save_crops"] is True
     assert len(semantic_calls) == 1
     item = body["items"][0]
+    assert item["display_name"] == "Sennheiser Wooden Box"
+    assert item["category"] == "electronics_boxed"
     assert item["dimensions_mm"] == {"length_mm": 95, "width_mm": 60, "height_mm": 40}
     assert item["physical_attributes"]["fragility_class"] == "high"
     assert item["physical_attributes"]["weight_g"] is None
@@ -344,3 +348,79 @@ def test_real_aruco_failure_is_fail_closed_not_fixture_data(client):
     assert body["calibration"]["status"] == "uncalibrated"
     assert body["calibration"]["camera_pose_valid"] is False
     assert any("calibration failed" in message for message in body["global_warnings"])
+
+
+def test_manifest_display_name_and_category_mapped_from_muse(client, monkeypatch):
+    """Verify that human-readable brand/title from Muse replaces 'packaged product'."""
+    cv = FakeCV()
+    app.dependency_overrides[get_cv_service] = lambda: cv
+
+    async def fake_muse(overview, crops, timeout_sec):
+        return {
+            "status": "success",
+            "latency_ms": 120,
+            "fallback_activated": False,
+            "items": {
+                "item_test_001": {
+                    "display_name": "Colgate Toothpaste Box",
+                    "category": "cosmetics_personal_care",
+                    "weight_g": None,
+                    "weight_source": "unknown",
+                    "fragility_class": "low",
+                    "fragility_source": "default_safe",
+                    "keep_upright": False,
+                    "orientation_source": "default_unconstrained",
+                    "stackable": True,
+                    "max_top_load_g": 5000,
+                    "visible_labels": ["Colgate"],
+                }
+            },
+        }
+
+    monkeypatch.setattr(orders, "analyze_items_with_muse_spark", fake_muse)
+    response = client.post("/api/v1/orders/analyze", files=upload_pair())
+    assert response.status_code == 200
+    body = response.json()
+    item = body["items"][0]
+    assert item["display_name"] == "Colgate Toothpaste Box"
+    assert item["category"] == "cosmetics_personal_care"
+    assert item["physical_attributes"]["weight_g"] is None
+    assert item["physical_attributes"]["weight_source"] == "unknown"
+
+
+def test_epistemic_honesty_maintained_when_display_name_is_mapped(client, monkeypatch):
+    """Verify that extracting real display_name NEVER fabricates item weight for unlabelled box."""
+    cv = FakeCV()
+    app.dependency_overrides[get_cv_service] = lambda: cv
+
+    async def fake_muse(overview, crops, timeout_sec):
+        return {
+            "status": "cached",
+            "latency_ms": 1,
+            "fallback_activated": False,
+            "items": {
+                "item_test_001": {
+                    "display_name": "Nivea Skin Cream 50ml",
+                    "category": "cosmetics_personal_care",
+                    "printed_weight_g": None,
+                    "weight_g": None,
+                    "weight_source": "unknown",
+                    "fragility_class": "medium",
+                    "fragility_source": "default_safe",
+                    "keep_upright": False,
+                    "orientation_source": "default_unconstrained",
+                    "stackable": True,
+                    "max_top_load_g": 2000,
+                    "visible_labels": ["Nivea"],
+                }
+            },
+        }
+
+    monkeypatch.setattr(orders, "analyze_items_with_muse_spark", fake_muse)
+    response = client.post("/api/v1/orders/analyze", files=upload_pair())
+    assert response.status_code == 200
+    body = response.json()
+    item = body["items"][0]
+    assert item["display_name"] == "Nivea Skin Cream 50ml"
+    assert item["physical_attributes"]["weight_g"] is None
+    assert item["physical_attributes"]["weight_source"] == "unknown"

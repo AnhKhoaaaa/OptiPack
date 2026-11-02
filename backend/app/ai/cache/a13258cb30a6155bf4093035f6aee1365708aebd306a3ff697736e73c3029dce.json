@@ -1,0 +1,16 @@
+{
+  "item_id": "item_7095ed020f664b49987740bcf306d5f3",
+  "display_name": "Top tissue pack",
+  "category": "cosmetics_personal_care",
+  "visible_labels": [
+    "TOP GIA CAP",
+    "KHAN GIAY CAO CAP"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Printed tissue pack packaging"
+}

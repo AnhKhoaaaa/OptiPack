@@ -124,6 +124,14 @@ async def analyze_order(
             item.allowed_rotations = derive_allowed_rotations(
                 item.physical_attributes.keep_upright
             )
+            # Map human-readable label and product category from Muse AI semantics
+            ai_name = raw.get("display_name")
+            if ai_name and str(ai_name).strip() and str(ai_name).strip().lower() != "packaged product":
+                item.display_name = str(ai_name).strip()
+            ai_cat = raw.get("category")
+            if ai_cat and str(ai_cat).strip():
+                item.category = str(ai_cat).strip()
+
             if item.physical_attributes.weight_g is None:
                 warnings.append(f"Weight unknown for {item.item_id}; user must verify before packing")
 
