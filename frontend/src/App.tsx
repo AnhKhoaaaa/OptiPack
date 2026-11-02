@@ -13,57 +13,58 @@ import { PackingViewer3D } from "./components/PackingViewer3D";
 import { CostScorecard } from "./components/CostScorecard";
 import { CartonControlBar } from "./components/CartonControlBar";
 import { OptiPackClient } from "./api/optipackClient";
-import orderAnalysisSample from "./mocks/orderAnalysisSample.json";
 import packingSolutionSample from "./mocks/packingSolutionSample.json";
 
-export const App: React.FC = () => {
-  const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem => {
-    const isDefaultSafe =
-      item.physical_attributes.fragility_source === "default_safe" &&
-      item.physical_attributes.orientation_source === "default_unconstrained" &&
-      item.physical_attributes.weight_source === "unknown";
+export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem => {
+  const hasRealAiName = Boolean(
+    item.display_name &&
+      !/^(generic box|packaged product|item|item #\d+.*|detected object)$/i.test(
+        item.display_name.trim()
+      )
+  );
 
-    const isAiExtracted =
-      item.measurement_provenance.xy_method !== "demo_fixture_not_measured" &&
-      item.measurement_provenance.xy_method !== "manual_input" &&
-      !isDefaultSafe;
+  const isDefaultSafe =
+    !hasRealAiName &&
+    item.physical_attributes.fragility_source === "default_safe" &&
+    item.physical_attributes.orientation_source === "default_unconstrained" &&
+    item.physical_attributes.weight_source === "unknown";
 
-    return {
-      item_id: item.item_id,
-      display_name: item.display_name,
-      quantity: item.quantity,
-      dimensions_mm: item.dimensions_mm,
-      safety_margin_mm: item.uncertainty_mm.safety_margin_mm,
-      weight_g: item.physical_attributes.weight_g,
-      weight_assumed: item.physical_attributes.weight_source !== "scale_verified",
-      fragility_class: item.physical_attributes.fragility_class,
-      keep_upright: item.physical_attributes.keep_upright,
-      stackable: item.physical_attributes.stackable,
-      max_top_load_g: item.physical_attributes.max_top_load_g,
-      allowed_rotations: item.allowed_rotations,
-      display_color_hex: item.visual_evidence.display_color_hex,
-      crop_url: item.visual_evidence.crop_url,
-      provenance_source: isAiExtracted ? "AI-Extracted" : "Default-Safe",
-      uncertainty_info: {
-        height_sigma_mm: item.uncertainty_mm.height_sigma_mm,
-        requires_user_review: item.measurement_provenance.requires_user_review,
-      },
-    };
+  const isAiExtracted =
+    item.measurement_provenance.xy_method !== "demo_fixture_not_measured" &&
+    item.measurement_provenance.xy_method !== "manual_input" &&
+    !isDefaultSafe;
+
+  return {
+    item_id: item.item_id,
+    display_name: item.display_name,
+    quantity: item.quantity,
+    dimensions_mm: item.dimensions_mm,
+    safety_margin_mm: item.uncertainty_mm.safety_margin_mm,
+    weight_g: item.physical_attributes.weight_g,
+    weight_assumed: item.physical_attributes.weight_source !== "scale_verified",
+    fragility_class: item.physical_attributes.fragility_class,
+    keep_upright: item.physical_attributes.keep_upright,
+    stackable: item.physical_attributes.stackable,
+    max_top_load_g: item.physical_attributes.max_top_load_g,
+    allowed_rotations: item.allowed_rotations,
+    display_color_hex: item.visual_evidence.display_color_hex,
+    crop_url: item.visual_evidence.crop_url,
+    provenance_source: isAiExtracted ? "AI-Extracted" : "Default-Safe",
+    uncertainty_info: {
+      height_sigma_mm: item.uncertainty_mm.height_sigma_mm,
+      requires_user_review: item.measurement_provenance.requires_user_review,
+    },
   };
+};
 
-  const initialItems: ExtendedPackableItem[] = (
-    orderAnalysisSample as unknown as OrderAnalysisResponse
-  ).items.map(convertItem);
-
-  const [analysis, setAnalysis] = useState<OrderAnalysisResponse | null>(
-    orderAnalysisSample as unknown as OrderAnalysisResponse
-  );
-  const [packableItems, setPackableItems] = useState<ExtendedPackableItem[]>(initialItems);
-  const [solution, setSolution] = useState<PackingSolutionResponse | null>(
-    packingSolutionSample as unknown as PackingSolutionResponse
-  );
+export const App: React.FC = () => {
+  // Clean initial state: Starts empty until user opens camera, uploads photos, or clicks a preset
+  const [analysis, setAnalysis] = useState<OrderAnalysisResponse | null>(null);
+  const [packableItems, setPackableItems] = useState<ExtendedPackableItem[]>([]);
+  const [solution, setSolution] = useState<PackingSolutionResponse | null>(null);
   const [activePlanIndex, setActivePlanIndex] = useState<number>(1);
   const [applyUncertaintyMargin, setApplyUncertaintyMargin] = useState<boolean>(true);
+
   const [cartonMode, setCartonMode] = useState<"auto" | "preset" | "custom">("auto");
   const [selectedCartonSku, setSelectedCartonSku] = useState<string>("BOX-M");
   const [customCartonDims, setCustomCartonDims] = useState<Dimensions3D>({
@@ -74,6 +75,42 @@ export const App: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [packingLoading, setPackingLoading] = useState<boolean>(false);
+
+  const executePacking = async (
+    itemsToPack: ExtendedPackableItem[],
+    analysisId: string,
+    margin: boolean = applyUncertaintyMargin,
+    overrideConfig?: Partial<PackingRequest["solver_config"]>
+  ) => {
+    if (itemsToPack.length === 0) return;
+    setPackingLoading(true);
+    const req: PackingRequest = {
+      contract_version: "1.0.0",
+      analysis_id: analysisId,
+      solver_config: {
+        mode: "cpsat_with_heuristic_fallback",
+        time_limit_ms: 3000,
+        apply_uncertainty_margin: margin,
+        min_support_ratio: 0.6,
+        allow_multi_carton_split: true,
+        ...(cartonMode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
+        ...(cartonMode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
+        ...overrideConfig,
+      },
+      items: itemsToPack,
+    };
+
+    try {
+      const data = await OptiPackClient.packOrder(req);
+      setSolution(data);
+      setActivePlanIndex(1);
+    } catch (err) {
+      console.error("[App] Packing optimization failed:", err);
+      setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
+    } finally {
+      setPackingLoading(false);
+    }
+  };
 
   const handleAnalysisLoaded = (
     data: OrderAnalysisResponse,
@@ -87,41 +124,15 @@ export const App: React.FC = () => {
     if (precomputedSolution) {
       setSolution(precomputedSolution);
     } else if (convertedItems.length > 0) {
-      // Step 1: Auto-pack live order manifest immediately to update 3D viewer with real detected items
-      setPackingLoading(true);
-      const req: PackingRequest = {
-        contract_version: "1.0.0",
-        analysis_id: data.analysis_id,
-        solver_config: {
-          mode: "cpsat_with_heuristic_fallback",
-          time_limit_ms: 3000,
-          apply_uncertainty_margin: applyUncertaintyMargin,
-          min_support_ratio: 0.6,
-          allow_multi_carton_split: true,
-        },
-        items: convertedItems,
-      };
-
-      OptiPackClient.packOrder(req)
-        .then((packed) => {
-          setSolution(packed);
-          setActivePlanIndex(1);
-        })
-        .catch((err) => {
-          console.warn("[App] Auto-packing failed, falling back to sample solution:", err);
-          setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
-        })
-        .finally(() => {
-          setPackingLoading(false);
-        });
+      executePacking(convertedItems, data.analysis_id);
     } else {
-      setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
+      setSolution(null);
       const allWarnings = [
         ...(data.global_warnings || []),
         ...(data.calibration?.warnings || []),
       ];
       if (allWarnings.length > 0) {
-        alert("Thông báo phân tích:\n• " + allWarnings.join("\n• "));
+        alert("Analysis Notice:\n• " + allWarnings.join("\n• "));
       }
     }
   };
@@ -135,7 +146,7 @@ export const App: React.FC = () => {
   };
 
   const handleAddItem = () => {
-    const newItemId = `item_custom_${packableItems.length + 1}`;
+    const newItemId = `item_${String(packableItems.length + 1).padStart(2, "0")}`;
     const colors = ["#EC4899", "#14B8A6", "#F97316", "#8B5CF6", "#EAB308"];
     const chosenColor = colors[packableItems.length % colors.length];
 
@@ -168,41 +179,19 @@ export const App: React.FC = () => {
     setPackableItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handlePackOrder = async (
-    overrideConfig?: Partial<PackingRequest["solver_config"]>
-  ) => {
+  const handlePackOrder = (overrideConfig?: Partial<PackingRequest["solver_config"]>) => {
     if (!analysis || packableItems.length === 0) return;
-
-    setPackingLoading(true);
-    const req: PackingRequest = {
-      contract_version: "1.0.0",
-      analysis_id: analysis.analysis_id,
-      solver_config: {
-        mode: "cpsat_with_heuristic_fallback",
-        time_limit_ms: 3000,
-        apply_uncertainty_margin: applyUncertaintyMargin,
-        min_support_ratio: 0.6,
-        allow_multi_carton_split: true,
-        ...(cartonMode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
-        ...(cartonMode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
-        ...overrideConfig,
-      },
-      items: packableItems,
-    };
-
-    try {
-      const data = await OptiPackClient.packOrder(req);
-      setSolution(data);
-      setActivePlanIndex(1);
-    } catch (err) {
-      console.error("[App] Packing optimization failed:", err);
-      alert(`Tối ưu hóa đóng gói thất bại: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      setPackingLoading(false);
-    }
+    executePacking(packableItems, analysis.analysis_id, applyUncertaintyMargin, overrideConfig);
   };
 
-  // Determine which plan is displayed in the 3D viewer (Carton 1 vs Carton 2...)
+  const handleReset = () => {
+    setAnalysis(null);
+    setPackableItems([]);
+    setSolution(null);
+    setActivePlanIndex(1);
+  };
+
+  // Determine active carton plan
   let activePlan: PackingPlan | null = null;
   if (solution?.primary_plan) {
     if (activePlanIndex === 1) {
@@ -218,101 +207,93 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="app-container">
-      {/* Top Header */}
-      <header className="app-header">
-        <div className="header-brand">
-          <div className="logo-icon">📦</div>
-          <div>
-            <h1>OptiPack</h1>
-            <p className="subtitle">AI & 3D Multi-Item Cartonization MVP (Contract v1.0.0)</p>
-          </div>
-        </div>
-        <div className="header-meta">
-          <span className="badge badge-meta">Meta Model API (muse-spark-1.3)</span>
-          <span className="badge badge-solver">OR-Tools CP-SAT</span>
-          <span className="badge badge-three">Three.js Y-Up</span>
-          <span className="badge badge-outline">Member 4 UI</span>
-        </div>
+    <div className="app">
+      <header className="topbar">
+        <h1>OptiPack</h1>
+        <span className="muted">3D Metrology & Volume-First Cartonization</span>
       </header>
 
-      {/* Main Split Grid */}
-      <main className="app-main">
-        <div className="grid-layout">
-          {/* Left Column: Input, Metrology & Manifest */}
-          <div className="grid-column-left">
-            <UploadPanel
-              onAnalysisLoaded={handleAnalysisLoaded}
-              loading={loading}
-              setLoading={setLoading}
-              aiTelemetry={analysis?.ai_telemetry}
+      <main className="layout">
+        <div className="col">
+          <UploadPanel
+            onAnalysisLoaded={handleAnalysisLoaded}
+            loading={loading}
+            setLoading={setLoading}
+            analysis={analysis}
+            items={packableItems}
+            onReset={handleReset}
+            aiTelemetry={analysis?.ai_telemetry}
+          />
+          {packableItems.length > 0 && (
+            <ManifestTable
+              items={packableItems}
+              onUpdateItem={handleUpdateItem}
+              onAddItem={handleAddItem}
+              onDeleteItem={handleDeleteItem}
+              onPackOrder={() => handlePackOrder()}
+              packingLoading={packingLoading}
+              applyUncertaintyMargin={applyUncertaintyMargin}
+              setApplyUncertaintyMargin={setApplyUncertaintyMargin}
             />
+          )}
+        </div>
 
-            {packableItems.length > 0 && (
-              <ManifestTable
-                items={packableItems}
-                onUpdateItem={handleUpdateItem}
-                onAddItem={handleAddItem}
-                onDeleteItem={handleDeleteItem}
-                onPackOrder={handlePackOrder}
-                packingLoading={packingLoading}
-                applyUncertaintyMargin={applyUncertaintyMargin}
-                setApplyUncertaintyMargin={setApplyUncertaintyMargin}
+        <div className="col">
+          {packableItems.length > 0 && (
+            <CartonControlBar
+              cartonMode={cartonMode}
+              setCartonMode={(mode) => {
+                setCartonMode(mode);
+                if (mode === "auto") {
+                  handlePackOrder({
+                    target_carton_id: undefined,
+                    custom_carton_dimensions: undefined,
+                  });
+                } else if (mode === "preset") {
+                  handlePackOrder({
+                    target_carton_id: selectedCartonSku,
+                    custom_carton_dimensions: undefined,
+                  });
+                } else if (mode === "custom") {
+                  handlePackOrder({
+                    target_carton_id: undefined,
+                    custom_carton_dimensions: customCartonDims,
+                  });
+                }
+              }}
+              selectedCartonSku={selectedCartonSku}
+              setSelectedCartonSku={setSelectedCartonSku}
+              customCartonDims={customCartonDims}
+              setCustomCartonDims={setCustomCartonDims}
+              onApply={() => handlePackOrder()}
+              loading={packingLoading}
+              currentCartonSku={activePlan?.carton.carton_id}
+              currentCartonDims={activePlan?.carton.internal_dimensions_mm}
+            />
+          )}
+
+          {activePlan ? (
+            <>
+              <CostScorecard
+                metrics={activePlan.metrics}
+                validation={activePlan.validation}
+                carton={activePlan.carton}
+                candidateComparison={solution?.candidate_carton_comparison}
+                overflowPlans={solution?.overflow_plans}
+                unpackedItemIds={solution?.unpacked_item_ids}
+                activePlanIndex={activePlanIndex}
+                onSelectPlan={setActivePlanIndex}
               />
-            )}
-          </div>
-
-          {/* Right Column: 3D Visualization & Cost Scorecard */}
-          <div className="grid-column-right">
-            {packableItems.length > 0 && (
-              <CartonControlBar
-                cartonMode={cartonMode}
-                setCartonMode={(mode) => {
-                  setCartonMode(mode);
-                  if (mode === "auto") {
-                    handlePackOrder({ target_carton_id: undefined, custom_carton_dimensions: undefined });
-                  } else if (mode === "preset") {
-                    handlePackOrder({ target_carton_id: selectedCartonSku, custom_carton_dimensions: undefined });
-                  } else if (mode === "custom") {
-                    handlePackOrder({ target_carton_id: undefined, custom_carton_dimensions: customCartonDims });
-                  }
-                }}
-                selectedCartonSku={selectedCartonSku}
-                setSelectedCartonSku={(sku) => {
-                  setSelectedCartonSku(sku);
-                }}
-                customCartonDims={customCartonDims}
-                setCustomCartonDims={setCustomCartonDims}
-                onApply={() => handlePackOrder()}
-                loading={packingLoading}
-                currentCartonSku={activePlan?.carton.carton_id}
-                currentCartonDims={activePlan?.carton.internal_dimensions_mm}
-              />
-            )}
-
-            {activePlan ? (
-              <>
-                <PackingViewer3D plan={activePlan} />
-                <CostScorecard
-                  carton={activePlan.carton}
-                  metrics={activePlan.metrics}
-                  validation={activePlan.validation}
-                  candidateComparison={solution?.candidate_carton_comparison}
-                  overflowPlans={solution?.overflow_plans}
-                  unpackedItemIds={solution?.unpacked_item_ids}
-                  activePlanIndex={activePlanIndex}
-                  onSelectPlan={setActivePlanIndex}
-                />
-              </>
-            ) : (
-              <div className="card placeholder-card">
-                <h3>Packing Viewer Ready</h3>
-                <p>
-                  Upload packing images or load one of the 3 Demo Presets on the left to inspect 3D packing sequence.
-                </p>
-              </div>
-            )}
-          </div>
+              <PackingViewer3D plan={activePlan} />
+            </>
+          ) : (
+            <section className="panel empty">
+              <span className="empty-sub-icon">📦</span>
+              <p className="muted">
+                Take or upload 2 photos on the left to calculate optimal carton and 3D packing sequence.
+              </p>
+            </section>
+          )}
         </div>
       </main>
     </div>

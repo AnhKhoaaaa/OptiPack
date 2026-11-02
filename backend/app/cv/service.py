@@ -184,8 +184,12 @@ class CVMetrologyService:
             warnings.append(f"{len(unmatched_oblique)} oblique detections lack stereo partners")
         result_items = []
         carver = VisualHullCarver()
+        color_palette = (
+            "#0071E3", "#10B981", "#F59E0B", "#8B5CF6",
+            "#EC4899", "#06B6D4", "#F97316", "#6366F1",
+        )
 
-        for top_idx, ob_idx, epi_dist in matches:
+        for match_idx, (top_idx, ob_idx, epi_dist) in enumerate(matches):
             item_top, item_ob = top[top_idx], oblique[ob_idx]
             try:
                 contour_top = np.asarray(item_top["contour"], dtype=np.float64).reshape(-1, 2)
@@ -281,6 +285,7 @@ class CVMetrologyService:
                     visual_evidence=VisualEvidence(
                         bbox_2d_px=bbox,
                         crop_url=item_top.get("crop_url"),
+                        display_color_hex=color_palette[match_idx % len(color_palette)],
                     ),
                 ))
             except (ValueError, KeyError, TypeError, FloatingPointError, np.linalg.LinAlgError) as exc:

@@ -85,15 +85,29 @@ class SegmentationPipeline:
                         self._primary.detect_and_segment,
                         oblique_image, K, D, calibration.oblique_pose, False
                     )
-                    top = fut_top.result(timeout=15.0)
-                    oblique = fut_ob.result(timeout=15.0)
+                    try:
+                        top = fut_top.result(timeout=15.0)
+                    except Exception as exc_top:
+                        warnings.append(f"sam-3.1 top view unavailable ({exc_top}); falling back to local YOLOE segmenter")
+                        top = []
+                    try:
+                        oblique = fut_ob.result(timeout=15.0)
+                    except Exception as exc_ob:
+                        warnings.append(f"sam-3.1 oblique view unavailable ({exc_ob}); falling back to local YOLOE segmenter")
+                        oblique = []
 
-                if not top or not oblique:
-                    raise RuntimeError("sam-3.1 returned empty candidate list")
+                if not top:
+                    warnings.append("sam-3.1 returned empty top candidates; falling back to local YOLOE segmenter for top view")
+                    top = self._fallback.detect_and_segment(top_image, K, D, calibration.top_pose)
+                if not oblique:
+                    warnings.append("sam-3.1 returned empty oblique candidates; falling back to local YOLOE segmenter for oblique view")
+                    oblique = self._fallback.detect_and_segment(oblique_image, K, D, calibration.oblique_pose)
             except Exception as exc:
                 warnings.append(f"sam-3.1 unavailable ({exc}); falling back to local YOLOE segmenter")
-                top = self._fallback.detect_and_segment(top_image, K, D, calibration.top_pose)
-                oblique = self._fallback.detect_and_segment(oblique_image, K, D, calibration.oblique_pose)
+                if not top:
+                    top = self._fallback.detect_and_segment(top_image, K, D, calibration.top_pose)
+                if not oblique:
+                    oblique = self._fallback.detect_and_segment(oblique_image, K, D, calibration.oblique_pose)
         else:
             top = self._primary.detect_and_segment(top_image, K, D, calibration.top_pose)
             oblique = self._primary.detect_and_segment(oblique_image, K, D, calibration.oblique_pose)

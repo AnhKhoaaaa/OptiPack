@@ -210,7 +210,8 @@ class EpipolarMatcher:
                     g_ground = C_top + dirs * lamb[:, None]
 
                     g_top = g_ground.copy()
-                    g_top[:, 2] = 65.0
+                    span_xy = float(np.max(np.linalg.norm(np.roll(g_ground[:, :2], -1, axis=0) - g_ground[:, :2], axis=1)))
+                    g_top[:, 2] = np.clip(0.65 * span_xy, 30.0, 220.0)
                     pts_3d = np.vstack([g_ground, g_top])
                     proj_2d, _ = cv2.projectPoints(pts_3d, ob_rvec, ob_tvec, K, D)
                     proj_2d = proj_2d.reshape(-1, 2)

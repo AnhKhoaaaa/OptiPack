@@ -33,292 +33,186 @@ export const STANDARD_CARTON_SPECS: Record<string, CartonMeta> = {
   "BOX-XXL": { dimensions: "600 × 400 × 350 mm", volumeL: 84.0, maxPayloadKg: 25.0, name: "Heavy Bulk Master Carton" },
 };
 
+const usd = (v: number) => `$${v.toFixed(2)}`;
+
 export const CostScorecard: React.FC<CostScorecardProps> = ({
   metrics,
   validation,
   carton,
-  candidateComparison,
+  candidateComparison = [],
   overflowPlans = [],
   unpackedItemIds = [],
   activePlanIndex = 1,
   onSelectPlan,
 }) => {
-  const [showComparison, setShowComparison] = useState<boolean>(true);
-  const [showCostReference, setShowCostReference] = useState<boolean>(false);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
 
-  const hasMultipleCartons = overflowPlans.length > 0;
-
-  // Derive volume and void slack in Liters
+  const hasMultiple = overflowPlans.length > 0;
   const cartonDims = carton?.internal_dimensions_mm;
   const cartonVolLiters = cartonDims
     ? ((cartonDims.length_mm * cartonDims.width_mm * cartonDims.height_mm) / 1_000_000).toFixed(1)
-    : (STANDARD_CARTON_SPECS[carton?.carton_id || "BOX-M"]?.volumeL.toFixed(1) || "9.9");
+    : STANDARD_CARTON_SPECS[carton?.carton_id || "BOX-M"]?.volumeL.toFixed(1) || "9.9";
 
   // Void volume in liters calculated from void cost ($0.04/L)
   const voidLiters = (metrics.void_fill_cost_usd / 0.04).toFixed(1);
 
-  // Total volume across all multi-carton split boxes
-  const totalCombinedVolumeL = (
-    parseFloat(cartonVolLiters) +
-    overflowPlans.reduce((sum, p) => {
-      const d = p.carton.internal_dimensions_mm;
-      return sum + (d.length_mm * d.width_mm * d.height_mm) / 1_000_000;
-    }, 0)
-  ).toFixed(1);
+  const checks: [string, boolean][] = [
+    ["Inside carton", validation.boundary_check_passed],
+    ["No overlap", validation.overlap_check_passed],
+    ["Support ≥ 60%", validation.support_check_passed],
+    ["Allowed rotations", validation.rotation_check_passed],
+    ["Fragility", validation.fragility_check_passed],
+    ["Payload limit", validation.weight_check_passed],
+  ];
+  const passedCount = checks.filter(([, ok]) => ok).length;
 
   return (
-    <div className="card scorecard-card">
-      <div className="card-header">
-        <div className="scorecard-title-group">
-          <h2>4. Packing & Space Efficiency Scorecard</h2>
-          <span
-            className={`badge ${
-              validation.is_valid ? "badge-success" : "badge-danger"
-            }`}
+    <section className="panel">
+      {hasMultiple && (
+        <div className="segmented segmented-block">
+          <button
+            type="button"
+            className={activePlanIndex === 1 ? "is-active" : ""}
+            onClick={() => onSelectPlan?.(1)}
           >
-            {validation.is_valid ? "✓ Valid Geometry" : "✗ Violations Detected"}
-          </span>
-        </div>
-
-        {hasMultipleCartons && (
-          <span className="badge badge-warning">
-            Multi-Carton Split Required ({overflowPlans.length + 1} Boxes)
-          </span>
-        )}
-      </div>
-
-      {/* Multi-Carton Tab Switcher (if order split into Box 1, Box 2) */}
-      {hasMultipleCartons && (
-        <div className="multi-carton-banner">
-          <div className="multi-carton-tabs">
-            <button
-              className={`carton-tab ${activePlanIndex === 1 ? "active" : ""}`}
-              onClick={() => onSelectPlan && onSelectPlan(1)}
-            >
-              <strong>Carton 1 (Primary: {carton?.carton_id || "BOX-M"})</strong>
-              <span>{cartonDims ? `${cartonDims.length_mm}×${cartonDims.width_mm}×${cartonDims.height_mm} mm` : "Standard"} ({cartonVolLiters}L)</span>
-            </button>
-
-            {overflowPlans.map((op, idx) => {
-              const opDims = op.carton.internal_dimensions_mm;
-              const opVolL = ((opDims.length_mm * opDims.width_mm * opDims.height_mm) / 1_000_000).toFixed(1);
-              return (
-                <button
-                  key={op.carton.carton_id}
-                  className={`carton-tab ${activePlanIndex === idx + 2 ? "active" : ""}`}
-                  onClick={() => onSelectPlan && onSelectPlan(idx + 2)}
-                >
-                  <strong>Carton {idx + 2} ({op.carton.carton_id})</strong>
-                  <span>{opDims.length_mm}×{opDims.width_mm}×{opDims.height_mm} mm ({opVolL}L)</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="multi-carton-total">
-            Total Containers: <strong>{overflowPlans.length + 1} Boxes</strong> • Combined Volume: <strong>{totalCombinedVolumeL} Liters</strong>
-          </div>
+            Box 1 · {carton?.carton_id || "BOX-M"} ({cartonVolLiters}L)
+          </button>
+          {overflowPlans.map((op, idx) => {
+            const d = op.carton.internal_dimensions_mm;
+            const opVolL = ((d.length_mm * d.width_mm * d.height_mm) / 1_000_000).toFixed(1);
+            return (
+              <button
+                key={`${op.carton.carton_id}-${idx}`}
+                type="button"
+                className={activePlanIndex === idx + 2 ? "is-active" : ""}
+                onClick={() => onSelectPlan?.(idx + 2)}
+              >
+                Box {idx + 2} · {op.carton.carton_id} ({opVolL}L)
+              </button>
+            );
+          })}
         </div>
       )}
 
-      {/* Unpacked items warning */}
-      {unpackedItemIds.length > 0 && (
-        <div className="violations-box">
-          <strong>⚠️ Infeasibility Alert:</strong> {unpackedItemIds.length} items could not fit into any carton in the catalog:
-          <span style={{ marginLeft: 6, fontFamily: "var(--font-mono)" }}>
-            [{unpackedItemIds.join(", ")}]
-          </span>
-        </div>
-      )}
-
-      {/* 4 Physical & Operational KPIs */}
-      <div className="metrics-grid">
-        <div className="metric-box highlight">
-          <div className="metric-label">Recommended Box Size</div>
-          <div className="metric-value">{carton?.carton_id || "BOX-M"}</div>
-          <div className="metric-sub">
-            {cartonDims
-              ? `${cartonDims.length_mm} × ${cartonDims.width_mm} × ${cartonDims.height_mm} mm (${cartonVolLiters}L)`
-              : "Standard Die-Cut Carton"}
-          </div>
-        </div>
-
-        <div className="metric-box">
-          <div className="metric-label">Space Utilization</div>
-          <div className="metric-value">{metrics.volume_utilization_pct.toFixed(1)}%</div>
-          <div className="metric-sub">
-            {metrics.total_items_packed} Items Packed • {voidLiters}L Void Slack
-          </div>
-        </div>
-
-        <div className="metric-box">
-          <div className="metric-label">Billable Weight Tier</div>
-          <div className="metric-value">{metrics.billable_weight_kg.toFixed(2)} kg</div>
-          <div className="metric-sub">
-            Actual: {metrics.actual_gross_weight_kg.toFixed(2)}kg • DIM: {metrics.dim_weight_kg.toFixed(2)}kg
-          </div>
-        </div>
-
-        <div className="metric-box">
-          <div className="metric-label">Load Physics & Stability</div>
-          <div className="metric-value">{validation.is_valid ? "6/6 Passed" : "Review"}</div>
-          <div className="metric-sub">
-            Tare: {carton ? carton.tare_weight_g : 160}g • Max: {carton ? (carton.max_payload_g / 1000).toFixed(1) : "8.0"}kg
-          </div>
-        </div>
-      </div>
-
-      {/* Optional Financial Cost Reference Accordion */}
-      <div className="financial-reference-card">
-        <div
-          className="financial-reference-header"
-          onClick={() => setShowCostReference((prev) => !prev)}
-        >
-          <span>
-            {showCostReference ? "▼" : "▶"} Carrier Freight & Material Cost Reference (USD Indicator)
-          </span>
-          <span className="comparison-toggle-text">
-            {showCostReference ? "Hide" : "Show Estimation"}
-          </span>
-        </div>
-
-        {showCostReference && (
-          <div className="financial-reference-content">
-            <div className="cost-breakdown-row">
-              <span className="cost-item">
-                📦 Box Material: <strong>${metrics.box_cost_usd.toFixed(2)} USD</strong>
-              </span>
-              <span className="cost-divider">•</span>
-              <span className="cost-item">
-                🚚 Carrier Rate: <strong>${metrics.shipping_cost_usd.toFixed(2)} USD</strong> (DIM Divisor 5000)
-              </span>
-              <span className="cost-divider">•</span>
-              <span className="cost-item">
-                🫧 Void Cushion: <strong>${metrics.void_fill_cost_usd.toFixed(2)} USD</strong>
-              </span>
-              <span className="cost-divider">•</span>
-              <span className="cost-item highlight">
-                Total Estimated: <strong>${metrics.total_estimated_cost_usd.toFixed(2)} USD</strong>
-              </span>
-            </div>
-            <p className="cost-disclaimer-note">
-              * Note: Financial costs are indicative baseline estimates. Warehouse packing optimization is primarily governed by minimal bounding volume and 3D structural stability.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Candidate Carton Evaluation Table */}
-      {candidateComparison && candidateComparison.length > 0 && (
-        <div className="comparison-section">
-          <div className="comparison-header" onClick={() => setShowComparison((prev) => !prev)}>
-            <h3>
-              {showComparison ? "▼" : "▶"} Candidate Carton Evaluation (Why this carton?)
-            </h3>
-            <span className="comparison-toggle-text">
-              {showComparison ? "Collapse" : "Expand"}
+      <div className="stats">
+        <div className="stat">
+          <span className="stat-label">Recommended Box</span>
+          <span className="stat-value">{carton?.carton_id ?? "—"}</span>
+          {cartonDims && (
+            <span className="stat-sub">
+              {cartonDims.length_mm}×{cartonDims.width_mm}×{cartonDims.height_mm} mm ({cartonVolLiters} L)
             </span>
-          </div>
-
-          {showComparison && (
-            <div className="table-responsive">
-              <table className="comparison-table">
-                <thead>
-                  <tr>
-                    <th>Carton SKU</th>
-                    <th>Usable Dimensions (L × W × H)</th>
-                    <th>Usable Vol.</th>
-                    <th>Max Payload</th>
-                    <th>Feasibility</th>
-                    <th>Space Util.</th>
-                    <th>Solver Selection Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {candidateComparison.map((cand) => {
-                    const meta = STANDARD_CARTON_SPECS[cand.carton_id];
-                    return (
-                      <tr
-                        key={cand.carton_id}
-                        className={cand.selected ? "row-selected-carton" : ""}
-                      >
-                        <td>
-                          <strong>{cand.carton_id}</strong>
-                          {cand.selected && (
-                            <span className="badge badge-success" style={{ marginLeft: 6 }}>
-                              SELECTED
-                            </span>
-                          )}
-                        </td>
-                        <td className="dimensions-mono">
-                          {meta ? meta.dimensions : "Standard"}
-                        </td>
-                        <td>{meta ? `${meta.volumeL} L` : "—"}</td>
-                        <td>{meta ? `${meta.maxPayloadKg} kg` : "—"}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              cand.feasible ? "badge-success" : "badge-danger"
-                            }`}
-                          >
-                            {cand.feasible ? "Feasible" : "Rejected"}
-                          </span>
-                        </td>
-                        <td>
-                          {cand.volume_utilization_pct != null
-                            ? `${cand.volume_utilization_pct.toFixed(1)}%`
-                            : "—"}
-                        </td>
-                        <td className="rejection-cell">
-                          {cand.selected
-                            ? "✓ Optimal: Smallest feasible carton with maximum space utilization."
-                            : cand.rejection_reason || "Suboptimal carton volume tier."}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           )}
         </div>
+        <div className="stat">
+          <span className="stat-label">Space Used</span>
+          <span className="stat-value">{metrics.volume_utilization_pct.toFixed(1)}%</span>
+          <div className="meter">
+            <div style={{ width: `${Math.min(100, metrics.volume_utilization_pct)}%` }} />
+          </div>
+          <span className="stat-sub">{voidLiters} L void slack</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Billable Weight</span>
+          <span className="stat-value">{metrics.billable_weight_kg.toFixed(2)} kg</span>
+          <span className={`stat-sub ${validation.is_valid ? "positive" : ""}`}>
+            {passedCount}/6 physics checks · {usd(metrics.total_estimated_cost_usd)} est.
+          </span>
+        </div>
+      </div>
+
+      {(unpackedItemIds.length > 0 || !validation.is_valid) && (
+        <p className="notice">
+          {unpackedItemIds.length > 0
+            ? `${unpackedItemIds.length} item(s) don't fit any carton: ${unpackedItemIds.join(", ")}`
+            : `${6 - passedCount} geometry check(s) failed.`}
+        </p>
       )}
 
-      {/* Deterministic Verification Checklist */}
-      <div className="validation-checks">
-        <h3>Independent Deterministic Geometry Validation (6/6 Checks)</h3>
-        <ul className="check-list">
-          <li className={validation.boundary_check_passed ? "passed" : "failed"}>
-            {validation.boundary_check_passed ? "✓" : "✗"} Boundary Containment (100% inside carton)
-          </li>
-          <li className={validation.overlap_check_passed ? "passed" : "failed"}>
-            {validation.overlap_check_passed ? "✓" : "✗"} Zero Pairwise 3D Collision / Overlap
-          </li>
-          <li className={validation.support_check_passed ? "passed" : "failed"}>
-            {validation.support_check_passed ? "✓" : "✗"} Vertical Support Coverage (≥ 60%)
-          </li>
-          <li className={validation.rotation_check_passed ? "passed" : "failed"}>
-            {validation.rotation_check_passed ? "✓" : "✗"} Allowed Rotations & Upright Rule
-          </li>
-          <li className={validation.fragility_check_passed ? "passed" : "failed"}>
-            {validation.fragility_check_passed ? "✓" : "✗"} Fragility & Top-Load Safety
-          </li>
-          <li className={validation.weight_check_passed ? "passed" : "failed"}>
-            {validation.weight_check_passed ? "✓" : "✗"} Maximum Payload Limit
-          </li>
-        </ul>
+      <button
+        type="button"
+        className="disclosure"
+        onClick={() => setShowDetails((v) => !v)}
+        aria-expanded={showDetails}
+      >
+        <span className={`chevron ${showDetails ? "open" : ""}`}>›</span>
+        Details & Catalog Comparison
+        <span className="muted">
+          {metrics.total_items_packed} items packed · {passedCount}/6 checks passed
+        </span>
+      </button>
 
-        {validation.violations.length > 0 && (
-          <div className="violations-box">
-            <h4>Violations:</h4>
-            <ul>
+      {showDetails && (
+        <div className="details">
+          <dl className="kv">
+            <dt>Gross vs. DIM weight</dt>
+            <dd>
+              {metrics.actual_gross_weight_kg.toFixed(2)} kg actual / {metrics.dim_weight_kg.toFixed(2)} kg DIM
+            </dd>
+            <dt>Center of mass (X, Y, Z)</dt>
+            <dd>
+              ({metrics.center_of_mass_mm.x.toFixed(0)}, {metrics.center_of_mass_mm.y.toFixed(0)},{" "}
+              {metrics.center_of_mass_mm.z.toFixed(0)}) mm
+            </dd>
+            <dt>Reference cost breakdown</dt>
+            <dd>
+              Box {usd(metrics.box_cost_usd)} · Void fill {usd(metrics.void_fill_cost_usd)} · Shipping{" "}
+              {usd(metrics.shipping_cost_usd)}
+            </dd>
+          </dl>
+
+          {candidateComparison.length > 0 && (
+            <table className="compare">
+              <thead>
+                <tr>
+                  <th>Carton</th>
+                  <th>Dimensions</th>
+                  <th className="right">Used</th>
+                  <th>Selection Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidateComparison.map((c) => {
+                  const meta = STANDARD_CARTON_SPECS[c.carton_id];
+                  return (
+                    <tr
+                      key={c.carton_id}
+                      className={c.selected ? "is-selected" : !c.feasible ? "is-dim" : ""}
+                    >
+                      <td>{c.carton_id}</td>
+                      <td className="muted">{meta ? `${meta.dimensions} (${meta.volumeL}L)` : "Custom"}</td>
+                      <td className="right">
+                        {c.volume_utilization_pct != null ? `${c.volume_utilization_pct.toFixed(1)}%` : "—"}
+                      </td>
+                      <td className="muted truncate">
+                        {c.selected
+                          ? "✓ Selected (smallest feasible volume)"
+                          : c.rejection_reason || (c.feasible ? "Larger carton volume tier" : "Doesn't fit")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+
+          <ul className="checks">
+            {checks.map(([label, ok]) => (
+              <li key={label} className={ok ? "ok" : "fail"}>
+                {ok ? "✓" : "✕"} {label}
+              </li>
+            ))}
+          </ul>
+
+          {validation.violations.length > 0 && (
+            <ul className="violations">
               {validation.violations.map((v, i) => (
                 <li key={i}>{v}</li>
               ))}
             </ul>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 };

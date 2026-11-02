@@ -87,7 +87,7 @@ class ClosedFormInitializer:
         span_g2d = float(np.max(proj_g2d) - np.min(proj_g2d))
 
         delta_ob_px = span_cnt2 - 0.85 * span_g2d
-        H0 = float(np.clip(max(5.0, delta_ob_px) / max(s_h, 1e-6), 22.0, 110.0))
+        H0 = float(np.clip(max(5.0, delta_ob_px) / max(s_h, 1e-6), 5.0, 500.0))
         return H0
 
     @classmethod

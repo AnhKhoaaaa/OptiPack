@@ -94,7 +94,11 @@ async def analyze_order(
 
     if not enable_muse_semantics or not items:
         for idx, item in enumerate(items):
-            item.physical_attributes = sanitize_physical_attributes({})
+            cv_stackable = item.physical_attributes.stackable if item.physical_attributes else True
+            sanitized = sanitize_physical_attributes({})
+            if not cv_stackable:
+                sanitized.stackable = False
+            item.physical_attributes = sanitized
             item.allowed_rotations = derive_allowed_rotations(False)
         warnings.append("AI semantics disabled or no measurable items; safe unknown-weight defaults retained")
         telemetry = AITelemetry(
@@ -118,11 +122,15 @@ async def analyze_order(
                 "latency_ms": 0, "items": {},
             }
         resolved = semantics.get("items", {})
-        for item in items:
+        for idx, item in enumerate(items):
             if item.item_id not in resolved:
                 warnings.append(f"Missing AI semantics for {item.item_id}; using conservative defaults")
             raw = resolved.get(item.item_id) or {}
-            item.physical_attributes = sanitize_physical_attributes(raw)
+            cv_stackable = item.physical_attributes.stackable if item.physical_attributes else True
+            sanitized = sanitize_physical_attributes(raw)
+            if not cv_stackable:
+                sanitized.stackable = False
+            item.physical_attributes = sanitized
             item.allowed_rotations = derive_allowed_rotations(
                 item.physical_attributes.keep_upright
             )
@@ -132,7 +140,7 @@ async def analyze_order(
                 item.display_name = str(ai_name).strip()
             elif not item.display_name or item.display_name.lower() in ("item", "detected object"):
                 clean_cat = item.category.replace("_", " ").title()
-                item.display_name = f"Item #{idx + 1:02d} ({clean_cat})" 
+                item.display_name = f"Item #{idx + 1:02d} ({clean_cat})"
             ai_cat = raw.get("category")
             if ai_cat and str(ai_cat).strip():
                 item.category = str(ai_cat).strip()

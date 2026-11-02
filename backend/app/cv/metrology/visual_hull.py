@@ -70,14 +70,20 @@ class VisualHullCarver:
         p1_2d, _ = cv2.projectPoints(pts_3d, rvec1, tvec1, K, D)
         p2_2d, _ = cv2.projectPoints(pts_3d, rvec2, tvec2, K, D)
 
-        u1 = np.clip(np.round(p1_2d[:, 0, 0]).astype(int), 0, W_top - 1)
-        v1 = np.clip(np.round(p1_2d[:, 0, 1]).astype(int), 0, H_top - 1)
+        u1_raw = np.round(p1_2d[:, 0, 0]).astype(int)
+        v1_raw = np.round(p1_2d[:, 0, 1]).astype(int)
+        in_bounds1 = (u1_raw >= 0) & (u1_raw < W_top) & (v1_raw >= 0) & (v1_raw < H_top)
+        u1 = np.clip(u1_raw, 0, W_top - 1)
+        v1 = np.clip(v1_raw, 0, H_top - 1)
 
-        u2 = np.clip(np.round(p2_2d[:, 0, 0]).astype(int), 0, W_ob - 1)
-        v2 = np.clip(np.round(p2_2d[:, 0, 1]).astype(int), 0, H_ob - 1)
+        u2_raw = np.round(p2_2d[:, 0, 0]).astype(int)
+        v2_raw = np.round(p2_2d[:, 0, 1]).astype(int)
+        in_bounds2 = (u2_raw >= 0) & (u2_raw < W_ob) & (v2_raw >= 0) & (v2_raw < H_ob)
+        u2 = np.clip(u2_raw, 0, W_ob - 1)
+        v2 = np.clip(v2_raw, 0, H_ob - 1)
 
-        in_mask1 = mask_top[v1, u1] > 0
-        in_mask2 = mask_ob[v2, u2] > 0
+        in_mask1 = in_bounds1 & (mask_top[v1, u1] > 0)
+        in_mask2 = in_bounds2 & (mask_ob[v2, u2] > 0)
 
         in_hull = in_mask1 & in_mask2
         voxels_hull = pts_3d[in_hull]

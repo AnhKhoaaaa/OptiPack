@@ -35,143 +35,127 @@ export const CartonControlBar: React.FC<CartonControlBarProps> = ({
   currentCartonDims,
 }) => {
   return (
-    <div className="card carton-control-card">
-      <div className="carton-control-header">
-        <div className="carton-control-title">
-          <h3>📦 Carton Sizing & Specification</h3>
-          {currentCartonDims && (
-            <span className="carton-current-badge">
-              Active: <strong>{currentCartonSku || "BOX"}</strong> ({currentCartonDims.length_mm} × {currentCartonDims.width_mm} × {currentCartonDims.height_mm} mm)
-            </span>
-          )}
+    <section className="panel carton-bar">
+      <header className="panel-head" style={{ marginBottom: cartonMode === "auto" ? 0 : 12 }}>
+        <div>
+          <h2>
+            Carton Sizing{" "}
+            {currentCartonDims && (
+              <span className="muted">
+                · {currentCartonSku || "BOX"} ({currentCartonDims.length_mm}×
+                {currentCartonDims.width_mm}×{currentCartonDims.height_mm} mm)
+              </span>
+            )}
+          </h2>
         </div>
 
-        {/* Mode Selector Segmented Pills */}
-        <div className="btn-group-pill carton-mode-pills">
+        <div className="segmented">
           <button
-            className={`btn-pill ${cartonMode === "auto" ? "active" : ""}`}
-            onClick={() => {
-              setCartonMode("auto");
-            }}
-            title="Automatically recommend the smallest feasible standard carton"
+            type="button"
+            className={cartonMode === "auto" ? "is-active" : ""}
+            onClick={() => setCartonMode("auto")}
+            title="Automatically select the smallest feasible standard carton"
           >
-            ✨ Auto Optimal
+            Auto Optimal
           </button>
           <button
-            className={`btn-pill ${cartonMode === "preset" ? "active" : ""}`}
-            onClick={() => {
-              setCartonMode("preset");
-            }}
-            title="Lock to a specific standard carton SKU"
+            type="button"
+            className={cartonMode === "preset" ? "is-active" : ""}
+            onClick={() => setCartonMode("preset")}
+            title="Lock packing to a specific standard carton SKU"
           >
-            📋 Standard SKU
+            Standard SKU
           </button>
           <button
-            className={`btn-pill ${cartonMode === "custom" ? "active" : ""}`}
-            onClick={() => {
-              setCartonMode("custom");
-            }}
-            title="Specify custom carton dimensions in mm"
+            type="button"
+            className={cartonMode === "custom" ? "is-active" : ""}
+            onClick={() => setCartonMode("custom")}
+            title="Specify custom warehouse carton dimensions in mm"
           >
-            ✏️ Custom Size
+            Custom Size
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="carton-control-body">
-        {cartonMode === "auto" && (
-          <div className="carton-mode-desc">
-            <span>
-              The CP-SAT solver tests all 5 standard catalog cartons and automatically selects the smallest box that packs 100% of items with valid 3D support and zero overlap.
-            </span>
-          </div>
-        )}
+      {cartonMode === "preset" && (
+        <div className="carton-sub-row">
+          <label className="muted text-sm">Target SKU:</label>
+          <select
+            className="select carton-sku-select"
+            value={selectedCartonSku}
+            onChange={(e) => setSelectedCartonSku(e.target.value)}
+          >
+            {PRESET_CARTONS.map((p) => (
+              <option key={p.sku} value={p.sku}>
+                {p.label} — {p.dims}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={onApply}
+            disabled={loading}
+          >
+            {loading ? "Packing…" : "Apply Box"}
+          </button>
+        </div>
+      )}
 
-        {cartonMode === "preset" && (
-          <div className="carton-preset-row">
-            <label className="carton-input-label">Select Standard Box SKU:</label>
-            <select
-              className="carton-select"
-              value={selectedCartonSku}
-              onChange={(e) => {
-                setSelectedCartonSku(e.target.value);
-              }}
-            >
-              {PRESET_CARTONS.map((p) => (
-                <option key={p.sku} value={p.sku}>
-                  {p.label} — {p.dims}
-                </option>
-              ))}
-            </select>
-            <button
-              className="btn btn-sm btn-accent"
-              onClick={onApply}
-              disabled={loading}
-            >
-              {loading ? "Packing..." : "Apply Box"}
-            </button>
+      {cartonMode === "custom" && (
+        <div className="carton-sub-row">
+          <label className="muted text-sm">Dimensions (L × W × H mm):</label>
+          <div className="dims">
+            <input
+              type="number"
+              min={50}
+              max={2000}
+              className="num-input wide"
+              value={customCartonDims.length_mm}
+              onChange={(e) =>
+                setCustomCartonDims({
+                  ...customCartonDims,
+                  length_mm: Math.max(50, parseInt(e.target.value, 10) || 50),
+                })
+              }
+            />
+            <input
+              type="number"
+              min={50}
+              max={2000}
+              className="num-input wide"
+              value={customCartonDims.width_mm}
+              onChange={(e) =>
+                setCustomCartonDims({
+                  ...customCartonDims,
+                  width_mm: Math.max(50, parseInt(e.target.value, 10) || 50),
+                })
+              }
+            />
+            <input
+              type="number"
+              min={30}
+              max={2000}
+              className="num-input wide"
+              value={customCartonDims.height_mm}
+              onChange={(e) =>
+                setCustomCartonDims({
+                  ...customCartonDims,
+                  height_mm: Math.max(30, parseInt(e.target.value, 10) || 30),
+                })
+              }
+            />
           </div>
-        )}
-
-        {cartonMode === "custom" && (
-          <div className="carton-custom-row">
-            <div className="custom-dim-group">
-              <label>Length (mm):</label>
-              <input
-                type="number"
-                min="50"
-                max="2000"
-                value={customCartonDims.length_mm}
-                onChange={(e) =>
-                  setCustomCartonDims({
-                    ...customCartonDims,
-                    length_mm: Math.max(50, parseInt(e.target.value) || 50),
-                  })
-                }
-              />
-            </div>
-            <span className="dim-times">×</span>
-            <div className="custom-dim-group">
-              <label>Width (mm):</label>
-              <input
-                type="number"
-                min="50"
-                max="2000"
-                value={customCartonDims.width_mm}
-                onChange={(e) =>
-                  setCustomCartonDims({
-                    ...customCartonDims,
-                    width_mm: Math.max(50, parseInt(e.target.value) || 50),
-                  })
-                }
-              />
-            </div>
-            <span className="dim-times">×</span>
-            <div className="custom-dim-group">
-              <label>Height (mm):</label>
-              <input
-                type="number"
-                min="30"
-                max="2000"
-                value={customCartonDims.height_mm}
-                onChange={(e) =>
-                  setCustomCartonDims({
-                    ...customCartonDims,
-                    height_mm: Math.max(30, parseInt(e.target.value) || 30),
-                  })
-                }
-              />
-            </div>
-            <button
-              className="btn btn-sm btn-accent"
-              onClick={onApply}
-              disabled={loading}
-            >
-              {loading ? "Packing..." : "Apply Custom Size"}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={onApply}
+            disabled={loading}
+          >
+            {loading ? "Packing…" : "Apply Size"}
+          </button>
+        </div>
+      )}
+    </section>
   );
 };

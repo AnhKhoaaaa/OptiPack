@@ -193,3 +193,73 @@ def test_offline_fallback_to_local_yoloe():
             assert "falling back to local YOLOE segmenter" in result.warnings[0]
             assert len(result.top_items) == 1
             assert result.top_items[0]["object_id"] == "yoloe_item_1"
+
+
+
+def test_visual_hull_out_of_bounds_protection():
+    """Verify that voxels projecting outside image bounds are not falsely marked inside the hull."""
+    carver = VisualHullCarver(nx=12, ny=12, nz=10)
+    K = np.array([[1000.0, 0.0, 50.0], [0.0, 1000.0, 50.0], [0.0, 0.0, 1.0]], dtype=np.float64)
+    D = np.zeros(5, dtype=np.float64)
+
+    pose_top = {"rvec": [0.0, 0.0, 0.0], "tvec": [0.0, 0.0, 500.0]}
+    pose_ob = {"rvec": [0.2, 0.0, 0.0], "tvec": [0.0, -50.0, 500.0]}
+
+    # Mask is completely filled with 255 up to the border
+    mask_full = np.ones((100, 100), dtype=np.uint8) * 255
+    cnt = np.array([[0, 0], [99, 0], [99, 99], [0, 99]], dtype=np.int32)
+
+    # Hypothesis placed far outside the camera field of view (cx=5000mm)
+    p_far = np.array([5000.0, 5000.0, 100.0, 100.0, 80.0, 0.0])
+    res = carver.carve_and_analyze(
+        mask_full, mask_full, cnt, pose_top, pose_ob, K, D, p_far
+    )
+    assert res["vol_hull_mm3"] == 0.0
+
+
+def test_per_view_yoloe_fallback_preserves_valid_view():
+    """Verify that if SAM 3.1 succeeds on top view but fails on oblique view, top view is preserved."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        sam_mock = MagicMock(spec=SAM31Segmenter)
+        h, w = 480, 640
+        top_cand = [
+            {
+                "object_id": "sam31_top_1",
+                "bbox": [120, 120, 260, 260],
+                "mask": np.zeros((h, w), dtype=np.uint8),
+                "center": [190.0, 190.0],
+                "area_px": 19600,
+                "confidence": 0.94,
+                "class_name": "item",
+                "source": "sam31",
+            }
+        ]
+        # Top succeeds, Oblique returns empty list
+        sam_mock.detect_and_segment.side_effect = [top_cand, []]
+
+        pipeline = SegmentationPipeline(segmenter=sam_mock, crop_dir=Path(tmp_dir))
+        img = np.zeros((h, w, 3), dtype=np.uint8)
+
+        mock_calib = MagicMock(spec=PairCalibration)
+        mock_calib.top_pose = {"camera_matrix": np.eye(3), "dist_coeffs": np.zeros(5)}
+        mock_calib.oblique_pose = {"camera_matrix": np.eye(3), "dist_coeffs": np.zeros(5)}
+        mock_calib.homography_oblique_to_top = np.eye(3)
+
+        ob_fallback = [
+            {
+                "object_id": "yoloe_ob_1",
+                "bbox": [130, 130, 270, 270],
+                "mask": np.zeros((h, w), dtype=np.uint8),
+                "center": [200.0, 200.0],
+                "area_px": 19600,
+                "confidence": 0.88,
+                "class_name": "item",
+                "source": "yoloe",
+            }
+        ]
+
+        with patch.object(pipeline._fallback, "detect_and_segment", return_value=ob_fallback) as fallback_call:
+            result = pipeline.run(img, img, mock_calib, save_crops=False, filter_ground_plane=False)
+            assert fallback_call.call_count == 1
+            assert result.top_items[0]["object_id"] == "sam31_top_1"
+            assert result.oblique_items[0]["object_id"] == "yoloe_ob_1"
