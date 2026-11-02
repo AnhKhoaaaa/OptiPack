@@ -1,0 +1,5 @@
+# Optional Issue #7 YOLOE automatic ROI inference (not required by base backend tests)
+ultralytics>=8.4.0,<8.5.0
+# Optional ONNX inference and export
+onnxruntime>=1.18
+onnx>=1.17
