@@ -3,7 +3,7 @@
 from backend.app.cv.aruco_detector import detect_aruco_calibration_sheet
 from backend.app.cv.item_segmenter import segment_tabletop_items
 from backend.app.cv.metrology import estimate_item_dimensions_3d, quantify_measurement_uncertainty
-from backend.app.cv.service import CVCalibrationError, CVMetrologyService, PairCalibration, CVMeasurementBatch
+from backend.app.cv.service import CVCalibrationError, CVMetrologyService, PairCalibration
 
 __all__ = [
     "detect_aruco_calibration_sheet",
@@ -13,5 +13,4 @@ __all__ = [
     "CVCalibrationError",
     "CVMetrologyService",
     "PairCalibration",
-    "CVMeasurementBatch",
 ]
