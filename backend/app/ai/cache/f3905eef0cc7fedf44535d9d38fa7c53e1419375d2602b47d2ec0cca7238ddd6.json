@@ -1,0 +1,15 @@
+{
+  "item_id": "item_a499ef3ca4c64c08ace5a0ecbfa61023",
+  "display_name": "Sennheiser wooden box",
+  "category": "electronics_boxed",
+  "visible_labels": [
+    "SENNHEISER"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Wooden Sennheiser branded box"
+}

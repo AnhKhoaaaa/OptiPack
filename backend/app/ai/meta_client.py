@@ -27,6 +27,11 @@ from backend.app.schemas.contracts import AITelemetry, PhysicalAttributes
 dotenv.load_dotenv()
 
 META_API_BASE_URL = os.getenv("META_API_BASE_URL", "https://api.meta.ai/v1")
+META_MODEL_API_ENDPOINT = os.getenv("META_MODEL_API_ENDPOINT", "").strip()
+if META_MODEL_API_ENDPOINT:
+    if "/v1" in META_MODEL_API_ENDPOINT:
+        META_API_BASE_URL = META_MODEL_API_ENDPOINT.split("/v1")[0] + "/v1"
+META_API_BASE_URL = META_API_BASE_URL.rstrip("/")
 MODEL_API_KEY = os.getenv("MODEL_API_KEY", "")
 MUSE_MODEL_NAME = os.getenv("MUSE_MODEL_NAME", "muse-spark-1.3")
 
@@ -390,7 +395,10 @@ def build_deterministic_fallback_semantics(
                 "max_top_load_g": 2000,
                 "reasoning_note": f"Offline safe default ({reason})",
             }
-        items[iid] = sanitize_physical_attributes(item_dict).model_dump()
+        dumped = sanitize_physical_attributes(item_dict).model_dump()
+        dumped["display_name"] = item_dict.get("display_name") or name or "Generic Package"
+        dumped["category"] = item_dict.get("category", "generic_carton")
+        items[iid] = dumped
     return {
         "status": "fallback",
         "model": MUSE_MODEL_NAME,
@@ -565,7 +573,10 @@ async def analyze_items_with_muse_spark(
             cached_data = get_cached_response(sha)
 
         if cached_data:
-            results[iid] = sanitize_physical_attributes(cached_data).model_dump()
+            dumped = sanitize_physical_attributes(cached_data).model_dump()
+            dumped["display_name"] = cached_data.get("display_name") or crop.get("name") or "Generic Package"
+            dumped["category"] = cached_data.get("category", "generic_carton")
+            results[iid] = dumped
         else:
             uncached_crops.append(crop)
 
@@ -598,9 +609,10 @@ async def analyze_items_with_muse_spark(
             "type": "input_text",
             "text": (
                 "Packaging inspector. Image 1 is overview, rest are crops. Keep reasoning_note under 6 words. "
-                "1. Set printed_weight_g ONLY if net weight is legibly printed; else null. "
-                "2. Set keep_upright=true ONLY if 'THIS SIDE UP' arrows or liquid bottle visible. "
-                "3. If unmarked box, set fragility_class='unknown', fragility_source='default_safe'."
+                "1. Read exact brand name, product title or visible packaging labels into display_name. "
+                "2. Set printed_weight_g ONLY if net weight is legibly printed; else null. "
+                "3. Set keep_upright=true ONLY if 'THIS SIDE UP' arrows or liquid bottle visible. "
+                "4. If unmarked box, set fragility_class='unknown', fragility_source='default_safe'."
             ),
         },
         {
@@ -633,7 +645,12 @@ async def analyze_items_with_muse_spark(
         "input": [
             {
                 "role": "developer",
-                "content": "E-commerce packaging inspection engine. Output strict JSON matching schema.",
+                "content": (
+                    "E-commerce packaging inspection engine. Output strict JSON matching schema. "
+                    "In display_name, extract the exact printed brand name, product title, or descriptive packaging label "
+                    "(e.g. 'Colgate Toothpaste Box', 'Top Gia Paper Tissue Pack', 'Sennheiser Wooden Box', 'GoChek Mic Case'). "
+                    "Never return generic placeholders like 'packaged product' or 'generic package' when visual or brand details are legible."
+                ),
             },
             {
                 "role": "user",
@@ -668,11 +685,14 @@ async def analyze_items_with_muse_spark(
         parsed = MuseBatchOutput.model_validate_json(raw_text)
 
         for item in parsed.items:
-            dumped = item.model_dump()
+            item_raw = item.model_dump()
             matching_crop = next((c for c in uncached_crops if c.get("item_id") == item.item_id), None)
             if matching_crop and "crop_bytes" in matching_crop:
-                store_cached_response(compute_image_sha256(matching_crop["crop_bytes"]), dumped)
-            results[item.item_id] = sanitize_physical_attributes(dumped).model_dump()
+                store_cached_response(compute_image_sha256(matching_crop["crop_bytes"]), item_raw)
+            dumped = sanitize_physical_attributes(item_raw).model_dump()
+            dumped["display_name"] = item_raw.get("display_name") or (matching_crop.get("name") if matching_crop else None) or "Generic Package"
+            dumped["category"] = item_raw.get("category", "generic_carton")
+            results[item.item_id] = dumped
 
         # Handle any uncached crop missing from parsed response
         for crop in uncached_crops:

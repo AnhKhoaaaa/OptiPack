@@ -1,0 +1,13 @@
+{
+  "item_id": "item_525a8a8fe6cc4e5f863b61a3272bdbd5",
+  "display_name": "Black rectangular box",
+  "category": "generic_carton",
+  "visible_labels": [],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Unmarked black rigid box"
+}

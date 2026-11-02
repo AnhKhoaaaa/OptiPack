@@ -1,0 +1,15 @@
+{
+  "item_id": "item_db6e96c330be41d4b4a80f8ca58a75fa",
+  "display_name": "Sennheiser wooden case",
+  "category": "electronics_boxed",
+  "visible_labels": [
+    "SENNHEISER"
+  ],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Wooden branded electronics case"
+}
