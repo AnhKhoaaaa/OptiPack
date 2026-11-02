@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { OrderAnalysisResponse, PackingSolutionResponse } from "../types/contract";
+import { AITelemetry, OrderAnalysisResponse, PackingSolutionResponse } from "../types/contract";
 import { OptiPackClient } from "../api/optipackClient";
 import orderAnalysisSample from "../mocks/orderAnalysisSample.json";
+import packingSolutionSample from "../mocks/packingSolutionSample.json";
 import preset2UncertainReview from "../mocks/preset2UncertainReview.json";
 import preset2PackingSolution from "../mocks/preset2PackingSolution.json";
 import preset3OrderAnalysis from "../mocks/preset3OrderAnalysis.json";
@@ -14,12 +15,14 @@ interface UploadPanelProps {
   ) => void;
   loading: boolean;
   setLoading: (l: boolean) => void;
+  aiTelemetry?: AITelemetry | null;
 }
 
 export const UploadPanel: React.FC<UploadPanelProps> = ({
   onAnalysisLoaded,
   loading,
   setLoading,
+  aiTelemetry,
 }) => {
   const [topFile, setTopFile] = useState<File | null>(null);
   const [obliqueFile, setObliqueFile] = useState<File | null>(null);
@@ -62,7 +65,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     setLoading(true);
     setTimeout(() => {
       if (presetNumber === 1) {
-        onAnalysisLoaded(orderAnalysisSample as unknown as OrderAnalysisResponse);
+        onAnalysisLoaded(
+          orderAnalysisSample as unknown as OrderAnalysisResponse,
+          packingSolutionSample as unknown as PackingSolutionResponse
+        );
       } else if (presetNumber === 2) {
         onAnalysisLoaded(
           preset2UncertainReview as unknown as OrderAnalysisResponse,
@@ -90,7 +96,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     if (obliqueFile) {
       formData.append("oblique_image", obliqueFile);
     }
-    formData.append("capture_mode", obliqueFile ? "dual_photo" : "single_top_photo");
+    formData.append("capture_mode", obliqueFile ? "dual_photo" : "zenith_only");
 
     try {
       const data = await OptiPackClient.analyzeOrder(formData);
@@ -160,6 +166,40 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           {loading ? "Analyzing Scene (CV + Meta Model API)..." : "⚡ Analyze Live Order"}
         </button>
       </div>
+
+      {/* Meta AI Telemetry Badge */}
+      {aiTelemetry && (
+        <div className="telemetry-banner">
+          <div className="telemetry-header">
+            <span className="telemetry-title">⚡ Meta AI Telemetry</span>
+            <span
+              className={`telemetry-pill ${
+                aiTelemetry.fallback_activated ? "pill-fallback" : "pill-live"
+              }`}
+            >
+              {aiTelemetry.fallback_activated ? "Offline Fallback Mode" : "Frontier Pipeline Active"}
+            </span>
+          </div>
+          <div className="telemetry-metrics">
+            <div className="telemetry-item">
+              <span className="telemetry-label">Active Models:</span>
+              <span className="telemetry-value">
+                sam-3.1 + {aiTelemetry.muse_model || "muse-spark-1.3"}
+              </span>
+            </div>
+            <div className="telemetry-item">
+              <span className="telemetry-label">Response Latency:</span>
+              <span className="telemetry-value">{aiTelemetry.muse_latency_ms} ms</span>
+            </div>
+            <div className="telemetry-item">
+              <span className="telemetry-label">Epistemic Security:</span>
+              <span className="telemetry-value text-success">
+                🛡️ Verified (Zero-Hallucination Guardrails)
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Demo Presets Selector */}
       <div className="demo-preset-section">

@@ -35,19 +35,27 @@ def timestamp_utc() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+DEFAULT_CALIBRATION_PROFILE_PATH = (
+    Path(__file__).resolve().parents[4] / "experiments" / "real_t01" / "calibration_model_variants.json"
+)
+
+
 @lru_cache(maxsize=1)
 def get_cv_service() -> CVMetrologyService | None:
     """Share a warm model across API calls. Never infer intrinsics from FOV."""
     path_string = os.getenv("OPTIPACK_CAMERA_PROFILE_PATH", "").strip()
     if not path_string:
-        return None
+        if DEFAULT_CALIBRATION_PROFILE_PATH.is_file():
+            path_string = str(DEFAULT_CALIBRATION_PROFILE_PATH)
+        else:
+            return None
     path = Path(path_string).expanduser()
     try:
         profile = json.loads(path.read_text(encoding="utf-8"))
         if "camera_matrix" not in profile:
-            name = os.getenv("OPTIPACK_CAMERA_PROFILE_NAME", "").strip()
-            if not name:
-                raise ValueError("OPTIPACK_CAMERA_PROFILE_NAME is required for multi-profile JSON")
+            name = os.getenv("OPTIPACK_CAMERA_PROFILE_NAME", "").strip() or "baseline"
+            if name not in profile:
+                raise ValueError(f"Profile '{name}' not found in calibration profile JSON")
             profile = profile[name]
         size = profile.get("image_size_wh") or profile.get("image_size_px")
         return CVMetrologyService(

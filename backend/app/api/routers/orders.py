@@ -37,6 +37,8 @@ async def analyze_order(
     No uploaded photo is interpreted as a physical measurement unless a
     configured camera profile and real ArUco pose solve both succeed.
     """
+    if capture_mode == "single_top_photo":
+        capture_mode = "zenith_only"
     if capture_mode not in ("dual_photo", "zenith_only", "demo_fixture"):
         raise HTTPException(422, detail="capture_mode must be dual_photo, zenith_only or demo_fixture")
     if capture_mode == "demo_fixture":

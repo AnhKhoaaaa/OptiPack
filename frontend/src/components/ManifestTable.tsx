@@ -6,6 +6,8 @@ export interface ExtendedPackableItem extends PackableItem {
     height_sigma_mm: number;
     requires_user_review: boolean;
   };
+  crop_url?: string | null;
+  provenance_source?: "AI-Extracted" | "Default-Safe";
 }
 
 interface ManifestTableProps {
@@ -119,6 +121,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
           <thead>
             <tr>
               <th>Color</th>
+              <th>Photo</th>
               <th>Item Name</th>
               <th>L × W × H (mm)</th>
               <th>Weight (g)</th>
@@ -141,13 +144,51 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                       style={{ backgroundColor: item.display_color_hex }}
                     />
                   </td>
+                  <td className="crop-cell">
+                    {item.crop_url ? (
+                      <div className="crop-thumb-wrapper" title={`Visual crop: ${item.display_name}`}>
+                        <img
+                          src={item.crop_url}
+                          alt={item.display_name}
+                          className="item-crop-thumb"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                            const parent = (e.target as HTMLElement).parentElement;
+                            if (parent) {
+                              const fallback = parent.querySelector(".crop-fallback-icon");
+                              if (fallback) (fallback as HTMLElement).style.display = "flex";
+                            }
+                          }}
+                        />
+                        <span className="crop-fallback-icon" style={{ display: "none" }}>📦</span>
+                      </div>
+                    ) : (
+                      <div className="crop-thumb-wrapper crop-thumb-empty" title="No visual crop available">
+                        <span className="crop-fallback-icon">📦</span>
+                      </div>
+                    )}
+                  </td>
                   <td>
                     <div className="item-title">{item.display_name}</div>
                     <div className="item-meta-badges">
                       <span className="item-id">{item.item_id}</span>
+                      <span
+                        className={`badge ${
+                          item.provenance_source === "AI-Extracted"
+                            ? "badge-meta-extracted"
+                            : "badge-default-safe"
+                        }`}
+                        title={
+                          item.provenance_source === "AI-Extracted"
+                            ? "Extracted by Meta AI vision pipeline"
+                            : "Conservative system default (Safe / Uncalibrated)"
+                        }
+                      >
+                        {item.provenance_source || "Default-Safe"}
+                      </span>
                       {isReviewNeeded ? (
-                        <span className="badge badge-warning-pulse" title="Height measured via aspect prior fallback">
-                          ⚠️ Review Height (±{item.uncertainty_info?.height_sigma_mm}mm)
+                        <span className="badge badge-warning-pulse" title="Requires user verification">
+                          ⚠️ Requires Review (±{item.uncertainty_info?.height_sigma_mm}mm)
                         </span>
                       ) : (
                         <span className="badge badge-calibrated" title="High dual-view confidence">
@@ -160,92 +201,95 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                     <div className="dim-inputs">
                       <input
                         type="number"
-                        min={10}
-                        value={item.dimensions_mm.length_mm || ""}
+                        min="10"
+                        max="2000"
+                        value={item.dimensions_mm.length_mm}
                         onChange={(e) =>
-                          handleDimensionChange(idx, "length_mm", parseInt(e.target.value, 10) || 0)
+                          handleDimensionChange(idx, "length_mm", Number(e.target.value))
                         }
                         onBlur={() => handleDimensionBlur(idx, "length_mm")}
-                        title="Length (mm)"
+                        title="Length in mm"
                       />
                       <span>×</span>
                       <input
                         type="number"
-                        min={10}
-                        value={item.dimensions_mm.width_mm || ""}
+                        min="10"
+                        max="2000"
+                        value={item.dimensions_mm.width_mm}
                         onChange={(e) =>
-                          handleDimensionChange(idx, "width_mm", parseInt(e.target.value, 10) || 0)
+                          handleDimensionChange(idx, "width_mm", Number(e.target.value))
                         }
                         onBlur={() => handleDimensionBlur(idx, "width_mm")}
-                        title="Width (mm)"
+                        title="Width in mm"
                       />
                       <span>×</span>
                       <input
                         type="number"
-                        min={10}
+                        min="10"
+                        max="2000"
                         className={isReviewNeeded ? "input-review-alert" : ""}
-                        value={item.dimensions_mm.height_mm || ""}
+                        value={item.dimensions_mm.height_mm}
                         onChange={(e) =>
-                          handleDimensionChange(idx, "height_mm", parseInt(e.target.value, 10) || 0)
+                          handleDimensionChange(idx, "height_mm", Number(e.target.value))
                         }
                         onBlur={() => handleDimensionBlur(idx, "height_mm")}
-                        title="Height (mm) - Review required"
+                        title={
+                          isReviewNeeded
+                            ? "Review Height: Click or edit to confirm"
+                            : "Height in mm"
+                        }
                       />
                     </div>
                   </td>
                   <td>
-                    <div className="weight-cell">
+                    <div className="weight-input-group">
                       <input
                         type="number"
-                        min={1}
-                        value={item.weight_g || ""}
-                        placeholder="Est. 450"
+                        min="1"
+                        max="50000"
+                        value={item.weight_g ?? ""}
+                        placeholder="Unknown"
                         onChange={(e) =>
-                          handleWeightChange(idx, parseInt(e.target.value, 10) || 0)
+                          handleWeightChange(
+                            idx,
+                            e.target.value === "" ? 0 : Number(e.target.value)
+                          )
                         }
                         onBlur={() => handleWeightBlur(idx)}
-                        title="Weight in grams"
                       />
                       {item.weight_assumed && (
-                        <span className="badge badge-warning" title="Density fallback estimate">
+                        <span
+                          className="badge badge-warning"
+                          title="Weight inferred from density fallback; confirm if known"
+                        >
                           Assumed
                         </span>
                       )}
                     </div>
                   </td>
                   <td>
-                    <label className="toggle-switch" title="Lock upright orientation (LWH, WLH only)">
+                    <label className="switch-toggle" title="Lock vertical orientation">
                       <input
                         type="checkbox"
                         checked={item.keep_upright}
                         onChange={(e) => handleUprightToggle(idx, e.target.checked)}
                       />
-                      <span className="toggle-slider"></span>
+                      <span className="slider"></span>
                     </label>
                   </td>
                   <td>
-                    <select
-                      value={item.fragility_class}
-                      onChange={(e) =>
-                        onUpdateItem(idx, {
-                          ...item,
-                          fragility_class: e.target.value as PackableItem["fragility_class"],
-                          stackable: e.target.value !== "high",
-                          max_top_load_g: e.target.value === "high" ? 0 : 3000,
-                        })
-                      }
-                      className="select-fragility"
+                    <span
+                      className={`fragility-tag fragility-${item.fragility_class}`}
+                      title={`Fragility: ${item.fragility_class.toUpperCase()}`}
                     >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High (Fragile)</option>
-                    </select>
+                      {item.fragility_class.toUpperCase()}
+                    </span>
                   </td>
                   <td>
                     <button
                       className="btn-icon-delete"
                       onClick={() => onDeleteItem(idx)}
-                      title="Remove item from manifest"
+                      title="Remove item"
                     >
                       ✕
                     </button>
@@ -257,23 +301,24 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
         </table>
       </div>
 
-      {/* Action Footer: Margin checkbox & Optimize button */}
       <div className="manifest-footer">
-        <label className="checkbox-margin-setting" title="Expands dimensions by +5mm to guarantee fit against measurement error">
+        <label className="checkbox-margin-setting">
           <input
             type="checkbox"
             checked={applyUncertaintyMargin}
             onChange={(e) => setApplyUncertaintyMargin(e.target.checked)}
           />
-          <span>Include Measurement Uncertainty Safety Margin (+5mm)</span>
+          <span>
+            Expand box bounding boxes with AI Safety Margin (<strong>+5mm</strong> buffer for tape & carton variation)
+          </span>
         </label>
 
         <button
-          className="btn btn-success btn-lg"
+          className="btn btn-accent btn-full-width btn-pack"
           onClick={onPackOrder}
           disabled={packingLoading || items.length === 0}
         >
-          {packingLoading ? "Optimizing Packing & Cost..." : "Optimize Carton & Pack (CP-SAT)"}
+          {packingLoading ? "Solving 3D Packing (CP-SAT Solver)..." : "📦 Run 3D Cartonization"}
         </button>
       </div>
     </div>

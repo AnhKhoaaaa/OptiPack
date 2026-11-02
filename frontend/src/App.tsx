@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  DetectedItemMeasurement,
   OrderAnalysisResponse,
   PackingPlan,
   PackingRequest,
@@ -14,28 +15,43 @@ import orderAnalysisSample from "./mocks/orderAnalysisSample.json";
 import packingSolutionSample from "./mocks/packingSolutionSample.json";
 
 export const App: React.FC = () => {
-  // Convert initial sample items
+  const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem => {
+    const isDefaultSafe =
+      item.physical_attributes.fragility_source === "default_safe" &&
+      item.physical_attributes.orientation_source === "default_unconstrained" &&
+      item.physical_attributes.weight_source === "unknown";
+
+    const isAiExtracted =
+      item.measurement_provenance.xy_method !== "demo_fixture_not_measured" &&
+      item.measurement_provenance.xy_method !== "manual_input" &&
+      !isDefaultSafe;
+
+    return {
+      item_id: item.item_id,
+      display_name: item.display_name,
+      quantity: item.quantity,
+      dimensions_mm: item.dimensions_mm,
+      safety_margin_mm: item.uncertainty_mm.safety_margin_mm,
+      weight_g: item.physical_attributes.weight_g,
+      weight_assumed: item.physical_attributes.weight_source !== "scale_verified",
+      fragility_class: item.physical_attributes.fragility_class,
+      keep_upright: item.physical_attributes.keep_upright,
+      stackable: item.physical_attributes.stackable,
+      max_top_load_g: item.physical_attributes.max_top_load_g,
+      allowed_rotations: item.allowed_rotations,
+      display_color_hex: item.visual_evidence.display_color_hex,
+      crop_url: item.visual_evidence.crop_url,
+      provenance_source: isAiExtracted ? "AI-Extracted" : "Default-Safe",
+      uncertainty_info: {
+        height_sigma_mm: item.uncertainty_mm.height_sigma_mm,
+        requires_user_review: item.measurement_provenance.requires_user_review,
+      },
+    };
+  };
+
   const initialItems: ExtendedPackableItem[] = (
     orderAnalysisSample as unknown as OrderAnalysisResponse
-  ).items.map((item) => ({
-    item_id: item.item_id,
-    display_name: item.display_name,
-    quantity: item.quantity,
-    dimensions_mm: item.dimensions_mm,
-    safety_margin_mm: item.uncertainty_mm.safety_margin_mm,
-    weight_g: item.physical_attributes.weight_g,
-    weight_assumed: item.physical_attributes.weight_source !== "scale_verified",
-    fragility_class: item.physical_attributes.fragility_class,
-    keep_upright: item.physical_attributes.keep_upright,
-    stackable: item.physical_attributes.stackable,
-    max_top_load_g: item.physical_attributes.max_top_load_g,
-    allowed_rotations: item.allowed_rotations,
-    display_color_hex: item.visual_evidence.display_color_hex,
-    uncertainty_info: {
-      height_sigma_mm: item.uncertainty_mm.height_sigma_mm,
-      requires_user_review: item.measurement_provenance.requires_user_review,
-    },
-  }));
+  ).items.map(convertItem);
 
   const [analysis, setAnalysis] = useState<OrderAnalysisResponse | null>(
     orderAnalysisSample as unknown as OrderAnalysisResponse
@@ -55,30 +71,40 @@ export const App: React.FC = () => {
     precomputedSolution?: PackingSolutionResponse
   ) => {
     setAnalysis(data);
-    const convertedItems: ExtendedPackableItem[] = data.items.map((item) => ({
-      item_id: item.item_id,
-      display_name: item.display_name,
-      quantity: item.quantity,
-      dimensions_mm: item.dimensions_mm,
-      safety_margin_mm: item.uncertainty_mm.safety_margin_mm,
-      weight_g: item.physical_attributes.weight_g,
-      weight_assumed: item.physical_attributes.weight_source !== "scale_verified",
-      fragility_class: item.physical_attributes.fragility_class,
-      keep_upright: item.physical_attributes.keep_upright,
-      stackable: item.physical_attributes.stackable,
-      max_top_load_g: item.physical_attributes.max_top_load_g,
-      allowed_rotations: item.allowed_rotations,
-      display_color_hex: item.visual_evidence.display_color_hex,
-      uncertainty_info: {
-        height_sigma_mm: item.uncertainty_mm.height_sigma_mm,
-        requires_user_review: item.measurement_provenance.requires_user_review,
-      },
-    }));
+    const convertedItems: ExtendedPackableItem[] = data.items.map(convertItem);
     setPackableItems(convertedItems);
     setActivePlanIndex(1);
 
     if (precomputedSolution) {
       setSolution(precomputedSolution);
+    } else if (convertedItems.length > 0) {
+      // Step 1: Auto-pack live order manifest immediately to update 3D viewer with real detected items
+      setPackingLoading(true);
+      const req: PackingRequest = {
+        contract_version: "1.0.0",
+        analysis_id: data.analysis_id,
+        solver_config: {
+          mode: "cpsat_with_heuristic_fallback",
+          time_limit_ms: 3000,
+          apply_uncertainty_margin: applyUncertaintyMargin,
+          min_support_ratio: 0.6,
+          allow_multi_carton_split: true,
+        },
+        items: convertedItems,
+      };
+
+      OptiPackClient.packOrder(req)
+        .then((packed) => {
+          setSolution(packed);
+          setActivePlanIndex(1);
+        })
+        .catch((err) => {
+          console.warn("[App] Auto-packing failed, falling back to sample solution:", err);
+          setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
+        })
+        .finally(() => {
+          setPackingLoading(false);
+        });
     } else {
       setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
     }
@@ -111,6 +137,8 @@ export const App: React.FC = () => {
       max_top_load_g: 3000,
       allowed_rotations: ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
       display_color_hex: chosenColor,
+      crop_url: null,
+      provenance_source: "Default-Safe",
       uncertainty_info: {
         height_sigma_mm: 2.0,
         requires_user_review: false,
@@ -196,6 +224,7 @@ export const App: React.FC = () => {
               onAnalysisLoaded={handleAnalysisLoaded}
               loading={loading}
               setLoading={setLoading}
+              aiTelemetry={analysis?.ai_telemetry}
             />
 
             {packableItems.length > 0 && (
