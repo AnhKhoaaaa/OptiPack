@@ -107,6 +107,13 @@ export const App: React.FC = () => {
         });
     } else {
       setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
+      const allWarnings = [
+        ...(data.global_warnings || []),
+        ...(data.calibration?.warnings || []),
+      ];
+      if (allWarnings.length > 0) {
+        alert("Thông báo phân tích:\n• " + allWarnings.join("\n• "));
+      }
     }
   };
 
