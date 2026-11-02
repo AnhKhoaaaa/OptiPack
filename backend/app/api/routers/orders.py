@@ -1,45 +1,159 @@
-"""Orders and Cartonization Analysis API Router."""
+"""Orders and Cartonization API router (Phase 2A CV + AI integration)."""
+from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, File, Form, UploadFile
-from backend.app.schemas.contracts import OrderAnalysisResponse, PackingRequest, PackingSolutionResponse
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
+
+from backend.app.ai.meta_client import analyze_items_with_muse_spark
+from backend.app.ai.sanitizer import derive_allowed_rotations, sanitize_physical_attributes
+from backend.app.api.services.order_analysis import (
+    demo_fixture_response, encode_semantic_crops, get_cv_service,
+    new_analysis_id, no_measurement_response, normalize_crop_urls,
+    read_image, timestamp_utc,
+)
+from backend.app.cv.service import CVCalibrationError, CVMetrologyService
+from backend.app.schemas.contracts import (
+    AITelemetry, OrderAnalysisResponse, PackingRequest, PackingSolutionResponse,
+)
 from backend.app.solver.cpsat_solver import solve_packing
 
 
 router = APIRouter(prefix="/orders", tags=["Orders & Packing"])
 
-# Paths to golden mock fixtures for instantaneous unblocking
-FIXTURES_DIR = Path(__file__).resolve().parents[4] / "tests" / "fixtures"
-
-
-def _load_fixture(filename: str) -> dict:
-    with open(FIXTURES_DIR / filename, "r", encoding="utf-8") as f:
-        return json.load(f)
-
 
 @router.post("/analyze", response_model=OrderAnalysisResponse)
 async def analyze_order(
-    top_image: UploadFile = File(..., description="Top-down RGB image of packing station with ArUco sheet"),
-    oblique_image: Optional[UploadFile] = File(None, description="Oblique 35-45 degree angle image"),
+    top_image: UploadFile = File(..., description="Top-down image, JPEG or PNG"),
+    oblique_image: Optional[UploadFile] = File(None, description="35-45 degree oblique capture"),
     capture_mode: str = Form("dual_photo"),
     enable_cloud_sam: bool = Form(False),
     enable_muse_semantics: bool = Form(True),
+    cv_service: Optional[CVMetrologyService] = Depends(get_cv_service),
 ) -> OrderAnalysisResponse:
-    """Analyze tabletop order capture: detect ArUco, segment items, measure 3D boxes, and extract AI semantics.
+    """Real dual-photo analysis, with conservative and explicit fallback.
 
-    In Milestone M0, this returns the golden fixture so Member 4 can immediately build against live API responses.
-    Member 1 & Member 2 will wire live CV and Meta API pipelines here in Milestone M2.
+    No uploaded photo is interpreted as a physical measurement unless a
+    configured camera profile and real ArUco pose solve both succeed.
     """
-    sample_data = _load_fixture("order_analysis_sample.json")
-    return OrderAnalysisResponse(**sample_data)
+    if capture_mode not in ("dual_photo", "zenith_only", "demo_fixture"):
+        raise HTTPException(422, detail="capture_mode must be dual_photo, zenith_only or demo_fixture")
+    if capture_mode == "demo_fixture":
+        return demo_fixture_response()
+
+    top, top_bytes = await read_image(top_image)
+    if capture_mode == "zenith_only" or oblique_image is None:
+        return no_measurement_response(
+            "3D metrology requires an oblique image; no dimensions were inferred from a single image",
+            status="fallback_zenith_only",
+        )
+    oblique, _ = await read_image(oblique_image)
+    if top.shape != oblique.shape:
+        raise HTTPException(422, detail="Both images must have identical height, width and color channels")
+
+    warnings = []
+    if enable_cloud_sam:
+        warnings.append("Cloud SAM was requested but is not integrated into the CV pipeline; YOLOE was used")
+    if cv_service is None:
+        return no_measurement_response(
+            "Missing OPTIPACK_CAMERA_PROFILE_PATH: no metric measurement attempted",
+            warnings=warnings,
+        )
+
+    try:
+        batch = await run_in_threadpool(
+            cv_service.process_pair,
+            top,
+            oblique,
+            save_crops=True,
+        )
+    except (CVCalibrationError, ValueError) as exc:
+        return no_measurement_response(
+            f"ArUco/camera calibration failed; no metric measurement returned: {exc}",
+            warnings=warnings,
+        )
+    except RuntimeError as exc:
+        # Missing model weights, inference failures, etc. No fabricated metric dimensions.
+        return no_measurement_response(
+            f"CV inference unavailable; no metric measurement returned: {exc}",
+            warnings=warnings,
+        )
+
+    items = batch.items
+    normalize_crop_urls(items)
+    warnings.extend(batch.warnings)
+    if batch.unmatched_top_indices or batch.unmatched_oblique_indices:
+        warnings.append(
+            "Not all visible candidates have reliable two-view matches; verify item count before packing"
+        )
+    if not items:
+        warnings.append("No 3D items measured. Check the capture and confirm all objects manually")
+
+    if not enable_muse_semantics or not items:
+        for item in items:
+            item.physical_attributes = sanitize_physical_attributes({})
+            item.allowed_rotations = derive_allowed_rotations(False)
+        warnings.append("AI semantics disabled or no measurable items; safe unknown-weight defaults retained")
+        telemetry = AITelemetry(
+            sam_status="skipped",
+            muse_status="fallback",
+            muse_latency_ms=0,
+            fallback_activated=True,
+        )
+    else:
+        try:
+            crops = encode_semantic_crops(top, items)
+            # Use Member 2's batched Muse path: one network call for uncached
+            # items and existing SHA-256 cache/sanitizer for cached items.
+            semantics = await analyze_items_with_muse_spark(
+                top_bytes, crops, timeout_sec=4.0,
+            )
+        except (ValueError, OSError, RuntimeError) as exc:
+            warnings.append(f"AI crop preparation/semantics unavailable; using safe defaults: {exc}")
+            semantics = {
+                "status": "fallback", "fallback_activated": True,
+                "latency_ms": 0, "items": {},
+            }
+        resolved = semantics.get("items", {})
+        for item in items:
+            if item.item_id not in resolved:
+                warnings.append(f"Missing AI semantics for {item.item_id}; using conservative defaults")
+            raw = resolved.get(item.item_id) or {}
+            item.physical_attributes = sanitize_physical_attributes(raw)
+            item.allowed_rotations = derive_allowed_rotations(
+                item.physical_attributes.keep_upright
+            )
+            if item.physical_attributes.weight_g is None:
+                warnings.append(f"Weight unknown for {item.item_id}; user must verify before packing")
+
+        status = semantics.get("status", "fallback")
+        if status not in ("success", "cached", "fallback", "failed"):
+            status = "fallback"
+        is_fallback = bool(semantics.get("fallback_activated", status in ("fallback", "failed")))
+        telemetry = AITelemetry(
+            sam_status="skipped",
+            muse_status=status,
+            muse_latency_ms=max(0, int(semantics.get("latency_ms", 0))),
+            fallback_activated=is_fallback,
+        )
+        if is_fallback:
+            warnings.append("Muse semantics fallback active; labels/handling attributes must be verified")
+
+    if any(item.measurement_provenance.requires_user_review for item in items):
+        warnings.append("One or more 3D dimensions require user review before packing")
+
+    return OrderAnalysisResponse(
+        analysis_id=new_analysis_id(),
+        timestamp_utc=timestamp_utc(),
+        calibration=batch.calibration.top_info,
+        items=items,
+        ai_telemetry=telemetry,
+        global_warnings=warnings,
+    )
 
 
 @router.post("/pack", response_model=PackingSolutionResponse)
 async def pack_order(request: PackingRequest) -> PackingSolutionResponse:
-    """Run 3D cartonization and packing solver on user-verified items, returning optimal box and step placements.
-
-    Directly executes the deterministic Extreme-Point / CP-SAT solver and validates geometry.
-    """
+    """Run the existing 3D cartonization solver, unchanged."""
     return solve_packing(request)

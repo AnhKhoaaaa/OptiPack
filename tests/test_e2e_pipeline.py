@@ -63,12 +63,14 @@ def test_e2e_01_standard_happy_path():
     analyze_res = client.post(
         "/api/v1/orders/analyze",
         files={"top_image": ("top.jpg", file_bytes, "image/jpeg")},
-        data={"capture_mode": "dual_photo"},
+        data={"capture_mode": "demo_fixture"},
     )
     assert analyze_res.status_code == 200
     analysis = analyze_res.json()
     assert analysis["contract_version"] == "1.0.0"
-    assert analysis["calibration"]["status"] in ("calibrated", "fallback_zenith_only")
+    assert analysis["calibration"]["status"] == "uncalibrated"
+    assert "DEMO FIXTURE ONLY" in analysis["global_warnings"][0]
+    assert all(item["measurement_provenance"]["requires_user_review"] for item in analysis["items"])
 
     # Step 2: Pack 4 Standard Items
     items = [

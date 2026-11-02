@@ -103,3 +103,15 @@ Trial01 re-evaluation on 2026-11-01 matched 10/10 instances, FP=0, using
 this implementation. This run took 45.96 seconds per pair on an extremely
 memory-constrained Windows session; do not interpret it as a controlled
 performance comparison against earlier warm CPU latency measurements.
+
+## Production readiness hardening
+
+`SegmentationPipeline()` now defaults to the evaluated tiled YOLOE
+configuration. `CVMetrologyService.process_pair()` retains a single lazy
+segmentation pipeline/model across calls **on the same service instance**.
+The detector serializes calls to the shared model for thread safety.
+To benefit, application wiring in Issue #21 must reuse a service
+singleton/dependency rather than create a new service per request.
+This improves warm-request behavior but does not solve detection coverage,
+end-to-end SLA, or statistically valid uncertainty. See
+`experiments/logs/phase1_production_readiness_review.md`.

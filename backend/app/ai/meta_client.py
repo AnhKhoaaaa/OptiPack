@@ -613,9 +613,14 @@ async def analyze_items_with_muse_spark(
         iid = crop.get("item_id", "item_01")
         dims = crop.get("dims_mm", (100, 100, 100))
         crop_bytes = crop.get("crop_bytes", b"")
+        bbox = crop.get("bbox_xyxy")
+        bbox_hint = (
+            f" | top-view bbox (px): {bbox}" if isinstance(bbox, (list, tuple))
+            and len(bbox) == 4 else ""
+        )
         user_content.append({
             "type": "input_text",
-            "text": f"Item ID: {iid} | Dims: {dims[0]}x{dims[1]}x{dims[2]} mm",
+            "text": f"Item ID: {iid} | Dims: {dims[0]}x{dims[1]}x{dims[2]} mm{bbox_hint}",
         })
         user_content.append({
             "type": "input_image",

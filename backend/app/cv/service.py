@@ -8,6 +8,7 @@ Note: The 3x3 planar homography is exact in *undistorted* pixel
 coordinates. Raw distorted images require undistortion before warping.
 """
 from dataclasses import dataclass
+from threading import Lock
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
@@ -83,6 +84,10 @@ class CVMetrologyService:
             self.image_size_px = None
         self.K = K.copy()
         self.D = D.copy()
+        # Keep the YOLOE checkpoint, text-prompt embeddings and predictors
+        # resident between requests. The API should share one service instance.
+        self._segmentation_pipeline = None
+        self._pipeline_init_lock = Lock()
 
     @staticmethod
     def _ground_homography_oblique_to_top(
@@ -288,7 +293,15 @@ class CVMetrologyService:
         from backend.app.cv.segmentation.pipeline import SegmentationPipeline
 
         calibration = self.calibrate_pair(top_image, oblique_image)
-        pipeline = segmentation_pipeline or SegmentationPipeline()
+        if segmentation_pipeline is None:
+            # Lazy one-time initialization, safe under concurrent API requests.
+            # Explicit injected pipelines remain request-local and unchanged.
+            with self._pipeline_init_lock:
+                if self._segmentation_pipeline is None:
+                    self._segmentation_pipeline = SegmentationPipeline()
+                pipeline = self._segmentation_pipeline
+        else:
+            pipeline = segmentation_pipeline
         segmentation = pipeline.run(
             top_image, oblique_image, calibration,
             save_crops=save_crops, filter_ground_plane=filter_ground_plane,

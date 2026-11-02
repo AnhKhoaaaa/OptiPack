@@ -259,3 +259,44 @@ def test_dedup_uses_cropped_mask_until_proposal_selection():
     assert final
     assert all(item["mask"].shape == image.shape[:2] for item in final)
     assert all("_mask_roi" not in item for item in final)
+
+def test_default_service_segmentation_uses_recall_selected_tiling():
+    # Full-frame-only inference was lower recall on T01. The inference
+    # facade must not silently default to the lower-coverage configuration.
+    pipeline = SegmentationPipeline()
+    assert pipeline.segmenter.tiled_inference is True
+    assert pipeline.segmenter.imgsz == 960
+
+def test_inference_model_lock_serializes_predict_calls():
+    from threading import Thread, Lock
+    from time import sleep
+
+    segmenter = YOLOESegmenter(min_area_px=20)
+    model = FakeModel()
+    model.active = 0
+    model.max_active = 0
+    guard = Lock()
+    original_predict = model.predict
+
+    def slow_predict(**kwargs):
+        with guard:
+            model.active += 1
+            model.max_active = max(model.max_active, model.active)
+        sleep(.01)
+        output = original_predict(**kwargs)
+        with guard:
+            model.active -= 1
+        return output
+
+    model.predict = slow_predict
+    segmenter._model = model
+    image = np.zeros((200, 200, 3), np.uint8)
+    threads = [
+        Thread(target=segmenter._predict_patch, args=(image, 0, 0, image.shape[:2]))
+        for _ in range(3)
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert model.max_active == 1
