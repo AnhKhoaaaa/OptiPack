@@ -456,8 +456,8 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
             candidate_carton_comparison=candidate_evaluations,
         )
 
-    # 5. Multi-Carton Split handling for oversized orders
-    if request.solver_config.allow_multi_carton_split:
+    # 5. Multi-Carton Split handling for oversized orders (disabled if user requested an explicit custom carton)
+    if request.solver_config.allow_multi_carton_split and request.solver_config.custom_carton_dimensions is None:
         remaining_items = list(items)
         split_plans: List[PackingPlan] = []
         plan_idx = 1
@@ -531,7 +531,11 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
         overflow_plans=[],
         unpacked_item_ids=[it.item_id for it in items],
         infeasibility_diagnostics={
-            "reason": "Order items cannot fit into any single catalog carton.",
+            "reason": (
+                f"Items do not fit into the custom carton ({request.solver_config.custom_carton_dimensions.length_mm}x{request.solver_config.custom_carton_dimensions.width_mm}x{request.solver_config.custom_carton_dimensions.height_mm} mm)."
+                if request.solver_config.custom_carton_dimensions is not None
+                else "Order items cannot fit into any single catalog carton."
+            ),
             "total_item_volume_cm3": round(total_item_vol_mm3 / 1000, 1),
             "total_item_weight_g": total_item_weight_g,
         },

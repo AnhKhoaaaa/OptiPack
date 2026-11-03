@@ -14,6 +14,62 @@ const VIEWPORT_HEIGHT = 400;
 const DROP_HEIGHT_MM = 150;
 const DROP_DURATION_MS = 380;
 
+// Helper to draw clean item label with step number & name on top face of 3D box
+const createItemTopLabelTexture = (
+  stepNumber: number,
+  itemName: string,
+  dimsStr: string,
+  baseColorHex: string
+): THREE.CanvasTexture => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return new THREE.CanvasTexture(canvas);
+
+  // Background filled with item color
+  ctx.fillStyle = baseColorHex;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Inset contrast panel
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(20, 20, 472, 472, 28);
+  } else {
+    ctx.rect(20, 20, 472, 472);
+  }
+  ctx.fill();
+
+  // White circular badge for step / item number
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(256, 160, 90, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Number text inside badge
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "bold 100px -apple-system, Inter, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(stepNumber), 256, 165);
+
+  // Clean Item Name
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 40px -apple-system, Inter, sans-serif";
+  const displayName = itemName.length > 18 ? itemName.slice(0, 16) + "…" : itemName;
+  ctx.fillText(displayName, 256, 330);
+
+  // Dimensions
+  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.font = "500 30px monospace";
+  ctx.fillText(dimsStr, 256, 395);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+};
+
 export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
@@ -25,6 +81,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<CameraPreset>("iso");
   const [showSafetyHalo, setShowSafetyHalo] = useState<boolean>(true);
+  const [webGlError, setWebGlError] = useState<string | null>(null);
 
   const totalSteps = plan.placements.length;
 
@@ -83,7 +140,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     if (!container) return;
 
     const width = container.clientWidth || 600;
-    const height = VIEWPORT_HEIGHT;
+    const height = window.innerWidth <= 640 ? 290 : VIEWPORT_HEIGHT;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf5f5f7);
@@ -93,7 +150,14 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     camera.position.set(380, 320, 480);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+    } catch (err) {
+      console.warn("WebGL initialization failed:", err);
+      setWebGlError("WebGL context unavailable");
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.innerHTML = "";
@@ -171,10 +235,12 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     animate();
 
     const handleResize = () => {
+      if (!container) return;
       const newWidth = container.clientWidth;
-      camera.aspect = newWidth / height;
+      const newHeight = window.innerWidth <= 640 ? 290 : VIEWPORT_HEIGHT;
+      camera.aspect = newWidth / newHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, height);
+      renderer.setSize(newWidth, newHeight);
     };
     window.addEventListener("resize", handleResize);
 
@@ -238,19 +304,38 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         const solidGeo = showSafetyHalo
           ? new THREE.BoxGeometry(Math.min(nom.dx, wPlaced), Math.min(nom.dz, hPlaced), Math.min(nom.dy, dPlaced))
           : new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
-        const solid = new THREE.Mesh(
-          solidGeo,
-          new THREE.MeshStandardMaterial({
-            color: new THREE.Color(p.display_color_hex || "#0071e3"),
-            roughness: 0.55,
-            transparent: !isActive && currentStep < totalSteps,
-            opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
-          })
+
+        // Side material
+        const sideMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(p.display_color_hex || "#0071e3"),
+          roughness: 0.55,
+          transparent: !isActive && currentStep < totalSteps,
+          opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
+        });
+
+        // Top face material with crisp item label (+Y is face index 2 in BoxGeometry)
+        const labelTexture = createItemTopLabelTexture(
+          p.step_number,
+          p.display_name || `Item #${p.step_number}`,
+          `${nom.dx}×${nom.dy}×${nom.dz}`,
+          p.display_color_hex || "#0071e3"
         );
+        const topMat = new THREE.MeshStandardMaterial({
+          map: labelTexture,
+          roughness: 0.55,
+          transparent: !isActive && currentStep < totalSteps,
+          opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
+        });
+
+        const materials = [sideMat, sideMat, topMat, sideMat, sideMat, sideMat];
+        const solid = new THREE.Mesh(solidGeo, materials);
+        solid.name = `item_${p.step_number}`;
+        solid.userData = { placement: p };
+
         solid.add(
           new THREE.LineSegments(
             new THREE.EdgesGeometry(solidGeo),
-            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })
           )
         );
         group.add(solid);
@@ -327,7 +412,15 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         </div>
       </header>
 
-      <div className="viewport" ref={mountRef} />
+      <div className="viewport" ref={mountRef}>
+        {webGlError && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", gap: 6, textAlign: "center", padding: 16 }}>
+            <span style={{ fontSize: 24 }}>📦</span>
+            <strong style={{ fontSize: 13, color: "var(--text)" }}>3D Simulation Paused</strong>
+            <span style={{ fontSize: 11 }}>Hardware acceleration or WebGL is disabled in this environment.</span>
+          </div>
+        )}
+      </div>
 
       <div className="player">
         <button

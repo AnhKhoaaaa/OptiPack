@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Dimensions3D } from "../types/contract";
 
 interface CartonControlBarProps {
@@ -34,6 +34,36 @@ export const CartonControlBar: React.FC<CartonControlBarProps> = ({
   currentCartonSku,
   currentCartonDims,
 }) => {
+  // Local string buffers allow natural typing, deleting and editing without premature clamping
+  const [lenStr, setLenStr] = useState<string>(String(customCartonDims.length_mm));
+  const [widthStr, setWidthStr] = useState<string>(String(customCartonDims.width_mm));
+  const [heightStr, setHeightStr] = useState<string>(String(customCartonDims.height_mm));
+
+  // Sync buffers when incoming props change (e.g. preset selection)
+  useEffect(() => {
+    setLenStr(String(customCartonDims.length_mm));
+    setWidthStr(String(customCartonDims.width_mm));
+    setHeightStr(String(customCartonDims.height_mm));
+  }, [customCartonDims.length_mm, customCartonDims.width_mm, customCartonDims.height_mm]);
+
+  const commitCustomDims = () => {
+    const l = Math.max(50, Math.min(2500, parseInt(lenStr, 10) || 50));
+    const w = Math.max(50, Math.min(2500, parseInt(widthStr, 10) || 50));
+    const h = Math.max(30, Math.min(2500, parseInt(heightStr, 10) || 30));
+
+    setLenStr(String(l));
+    setWidthStr(String(w));
+    setHeightStr(String(h));
+
+    setCustomCartonDims({ length_mm: l, width_mm: w, height_mm: h });
+    return { length_mm: l, width_mm: w, height_mm: h };
+  };
+
+  const handleApplyCustom = () => {
+    commitCustomDims();
+    setTimeout(() => onApply(), 10);
+  };
+
   return (
     <section className="panel carton-bar">
       <header className="panel-head" style={{ marginBottom: cartonMode === "auto" ? 0 : 12 }}>
@@ -42,8 +72,8 @@ export const CartonControlBar: React.FC<CartonControlBarProps> = ({
             Carton Sizing{" "}
             {currentCartonDims && (
               <span className="muted">
-                · {currentCartonSku || "BOX"} ({currentCartonDims.length_mm}×
-                {currentCartonDims.width_mm}×{currentCartonDims.height_mm} mm)
+                · {currentCartonSku || "Carton"} ({currentCartonDims.length_mm} ×{" "}
+                {currentCartonDims.width_mm} × {currentCartonDims.height_mm} mm)
               </span>
             )}
           </h2>
@@ -107,49 +137,40 @@ export const CartonControlBar: React.FC<CartonControlBarProps> = ({
           <label className="muted text-sm">Dimensions (L × W × H mm):</label>
           <div className="dims">
             <input
-              type="number"
-              min={50}
-              max={2000}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               className="num-input wide"
-              value={customCartonDims.length_mm}
-              onChange={(e) =>
-                setCustomCartonDims({
-                  ...customCartonDims,
-                  length_mm: Math.max(50, parseInt(e.target.value, 10) || 50),
-                })
-              }
+              value={lenStr}
+              placeholder="Length"
+              onChange={(e) => setLenStr(e.target.value.replace(/[^0-9]/g, ""))}
+              onBlur={commitCustomDims}
             />
             <input
-              type="number"
-              min={50}
-              max={2000}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               className="num-input wide"
-              value={customCartonDims.width_mm}
-              onChange={(e) =>
-                setCustomCartonDims({
-                  ...customCartonDims,
-                  width_mm: Math.max(50, parseInt(e.target.value, 10) || 50),
-                })
-              }
+              value={widthStr}
+              placeholder="Width"
+              onChange={(e) => setWidthStr(e.target.value.replace(/[^0-9]/g, ""))}
+              onBlur={commitCustomDims}
             />
             <input
-              type="number"
-              min={30}
-              max={2000}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               className="num-input wide"
-              value={customCartonDims.height_mm}
-              onChange={(e) =>
-                setCustomCartonDims({
-                  ...customCartonDims,
-                  height_mm: Math.max(30, parseInt(e.target.value, 10) || 30),
-                })
-              }
+              value={heightStr}
+              placeholder="Height"
+              onChange={(e) => setHeightStr(e.target.value.replace(/[^0-9]/g, ""))}
+              onBlur={commitCustomDims}
             />
           </div>
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            onClick={onApply}
+            onClick={handleApplyCustom}
             disabled={loading}
           >
             {loading ? "Packing…" : "Apply Size"}

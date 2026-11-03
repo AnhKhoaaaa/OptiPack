@@ -28,22 +28,32 @@ def marker_world_corners(marker_id: int) -> np.ndarray:
 def _approx_intrinsics(width: int, height: int) -> np.ndarray:
     """65-degree horizontal FOV assumption: diagnostic, not a calibration."""
     f = width / (2 * np.tan(np.deg2rad(65.0 / 2)))
-    return np.array([[f, 0, width/2], [0, f, height/2],
-                     [0, 0, 1]], dtype=np.float64)
+    return np.array([[f, 0, width/2], 
+                     [0, f, height/2],
+                     [0, 0, 1.0]], dtype=np.float64)
 
 
-def _scale_at_table_center(K, dist, R, center, width, height):
-    """Local mm/pixel on the table plane (z=0) near the image center."""
-    pixels = np.array([[[width/2, height/2]],
-                       [[width/2+1, height/2]],
-                       [[width/2, height/2+1]]], dtype=np.float64)
-    rays = cv2.undistortPoints(pixels, K, dist).reshape(3, 2)
-    directions = R.T @ np.c_[rays, np.ones(3)].T
-    if np.any(np.abs(directions[2]) < 1e-10):
+def _scale_at_table_center(
+    K: np.ndarray, dist: np.ndarray, R: np.ndarray, center: np.ndarray,
+    width: int, height: int
+) -> float:
+    """mm per pixel at the principal point on the table plane Z=0."""
+    cx, cy = K[0, 2], K[1, 2]
+    # Center pixel and an offset pixel along +X
+    pts = np.array([[[cx, cy]], [[cx+10.0, cy]]], dtype=np.float64)
+    undist = cv2.undistortPoints(pts, K, dist).reshape(-1, 2)
+    # Ray in camera coordinates (Z=1), rotated to world coordinates:
+    rays_world = (R.T @ np.c_[undist, np.ones(2)].T).T
+    # Intersect with world plane Z=0: center + s * ray = [X, Y, 0] => s = -center[2] / ray[2]
+    denom = rays_world[:, 2]
+    if np.any(np.abs(denom) < 1e-9):
         return 1.0
-    points = center[:, None] - directions * (center[2] / directions[2])
-    return float(np.mean([np.linalg.norm(points[:2, 1]-points[:2, 0]),
-                          np.linalg.norm(points[:2, 2]-points[:2, 0])]))
+    s = -center[2] / denom
+    if np.any(s <= 0):
+        return 1.0
+    p0 = center + s[0] * rays_world[0]
+    p1 = center + s[1] * rays_world[1]
+    return float(np.linalg.norm(p1 - p0) / 10.0)
 
 
 def detect_aruco_calibration_sheet(
@@ -71,6 +81,20 @@ def detect_aruco_calibration_sheet(
     detected = [] if ids is None else [int(v) for v in ids.ravel()
                                        if int(v) in MARKER_ORIGINS_MM]
     count = len(set(detected))
+
+    # Adaptive illumination recovery if markers missed due to shadows or low contrast
+    if count < 4:
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        gray_enhanced = clahe.apply(gray)
+        c_enh, ids_enh, _ = cv2.aruco.ArucoDetector(
+            dictionary, parameters).detectMarkers(gray_enhanced)
+        det_enh = [] if ids_enh is None else [int(v) for v in ids_enh.ravel()
+                                              if int(v) in MARKER_ORIGINS_MM]
+        if len(set(det_enh)) > count:
+            corners, ids = c_enh, ids_enh
+            detected = det_enh
+            count = len(set(det_enh))
+
     warnings = []
     intrinsics_known = camera_matrix is not None
     if not intrinsics_known:
@@ -82,7 +106,21 @@ def detect_aruco_calibration_sheet(
                                camera_pose_valid=False, warnings=warnings)
         return False, info, None
 
-    K = np.asarray(camera_matrix, dtype=np.float64).reshape(3, 3) if intrinsics_known else _approx_intrinsics(width, height)
+    if intrinsics_known:
+        K = np.asarray(camera_matrix, dtype=np.float64).reshape(3, 3).copy()
+        # Scale intrinsics if the image resolution differs from reference resolution implied by (cx, cy)
+        ref_w = K[0, 2] * 2.0
+        ref_h = K[1, 2] * 2.0
+        if ref_w > 0 and ref_h > 0 and (abs(width - ref_w) > 5 or abs(height - ref_h) > 5):
+            sx = width / ref_w
+            sy = height / ref_h
+            K[0, 0] *= sx
+            K[0, 2] *= sx
+            K[1, 1] *= sy
+            K[1, 2] *= sy
+    else:
+        K = _approx_intrinsics(width, height)
+
     dist = np.asarray(dist_coeffs, dtype=np.float64).ravel() if dist_coeffs is not None else np.zeros(5, dtype=np.float64)
     world_points, image_points = [], []
     for item_corners, marker in zip(corners, ids.ravel()):

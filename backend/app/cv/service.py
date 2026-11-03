@@ -107,6 +107,22 @@ class CVMetrologyService:
             raise CVCalibrationError("Ground-plane homography is degenerate")
         return H / H[2, 2]
 
+    def _scale_k_for_image(self, image: np.ndarray) -> np.ndarray:
+        """Dynamically scale camera intrinsics if image resolution differs from reference."""
+        h, w = image.shape[:2]
+        ref_w = self.K[0, 2] * 2.0
+        ref_h = self.K[1, 2] * 2.0
+        if ref_w > 0 and ref_h > 0 and (abs(w - ref_w) > 5 or abs(h - ref_h) > 5):
+            sx = w / ref_w
+            sy = h / ref_h
+            K_scaled = self.K.copy()
+            K_scaled[0, 0] *= sx
+            K_scaled[0, 2] *= sx
+            K_scaled[1, 1] *= sy
+            K_scaled[1, 2] *= sy
+            return K_scaled
+        return self.K.copy()
+
     def calibrate_pair(self, top_image: np.ndarray, oblique_image: np.ndarray) -> PairCalibration:
         """Detect ArUco markers in both views and compute live pair geometry."""
         for label, image in (("top", top_image), ("oblique", oblique_image)):
@@ -116,17 +132,20 @@ class CVMetrologyService:
             raise ValueError("Pair images must have the same resolution for shared intrinsics")
         if self.image_size_px is not None:
             actual_size_px = (top_image.shape[1], top_image.shape[0])
-            if actual_size_px != self.image_size_px:
+            ref_aspect = self.image_size_px[0] / self.image_size_px[1]
+            act_aspect = actual_size_px[0] / actual_size_px[1]
+            if (ref_aspect > 1.0 and act_aspect < 1.0) or (ref_aspect < 1.0 and act_aspect > 1.0):
                 raise ValueError(
-                    f"Image size {actual_size_px} does not match calibration profile "
+                    f"Image orientation mismatch: actual size {actual_size_px} vs profile "
                     f"{self.image_size_px}; normalize image orientation before calibration"
                 )
 
+        K_eff = self._scale_k_for_image(top_image)
         calibrated_top, top_info, top_pose = detect_aruco_calibration_sheet(
-            top_image, self.K, self.D
+            top_image, K_eff, self.D
         )
         calibrated_ob, ob_info, ob_pose = detect_aruco_calibration_sheet(
-            oblique_image, self.K, self.D
+            oblique_image, K_eff, self.D
         )
         if not calibrated_top or top_pose is None:
             raise CVCalibrationError(
@@ -137,7 +156,7 @@ class CVMetrologyService:
                 f"Oblique view calibration failed: {', '.join(ob_info.warnings) or ob_info.status}"
             )
 
-        H = self._ground_homography_oblique_to_top(self.K, top_pose, ob_pose)
+        H = self._ground_homography_oblique_to_top(K_eff, top_pose, ob_pose)
         return PairCalibration(
             top_info=top_info,
             oblique_info=ob_info,
@@ -165,13 +184,14 @@ class CVMetrologyService:
         top = segmentation.top_items
         oblique = segmentation.oblique_items
         warnings = list(segmentation.warnings)
+        K_eff = self._scale_k_for_image(top_image) if top_image is not None else self.K
         matcher = EpipolarMatcher(max_epipolar_dist_px=max_epipolar_dist_px)
-        fitter = FastSDFFitter(self.K, self.D)
+        fitter = FastSDFFitter(K_eff, self.D)
 
         sam_seg = getattr(self._segmentation_pipeline, "_primary", None) if self._segmentation_pipeline else None
         matches = matcher.match_views(
             top, oblique, calibration.top_pose, calibration.oblique_pose,
-            self.K, self.D,
+            K_eff, self.D,
             top_image=top_image, ob_image=oblique_image, sam_segmenter=None,
         )
         matched_top = {i for i, _, _ in matches}
@@ -199,7 +219,7 @@ class CVMetrologyService:
 
                 p0 = ClosedFormInitializer.compute_initial_guess(
                     contour_top, contour_ob,
-                    calibration.top_pose, calibration.oblique_pose, self.K, self.D,
+                    calibration.top_pose, calibration.oblique_pose, K_eff, self.D,
                 )
                 if not np.isfinite(p0).all():
                     raise ValueError("3D initializer returned nonfinite values")
@@ -213,7 +233,7 @@ class CVMetrologyService:
                 ]
                 hypotheses = ClosedFormInitializer.compute_hypotheses(
                     contour_top, contour_ob,
-                    calibration.top_pose, calibration.oblique_pose, self.K, self.D,
+                    calibration.top_pose, calibration.oblique_pose, K_eff, self.D,
                 )
                 fitted, cost = fitter.fit_multi_start(
                     hypotheses, crops, max_iter=max_fit_iterations
@@ -226,7 +246,7 @@ class CVMetrologyService:
                 # Analyze 3D geometry via Visual Hull
                 shape_res = carver.carve_and_analyze(
                     item_top["mask"], item_ob["mask"], contour_top,
-                    calibration.top_pose, calibration.oblique_pose, self.K, self.D,
+                    calibration.top_pose, calibration.oblique_pose, K_eff, self.D,
                     fitted,
                 )
                 if shape_res["shape_class"] != "rigid_cuboid":

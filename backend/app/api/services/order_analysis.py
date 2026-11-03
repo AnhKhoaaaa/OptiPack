@@ -95,12 +95,12 @@ async def read_image(upload: UploadFile) -> tuple[np.ndarray, bytes]:
     if image.shape[0] * image.shape[1] > MAX_IMAGE_PIXELS:
         raise HTTPException(413, detail="Image resolution exceeds allowed pixel count")
 
-    # Auto-orient portrait phone photos (H > W) to landscape workspace calibration (W > H)
-    if image.shape[0] > image.shape[1]:
-        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-        success, enc = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 95])
-        if success:
-            data = enc.tobytes()
+    # Autonomous preprocessing: orientation normalization & illumination enhancement
+    from backend.app.cv.preprocessing import preprocess_image_for_cv
+    image, _ = preprocess_image_for_cv(image)
+    success, enc = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 95])
+    if success:
+        data = enc.tobytes()
 
     return image, data
 

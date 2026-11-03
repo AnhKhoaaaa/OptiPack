@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f2f5"/>
+    </linearGradient>
+    <linearGradient id="box-top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="box-left" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="box-right" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#1e3a8a" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <!-- iOS App Icon Squircle Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="508" height="508" x="2" y="2" rx="110" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="2"/>
+
+  <!-- 3D Isometric Carton Box -->
+  <g filter="url(#shadow)" transform="translate(0, 10)">
+    <!-- Top Face -->
+    <polygon points="256,120 380,186 256,252 132,186" fill="url(#box-top)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <!-- Left Face -->
+    <polygon points="132,186 256,252 256,380 132,314" fill="url(#box-left)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <!-- Right Face -->
+    <polygon points="256,252 380,186 380,314 256,380" fill="url(#box-right)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+
+    <!-- Tape / Carton Flap Accent -->
+    <polygon points="256,120 276,131 256,142 236,131" fill="#93c5fd" opacity="0.8"/>
+    <polygon points="256,230 276,241 276,380 256,380" fill="#1e3a8a" opacity="0.4"/>
+    <polygon points="236,241 256,252 256,380 236,380" fill="#1e3a8a" opacity="0.25"/>
+
+    <!-- Subtle Optical Spark / AR Measurement Cross -->
+    <circle cx="256" cy="186" r="6" fill="#ffffff" opacity="0.9"/>
+    <line x1="256" y1="172" x2="256" y2="200" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+    <line x1="242" y1="186" x2="270" y2="186" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  </g>
+</svg>
+

@@ -111,7 +111,8 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
         )}
       </header>
 
-      <table className="items">
+      <div className="table-scroll-container">
+        <table className="items">
         <thead>
           <tr>
             <th>Item</th>
@@ -243,6 +244,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
           })}
         </tbody>
       </table>
+      </div>
 
       <footer className="panel-foot">
         <button type="button" className="btn-link" onClick={onAddItem}>

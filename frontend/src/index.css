@@ -95,7 +95,7 @@ select {
 
 @media (max-width: 1000px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -103,6 +103,8 @@ select {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  width: 100%;
 }
 
 /* Panels */
@@ -250,11 +252,22 @@ select {
 }
 
 .bbox {
-  cursor: default;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bbox rect {
   transition: fill-opacity 0.15s, stroke-width 0.15s;
+}
+
+.bbox-badge {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.22));
+}
+
+.bbox-badge text {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .stage-scan {
@@ -982,4 +995,204 @@ select {
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+
+
+/* =========================================================================
+   PWA & MOBILE RESPONSIVE ENHANCEMENTS
+   ========================================================================= */
+
+/* Horizontal Scroll Container for Tables */
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+/* Mobile Responsive Rules */
+@media (max-width: 768px) {
+  .app {
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+
+  .topbar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    margin-bottom: 14px;
+  }
+
+  .topbar .muted {
+    font-size: 11px;
+  }
+
+  .panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .panel-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .head-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .telemetry-pill {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .segmented {
+    max-width: 100%;
+  }
+
+  .segmented button {
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  .capture-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .capture-row .btn {
+    margin-left: 0;
+  }
+
+  .row-delete {
+    opacity: 0.75; /* Visible by default on touchscreens */
+  }
+
+  /* Prevent automatic iOS Safari zoom-in on input focus */
+  .num-input,
+  .name-input,
+  .select {
+    font-size: 15px;
+    min-height: 34px;
+  }
+
+  .panel-foot {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .carton-sub-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .viewport {
+    height: 290px;
+  }
+
+  .stage {
+    aspect-ratio: auto;
+    height: 270px;
+  }
+
+  .stage-img {
+    height: 100%;
+  }
+
+  .camera-viewfinder {
+    height: 100%;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat {
+    padding: 0 8px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label,
+  .stat-sub {
+    font-size: 11px;
+  }
+
+  .checks {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar h1 {
+    font-size: 18px;
+  }
+
+  .topbar .muted {
+    font-size: 11px;
+  }
+
+  .empty-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .empty-actions .btn {
+    width: 100%;
+  }
+
+  .camera-step-pill {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .shutter-button {
+    width: 58px;
+    height: 58px;
+  }
+
+  .shutter-inner {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Calibration Overlay & Step 2 Highlights */
+.calibration-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  gap: 6px;
+  text-align: center;
+  z-index: 10;
+  animation: fadeIn 0.2s ease;
+}
+
+.camera-step-pill.is-step2 {
+  background: rgba(255, 159, 10, 0.92);
+  color: #1d1d1f;
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(255, 159, 10, 0.5);
+  animation: pulseStep2 1.5s infinite;
+}
+
+@keyframes pulseStep2 {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
 }

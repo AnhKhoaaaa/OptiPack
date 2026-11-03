@@ -30,6 +30,47 @@ const PRESETS = [
   { id: 3, label: "Preset: Multi-box" },
 ];
 
+// Helper to auto-orient portrait photos (H > W) into landscape (W > H)
+// matching the A4 calibration sheet coordinate system
+const normalizeToLandscape = (fileOrBlob: File | Blob): Promise<{ blob: Blob; url: string }> => {
+  return new Promise((resolve) => {
+    const tempUrl = URL.createObjectURL(fileOrBlob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(tempUrl);
+      if (img.naturalHeight > img.naturalWidth) {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalHeight;
+        canvas.height = img.naturalWidth;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.translate(canvas.width, 0);
+          ctx.rotate((90 * Math.PI) / 180);
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(
+            (rotatedBlob) => {
+              if (rotatedBlob) {
+                resolve({ blob: rotatedBlob, url: URL.createObjectURL(rotatedBlob) });
+                return;
+              }
+              resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
+            },
+            "image/jpeg",
+            0.95
+          );
+          return;
+        }
+      }
+      resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(tempUrl);
+      resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
+    };
+    img.src = tempUrl;
+  });
+};
+
 export const UploadPanel: React.FC<UploadPanelProps> = ({
   onAnalysisLoaded,
   loading,
@@ -52,11 +93,36 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
 
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [stageWidth, setStageWidth] = useState<number>(0);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const topFileRef = useRef<File | Blob | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const topSingleInputRef = useRef<HTMLInputElement | null>(null);
   const obliqueSingleInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraTopInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraObliqueInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Measure stage width to scale SVG typography and badges dynamically
+  useEffect(() => {
+    if (!stageRef.current) return;
+    const updateWidth = () => {
+      if (stageRef.current) {
+        const w = stageRef.current.clientWidth;
+        if (w > 0) setStageWidth(w);
+      }
+    };
+    updateWidth();
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(stageRef.current);
+    window.addEventListener("resize", updateWidth);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateWidth);
+    };
+  }, [topPreview, mode]);
 
   // Stop camera stream helper
   const stopCameraStream = () => {
@@ -75,16 +141,29 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     };
   }, []);
 
-  // Start live webcam
+  // Start live webcam or native mobile camera
   const startCamera = async () => {
     setCameraError(null);
     setCameraStep("top");
+
+    // Check if browser supports WebRTC live streaming (desktop or secure HTTPS context)
+    const hasStreamSupport =
+      typeof navigator !== "undefined" &&
+      !!navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === "function";
+
+    if (!hasStreamSupport) {
+      // Mobile Safari / iOS over HTTP: trigger native high-res camera directly
+      cameraTopInputRef.current?.click();
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 960 },
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1440, min: 720 },
         },
         audio: false,
       });
@@ -97,9 +176,39 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         }
       }, 50);
     } catch (err) {
-      console.error("Camera access failed:", err);
-      setCameraError("Camera unavailable or permission denied. Please upload photos instead.");
-      setMode("upload");
+      console.warn("Webcam live stream unavailable, falling back to native camera:", err);
+      // Fallback to native mobile camera
+      cameraTopInputRef.current?.click();
+    }
+  };
+
+  const handleNativeCameraTop = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const topRes = await normalizeToLandscape(file);
+    topFileRef.current = topRes.blob;
+    setTopFile(topRes.blob);
+    setTopPreview(topRes.url);
+    setCameraStep("oblique");
+    e.target.value = "";
+
+    // Automatically prompt photo 2 after a brief delay
+    setTimeout(() => {
+      cameraObliqueInputRef.current?.click();
+    }, 450);
+  };
+
+  const handleNativeCameraOblique = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const oblRes = await normalizeToLandscape(file);
+    setObliqueFile(oblRes.blob);
+    setObliquePreview(oblRes.url);
+    e.target.value = "";
+
+    const topBlob = topFileRef.current || topFile;
+    if (topBlob) {
+      triggerAnalysis(topBlob, oblRes.blob);
     }
   };
 
@@ -114,19 +223,30 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
+    const rawW = video.videoWidth || 1920;
+    const rawH = video.videoHeight || 1080;
+    const isPortrait = rawH > rawW;
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 960;
+    canvas.width = isPortrait ? rawH : rawW;
+    canvas.height = isPortrait ? rawW : rawH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (isPortrait) {
+      ctx.translate(canvas.width, 0);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(video, 0, 0);
+    } else {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
         const previewUrl = URL.createObjectURL(blob);
 
         if (step === "top") {
+          topFileRef.current = blob;
           setTopFile(blob);
           setTopPreview(previewUrl);
           setCameraStep("oblique");
@@ -136,8 +256,9 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           stopCameraStream();
           setMode("idle");
 
-          if (topFile) {
-            triggerAnalysis(topFile, blob);
+          const topBlob = topFileRef.current || topFile;
+          if (topBlob) {
+            triggerAnalysis(topBlob, blob);
           }
         }
       },
@@ -168,43 +289,51 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     }
   };
 
-  // Multi-photo upload handler
-  const handleMultipleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Multi-photo upload handler with auto-orientation normalization
+  const handleMultipleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const file1 = files[0];
     const file2 = files.length > 1 ? files[1] : null;
 
-    setTopFile(file1);
-    setTopPreview(URL.createObjectURL(file1));
+    const topRes = await normalizeToLandscape(file1);
+    setTopFile(topRes.blob);
+    setTopPreview(topRes.url);
 
     if (file2) {
-      setObliqueFile(file2);
-      setObliquePreview(URL.createObjectURL(file2));
-      triggerAnalysis(file1, file2);
+      const oblRes = await normalizeToLandscape(file2);
+      setObliqueFile(oblRes.blob);
+      setObliquePreview(oblRes.url);
+      triggerAnalysis(topRes.blob, oblRes.blob);
     } else if (obliqueFile) {
-      triggerAnalysis(file1, obliqueFile);
+      triggerAnalysis(topRes.blob, obliqueFile);
     }
   };
 
-  const handleSingleTopChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSingleTopChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setTopFile(file);
-    setTopPreview(URL.createObjectURL(file));
+    const topRes = await normalizeToLandscape(file);
+    topFileRef.current = topRes.blob;
+    setTopFile(topRes.blob);
+    setTopPreview(topRes.url);
+    e.target.value = "";
     if (obliqueFile) {
-      triggerAnalysis(file, obliqueFile);
+      triggerAnalysis(topRes.blob, obliqueFile);
     }
   };
 
-  const handleSingleObliqueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSingleObliqueChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setObliqueFile(file);
-    setObliquePreview(URL.createObjectURL(file));
-    if (topFile) {
-      triggerAnalysis(topFile, file);
+    const oblRes = await normalizeToLandscape(file);
+    setObliqueFile(oblRes.blob);
+    setObliquePreview(oblRes.url);
+    e.target.value = "";
+    const topBlob = topFileRef.current || topFile;
+    if (topBlob) {
+      triggerAnalysis(topBlob, oblRes.blob);
     }
   };
 
@@ -250,10 +379,33 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   };
 
   const analysisItems = analysis?.items || [];
-  const maxBoxX = Math.max(1280, ...analysisItems.map((it) => it.visual_evidence?.bbox_2d_px?.[2] || 0));
-  const maxBoxY = Math.max(960, ...analysisItems.map((it) => it.visual_evidence?.bbox_2d_px?.[3] || 0));
-  const vbW = imgNaturalSize ? Math.max(imgNaturalSize.w, maxBoxX) : maxBoxX;
-  const vbH = imgNaturalSize ? Math.max(imgNaturalSize.h, maxBoxY) : maxBoxY;
+  const rawMaxX = Math.max(0, ...analysisItems.map((it) => it.visual_evidence?.bbox_2d_px?.[2] || 0));
+  const rawMaxY = Math.max(0, ...analysisItems.map((it) => it.visual_evidence?.bbox_2d_px?.[3] || 0));
+
+  // Auto-detect if bounding boxes were authored for 1280x960 mock coordinate space
+  // while displayed photo is high-resolution (e.g. 4032x3024)
+  const isSampleMock = analysis?.analysis_id?.startsWith("ord_20261027_") ?? false;
+  const isLegacy1280 =
+    (isSampleMock || (rawMaxX > 0 && rawMaxX <= 1350 && rawMaxY <= 1000)) &&
+    !!imgNaturalSize &&
+    imgNaturalSize.w > 1600;
+
+  const coordScaleX = isLegacy1280 && imgNaturalSize ? imgNaturalSize.w / 1280 : 1;
+  const coordScaleY = isLegacy1280 && imgNaturalSize ? imgNaturalSize.h / 960 : 1;
+
+  const maxScaledX = rawMaxX * coordScaleX;
+  const maxScaledY = rawMaxY * coordScaleY;
+  const vbW = imgNaturalSize ? imgNaturalSize.w : Math.max(1280, maxScaledX);
+  const vbH = imgNaturalSize ? imgNaturalSize.h : Math.max(960, maxScaledY);
+
+  // SVG-to-display pixel ratio: ensures strokes, fonts and badges are consistent on all screen sizes
+  const displayW =
+    stageWidth > 0
+      ? stageWidth
+      : typeof window !== "undefined" && window.innerWidth < 640
+      ? 360
+      : 720;
+  const pxToSvg = vbW / displayW;
 
   const hasCapturedContent = !!topPreview || !!analysis;
   const telemetry = aiTelemetry || analysis?.ai_telemetry;
@@ -274,10 +426,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
               title={`Model: ${telemetry.muse_model} · Status: ${telemetry.muse_status}`}
             >
               {telemetry.muse_status === "success"
-                ? `Muse Live · ${telemetry.muse_latency_ms}ms`
+                ? "Online · Muse 1.3"
                 : telemetry.muse_status === "cached"
-                ? `Muse Cached · ${telemetry.muse_latency_ms}ms`
-                : "Offline Safe Mode"}
+                ? "Cached · Muse 1.3"
+                : "Offline Local Mode"}
             </span>
           )}
         </div>
@@ -304,18 +456,18 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       </header>
 
       {/* Main Viewport / Stage */}
-      <div className="stage">
+      <div className="stage" ref={stageRef}>
         {/* Mode 1: Live Webcam Viewfinder */}
         {mode === "camera" && (
           <div className="camera-viewfinder">
             <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
             <div className="camera-hud">
-              <div className="camera-step-pill">
+              <div className={`camera-step-pill ${cameraStep === "oblique" ? "is-step2" : ""}`}>
                 <span className="camera-dot" />
                 <span>
                   {cameraStep === "top"
-                    ? "Step 1 of 2: Overhead (Top-Down Zenith View)"
-                    : "Step 2 of 2: Tilt 35°–45° (Oblique Side View)"}
+                    ? "Step 1/2: Position camera directly above (Zenith view)"
+                    : "Step 2/2: Tilt camera 35°–45° (Oblique view) and capture"}
                 </span>
               </div>
 
@@ -341,7 +493,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         {loading && (
           <div className="stage-scan">
             <div className="stage-scan-line" />
-            <span className="stage-scan-label">Processing dual photos with Meta AI…</span>
+            <span className="stage-scan-label">Analyzing items with Meta AI & computing 3D metrology (approx. 8–12s on first run)…</span>
           </div>
         )}
 
@@ -361,11 +513,20 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
             />
 
             {!loading && analysisItems.length > 0 && (
-              <svg className="stage-svg" viewBox={`0 0 ${vbW} ${vbH}`} preserveAspectRatio="xMidYMid meet">
+              <svg
+                className="stage-svg"
+                viewBox={`0 0 ${vbW} ${vbH}`}
+                preserveAspectRatio="xMidYMid meet"
+                onClick={() => setHoveredItemId(null)}
+              >
                 {analysisItems.map((item, idx) => {
-                  const [x1, y1, x2, y2] = item.visual_evidence?.bbox_2d_px || [0, 0, 0, 0];
-                  const w = Math.max(10, x2 - x1);
-                  const h = Math.max(10, y2 - y1);
+                  const [rawX1, rawY1, rawX2, rawY2] = item.visual_evidence?.bbox_2d_px || [0, 0, 0, 0];
+                  const x1 = rawX1 * coordScaleX;
+                  const y1 = rawY1 * coordScaleY;
+                  const x2 = rawX2 * coordScaleX;
+                  const y2 = rawY2 * coordScaleY;
+                  const w = Math.max(15 * pxToSvg, x2 - x1);
+                  const h = Math.max(15 * pxToSvg, y2 - y1);
                   const color = item.visual_evidence?.display_color_hex || "#0071e3";
                   const hovered = hoveredItemId === item.item_id;
                   const review =
@@ -377,12 +538,32 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   const label = hovered
                     ? `${dispName} · ${m.length_mm}×${m.width_mm}×${m.height_mm} mm`
                     : `${idx + 1}`;
-                  const labelW = hovered ? Math.max(180, label.length * 14) : 44;
+
+                  // Compute responsive badge geometry in SVG user units with edge boundary safety
+                  const badgeHeightPx = 28;
+                  const badgeHeight = Math.round(badgeHeightPx * pxToSvg);
+                  const badgeRadius = Math.round((badgeHeightPx / 2) * pxToSvg);
+                  const fontSizePx = hovered ? (displayW < 400 ? 11 : 13) : 15;
+                  const fontSize = Math.round(fontSizePx * pxToSvg);
+                  const offset = Math.round(8 * pxToSvg);
+                  const boxRadius = Math.round(8 * pxToSvg);
+
+                  const badgeWidthPx = hovered ? Math.max(140, label.length * (displayW < 400 ? 6.2 : 7.2) + 20) : 34;
+                  const rawBadgeWidth = Math.round(badgeWidthPx * pxToSvg);
+                  const badgeWidth = Math.min(vbW - 2 * offset, rawBadgeWidth);
+
+                  // Keep badge inside stage viewport boundaries
+                  const badgeX = Math.max(offset, Math.min(x1 + offset, vbW - badgeWidth - offset));
+                  const badgeY = Math.max(offset, Math.min(y1 + offset, vbH - badgeHeight - offset));
 
                   return (
                     <g
                       key={item.item_id}
                       className="bbox"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setHoveredItemId(hovered ? null : item.item_id);
+                      }}
                       onMouseEnter={() => setHoveredItemId(item.item_id)}
                       onMouseLeave={() => setHoveredItemId(null)}
                     >
@@ -391,22 +572,33 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                         y={y1}
                         width={w}
                         height={h}
-                        rx={8}
+                        rx={boxRadius}
                         fill={color}
-                        fillOpacity={hovered ? 0.18 : 0.06}
+                        fillOpacity={hovered ? 0.22 : 0.08}
                         stroke={review ? "#ff9f0a" : color}
-                        strokeWidth={hovered ? 4 : 3}
-                        strokeDasharray={review ? "14 8" : undefined}
+                        strokeWidth={hovered ? 3.5 : 2.5}
+                        vectorEffect="non-scaling-stroke"
+                        strokeDasharray={review ? "10 6" : undefined}
                       />
-                      <g transform={`translate(${x1 + 10}, ${y1 + 10})`}>
-                        <rect width={labelW} height={40} rx={20} fill="rgba(255,255,255,0.94)" />
+                      <g transform={`translate(${badgeX}, ${badgeY})`} className="bbox-badge">
+                        <rect
+                          width={badgeWidth}
+                          height={badgeHeight}
+                          rx={badgeRadius}
+                          fill="rgba(255, 255, 255, 0.95)"
+                          stroke={hovered ? color : "rgba(0, 0, 0, 0.12)"}
+                          strokeWidth={1.5}
+                          vectorEffect="non-scaling-stroke"
+                        />
                         <text
-                          x={labelW / 2}
-                          y={27}
+                          x={badgeWidth / 2}
+                          y={badgeHeight / 2}
                           textAnchor="middle"
-                          fontSize={24}
+                          dominantBaseline="central"
+                          fontSize={fontSize}
                           fontWeight={600}
                           fill="#1d1d1f"
+                          style={{ pointerEvents: "none" }}
                         >
                           {label}
                         </text>
@@ -415,6 +607,25 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   );
                 })}
               </svg>
+            )}
+
+            {!loading && analysis && analysisItems.length === 0 && (
+              <div className="calibration-banner-overlay">
+                <span style={{ fontSize: 28 }}>📐</span>
+                <strong>Calibration Board Not Detected</strong>
+                <p className="muted text-xs" style={{ maxWidth: 300, textAlign: "center", lineHeight: 1.4 }}>
+                  {analysis.global_warnings?.[0] ||
+                    "OptiPack requires an A4 4-corner ArUco sheet to calculate exact physical millimeters from live photos."}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ marginTop: 8 }}
+                  onClick={() => handleLoadPreset(1)}
+                >
+                  Load Pre-calibrated Demo Preset
+                </button>
+              </div>
             )}
           </>
         )}
@@ -486,6 +697,23 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         style={{ display: "none" }}
         onChange={handleSingleObliqueChange}
       />
+      {/* Mobile Native Camera Inputs (Zero-permission native camera trigger) */}
+      <input
+        ref={cameraTopInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={handleNativeCameraTop}
+      />
+      <input
+        ref={cameraObliqueInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={handleNativeCameraOblique}
+      />
 
       {/* Bottom Bar when an image is active */}
       {mode !== "camera" && hasCapturedContent && (
@@ -504,11 +732,21 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => obliqueSingleInputRef.current?.click()}
+            onClick={() => (topFile && !obliqueFile ? cameraObliqueInputRef.current?.click() : obliqueSingleInputRef.current?.click())}
             title="Select Oblique (35°-45°) Photo"
           >
             {obliqueFile || obliquePreview ? "✓ Oblique Photo" : "+ Oblique Photo"}
           </button>
+          {topFile && !obliqueFile && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => cameraObliqueInputRef.current?.click()}
+              style={{ marginLeft: "auto" }}
+            >
+              📷 Snap Oblique Photo
+            </button>
+          )}
           {topFile && obliqueFile && (
             <button
               type="button"

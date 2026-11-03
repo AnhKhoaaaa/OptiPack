@@ -92,7 +92,7 @@ export const App: React.FC = () => {
         time_limit_ms: 3000,
         apply_uncertainty_margin: margin,
         min_support_ratio: 0.6,
-        allow_multi_carton_split: true,
+        allow_multi_carton_split: cartonMode === "auto",
         ...(cartonMode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
         ...(cartonMode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
         ...overrideConfig,
@@ -132,7 +132,7 @@ export const App: React.FC = () => {
         ...(data.calibration?.warnings || []),
       ];
       if (allWarnings.length > 0) {
-        alert("Analysis Notice:\n• " + allWarnings.join("\n• "));
+        console.warn("Analysis Notice:", allWarnings);
       }
     }
   };
@@ -209,8 +209,10 @@ export const App: React.FC = () => {
   return (
     <div className="app">
       <header className="topbar">
-        <h1>OptiPack</h1>
-        <span className="muted">3D Metrology & Volume-First Cartonization</span>
+        <div className="brand-group">
+          <h1>OptiPack</h1>
+          <span className="muted">3D Metrology & Volume-First Cartonization</span>
+        </div>
       </header>
 
       <main className="layout">
@@ -286,11 +288,36 @@ export const App: React.FC = () => {
               />
               <PackingViewer3D plan={activePlan} />
             </>
+          ) : solution?.status === "INFEASIBLE" ? (
+            <section className="panel" style={{ borderLeft: "4px solid var(--warn, #c93400)" }}>
+              <div style={{ padding: "20px 24px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <span style={{ fontSize: 20 }}>⚠️</span>
+                  <h3 style={{ fontSize: 16, fontWeight: 600 }}>Carton Capacity Exceeded</h3>
+                </div>
+                <p className="muted text-sm" style={{ marginBottom: 16, lineHeight: 1.5 }}>
+                  {String(solution.infeasibility_diagnostics?.reason || "The items do not fit into the selected carton. The item dimensions exceed the internal carton boundaries.")}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    setCartonMode("auto");
+                    handlePackOrder({
+                      target_carton_id: undefined,
+                      custom_carton_dimensions: undefined,
+                    });
+                  }}
+                >
+                  Switch to Auto-Optimal Carton
+                </button>
+              </div>
+            </section>
           ) : (
             <section className="panel empty">
               <span className="empty-sub-icon">📦</span>
               <p className="muted">
-                Take or upload 2 photos on the left to calculate optimal carton and 3D packing sequence.
+                Capture or upload photos on the left to calculate optimal carton and 3D packing sequence.
               </p>
             </section>
           )}
