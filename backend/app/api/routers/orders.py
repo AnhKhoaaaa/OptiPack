@@ -117,7 +117,7 @@ async def analyze_order(
             # Use Member 2's batched Muse path: one network call for uncached
             # items and existing SHA-256 cache/sanitizer for cached items.
             semantics = await analyze_items_with_muse_spark(
-                top_bytes, crops, timeout_sec=12.0,
+                top_bytes, crops, timeout_sec=3.5,
             )
         except (ValueError, OSError, RuntimeError) as exc:
             warnings.append(f"AI crop preparation/semantics unavailable; using safe defaults: {exc}")

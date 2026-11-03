@@ -14,6 +14,62 @@ const VIEWPORT_HEIGHT = 400;
 const DROP_HEIGHT_MM = 150;
 const DROP_DURATION_MS = 380;
 
+// Helper to draw clean item label with step number & name on top face of 3D box
+const createItemTopLabelTexture = (
+  stepNumber: number,
+  itemName: string,
+  dimsStr: string,
+  baseColorHex: string
+): THREE.CanvasTexture => {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return new THREE.CanvasTexture(canvas);
+
+  // Background filled with item color
+  ctx.fillStyle = baseColorHex;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Inset contrast panel
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(20, 20, 472, 472, 28);
+  } else {
+    ctx.rect(20, 20, 472, 472);
+  }
+  ctx.fill();
+
+  // White circular badge for step / item number
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(256, 160, 90, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Number text inside badge
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "bold 100px -apple-system, Inter, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(String(stepNumber), 256, 165);
+
+  // Clean Item Name
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 40px -apple-system, Inter, sans-serif";
+  const displayName = itemName.length > 18 ? itemName.slice(0, 16) + "…" : itemName;
+  ctx.fillText(displayName, 256, 330);
+
+  // Dimensions
+  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+  ctx.font = "500 30px monospace";
+  ctx.fillText(dimsStr, 256, 395);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+};
+
 export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
@@ -248,19 +304,38 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         const solidGeo = showSafetyHalo
           ? new THREE.BoxGeometry(Math.min(nom.dx, wPlaced), Math.min(nom.dz, hPlaced), Math.min(nom.dy, dPlaced))
           : new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
-        const solid = new THREE.Mesh(
-          solidGeo,
-          new THREE.MeshStandardMaterial({
-            color: new THREE.Color(p.display_color_hex || "#0071e3"),
-            roughness: 0.55,
-            transparent: !isActive && currentStep < totalSteps,
-            opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
-          })
+
+        // Side material
+        const sideMat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(p.display_color_hex || "#0071e3"),
+          roughness: 0.55,
+          transparent: !isActive && currentStep < totalSteps,
+          opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
+        });
+
+        // Top face material with crisp item label (+Y is face index 2 in BoxGeometry)
+        const labelTexture = createItemTopLabelTexture(
+          p.step_number,
+          p.display_name || `Item #${p.step_number}`,
+          `${nom.dx}×${nom.dy}×${nom.dz}`,
+          p.display_color_hex || "#0071e3"
         );
+        const topMat = new THREE.MeshStandardMaterial({
+          map: labelTexture,
+          roughness: 0.55,
+          transparent: !isActive && currentStep < totalSteps,
+          opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
+        });
+
+        const materials = [sideMat, sideMat, topMat, sideMat, sideMat, sideMat];
+        const solid = new THREE.Mesh(solidGeo, materials);
+        solid.name = `item_${p.step_number}`;
+        solid.userData = { placement: p };
+
         solid.add(
           new THREE.LineSegments(
             new THREE.EdgesGeometry(solidGeo),
-            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })
           )
         );
         group.add(solid);

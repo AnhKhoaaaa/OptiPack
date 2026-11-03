@@ -70,3 +70,4 @@ def test_live_camera_resolution_scaling_aruco():
     assert info.status == "calibrated"
     assert info.reprojection_error_px <= 2.5
     assert info.detected_markers_count >= 3
+

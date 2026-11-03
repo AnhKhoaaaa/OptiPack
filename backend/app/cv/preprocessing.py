@@ -26,13 +26,13 @@ def assess_image_quality(image: np.ndarray) -> Dict[str, Any]:
 
     warnings: List[str] = []
     if sharpness_var < 45.0:
-        warnings.append("Ảnh chụp có dấu hiệu bị mờ (out of focus); hãy giữ chắc máy khi chụp.")
+        warnings.append("Image appears slightly blurry or out of focus. Hold the camera steady for sharpest metrology.")
     if mean_brightness < 55.0:
-        warnings.append("Môi trường thiếu sáng (low light); hãy tăng ánh sáng hoặc bật đèn flash.")
+        warnings.append("Low-light scene detected. Consider increasing ambient light or turning on camera flash.")
     elif mean_brightness > 215.0:
-        warnings.append("Ảnh bị chói sáng hoặc bóng lóa (glare); kiểm tra góc chiếu đèn.")
+        warnings.append("High glare or reflection detected. Check overhead lighting angle.")
     if contrast_std < 35.0:
-        warnings.append("Độ tương phản thấp; vật thể có thể bị lẫn với nền bàn.")
+        warnings.append("Low scene contrast detected. Ensure objects stand out against the background surface.")
 
     return {
         "width_px": w,
@@ -75,3 +75,4 @@ def preprocess_image_for_cv(
         processed = cv2.LUT(processed, table)
 
     return processed, quality
+

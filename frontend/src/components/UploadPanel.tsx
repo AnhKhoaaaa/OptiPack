@@ -30,6 +30,47 @@ const PRESETS = [
   { id: 3, label: "Preset: Multi-box" },
 ];
 
+// Helper to auto-orient portrait photos (H > W) into landscape (W > H)
+// matching the A4 calibration sheet coordinate system
+const normalizeToLandscape = (fileOrBlob: File | Blob): Promise<{ blob: Blob; url: string }> => {
+  return new Promise((resolve) => {
+    const tempUrl = URL.createObjectURL(fileOrBlob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(tempUrl);
+      if (img.naturalHeight > img.naturalWidth) {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalHeight;
+        canvas.height = img.naturalWidth;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.translate(canvas.width, 0);
+          ctx.rotate((90 * Math.PI) / 180);
+          ctx.drawImage(img, 0, 0);
+          canvas.toBlob(
+            (rotatedBlob) => {
+              if (rotatedBlob) {
+                resolve({ blob: rotatedBlob, url: URL.createObjectURL(rotatedBlob) });
+                return;
+              }
+              resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
+            },
+            "image/jpeg",
+            0.95
+          );
+          return;
+        }
+      }
+      resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(tempUrl);
+      resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
+    };
+    img.src = tempUrl;
+  });
+};
+
 export const UploadPanel: React.FC<UploadPanelProps> = ({
   onAnalysisLoaded,
   loading,
@@ -141,12 +182,13 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     }
   };
 
-  const handleNativeCameraTop = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNativeCameraTop = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    topFileRef.current = file;
-    setTopFile(file);
-    setTopPreview(URL.createObjectURL(file));
+    const topRes = await normalizeToLandscape(file);
+    topFileRef.current = topRes.blob;
+    setTopFile(topRes.blob);
+    setTopPreview(topRes.url);
     setCameraStep("oblique");
     e.target.value = "";
 
@@ -156,16 +198,17 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     }, 450);
   };
 
-  const handleNativeCameraOblique = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNativeCameraOblique = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setObliqueFile(file);
-    setObliquePreview(URL.createObjectURL(file));
+    const oblRes = await normalizeToLandscape(file);
+    setObliqueFile(oblRes.blob);
+    setObliquePreview(oblRes.url);
     e.target.value = "";
 
     const topBlob = topFileRef.current || topFile;
     if (topBlob) {
-      triggerAnalysis(topBlob, file);
+      triggerAnalysis(topBlob, oblRes.blob);
     }
   };
 
@@ -180,13 +223,23 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
+    const rawW = video.videoWidth || 1920;
+    const rawH = video.videoHeight || 1080;
+    const isPortrait = rawH > rawW;
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1920;
-    canvas.height = video.videoHeight || 1080;
+    canvas.width = isPortrait ? rawH : rawW;
+    canvas.height = isPortrait ? rawW : rawH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (isPortrait) {
+      ctx.translate(canvas.width, 0);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(video, 0, 0);
+    } else {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
     canvas.toBlob(
       (blob) => {
         if (!blob) return;
@@ -236,47 +289,51 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     }
   };
 
-  // Multi-photo upload handler
-  const handleMultipleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Multi-photo upload handler with auto-orientation normalization
+  const handleMultipleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const file1 = files[0];
     const file2 = files.length > 1 ? files[1] : null;
 
-    setTopFile(file1);
-    setTopPreview(URL.createObjectURL(file1));
+    const topRes = await normalizeToLandscape(file1);
+    setTopFile(topRes.blob);
+    setTopPreview(topRes.url);
 
     if (file2) {
-      setObliqueFile(file2);
-      setObliquePreview(URL.createObjectURL(file2));
-      triggerAnalysis(file1, file2);
+      const oblRes = await normalizeToLandscape(file2);
+      setObliqueFile(oblRes.blob);
+      setObliquePreview(oblRes.url);
+      triggerAnalysis(topRes.blob, oblRes.blob);
     } else if (obliqueFile) {
-      triggerAnalysis(file1, obliqueFile);
+      triggerAnalysis(topRes.blob, obliqueFile);
     }
   };
 
-  const handleSingleTopChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSingleTopChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    topFileRef.current = file;
-    setTopFile(file);
-    setTopPreview(URL.createObjectURL(file));
+    const topRes = await normalizeToLandscape(file);
+    topFileRef.current = topRes.blob;
+    setTopFile(topRes.blob);
+    setTopPreview(topRes.url);
     e.target.value = "";
     if (obliqueFile) {
-      triggerAnalysis(file, obliqueFile);
+      triggerAnalysis(topRes.blob, obliqueFile);
     }
   };
 
-  const handleSingleObliqueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSingleObliqueChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setObliqueFile(file);
-    setObliquePreview(URL.createObjectURL(file));
+    const oblRes = await normalizeToLandscape(file);
+    setObliqueFile(oblRes.blob);
+    setObliquePreview(oblRes.url);
     e.target.value = "";
     const topBlob = topFileRef.current || topFile;
     if (topBlob) {
-      triggerAnalysis(topBlob, file);
+      triggerAnalysis(topBlob, oblRes.blob);
     }
   };
 
@@ -369,10 +426,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
               title={`Model: ${telemetry.muse_model} · Status: ${telemetry.muse_status}`}
             >
               {telemetry.muse_status === "success"
-                ? `Muse Live · ${telemetry.muse_latency_ms}ms`
+                ? "Online · Muse 1.3"
                 : telemetry.muse_status === "cached"
-                ? `Muse Cached · ${telemetry.muse_latency_ms}ms`
-                : "Offline Safe Mode"}
+                ? "Cached · Muse 1.3"
+                : "Offline Local Mode"}
             </span>
           )}
         </div>
@@ -409,8 +466,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                 <span className="camera-dot" />
                 <span>
                   {cameraStep === "top"
-                    ? "Bước 1/2: Đặt góc thẳng trên xuống (Zenith)"
-                    : "✓ Đã chụp ảnh 1! Bước 2/2: Nghiêng 35°–45° rồi bấm chụp"}
+                    ? "Step 1/2: Position camera directly above (Zenith view)"
+                    : "Step 2/2: Tilt camera 35°–45° (Oblique view) and capture"}
                 </span>
               </div>
 
@@ -436,7 +493,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         {loading && (
           <div className="stage-scan">
             <div className="stage-scan-line" />
-            <span className="stage-scan-label">Processing dual photos with Meta AI…</span>
+            <span className="stage-scan-label">Processing dual photos and computing 3D metrology…</span>
           </div>
         )}
 
@@ -554,11 +611,11 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
             {!loading && analysis && analysisItems.length === 0 && (
               <div className="calibration-banner-overlay">
-                <span style={{ fontSize: 28 }}>⚠️</span>
-                <strong>Chưa phát hiện bảng đo chuẩn (Calibration Board)</strong>
-                <p className="muted text-xs" style={{ maxWidth: 280, textAlign: "center", lineHeight: 1.4 }}>
+                <span style={{ fontSize: 28 }}>📐</span>
+                <strong>Calibration Board Not Detected</strong>
+                <p className="muted text-xs" style={{ maxWidth: 300, textAlign: "center", lineHeight: 1.4 }}>
                   {analysis.global_warnings?.[0] ||
-                    "OptiPack cần bảng A4 có 4 mã ArUco để tính kích thước mm chính xác từ camera."}
+                    "OptiPack requires an A4 4-corner ArUco sheet to calculate exact physical millimeters from live photos."}
                 </p>
                 <button
                   type="button"
@@ -566,7 +623,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   style={{ marginTop: 8 }}
                   onClick={() => handleLoadPreset(1)}
                 >
-                  👉 Bấm vào đây để thử ngay dữ liệu mẫu (Preset 1)
+                  Load Pre-calibrated Demo Preset
                 </button>
               </div>
             )}
@@ -687,7 +744,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
               onClick={() => cameraObliqueInputRef.current?.click()}
               style={{ marginLeft: "auto" }}
             >
-              📷 Chụp ảnh 2 (Nghiêng)
+              📷 Snap Oblique Photo
             </button>
           )}
           {topFile && obliqueFile && (
