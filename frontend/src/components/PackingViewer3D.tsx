@@ -25,6 +25,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<CameraPreset>("iso");
   const [showSafetyHalo, setShowSafetyHalo] = useState<boolean>(true);
+  const [webGlError, setWebGlError] = useState<string | null>(null);
 
   const totalSteps = plan.placements.length;
 
@@ -83,7 +84,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     if (!container) return;
 
     const width = container.clientWidth || 600;
-    const height = VIEWPORT_HEIGHT;
+    const height = window.innerWidth <= 640 ? 290 : VIEWPORT_HEIGHT;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf5f5f7);
@@ -93,7 +94,14 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     camera.position.set(380, 320, 480);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+    } catch (err) {
+      console.warn("WebGL initialization failed:", err);
+      setWebGlError("WebGL context unavailable");
+      return;
+    }
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.innerHTML = "";
@@ -171,10 +179,12 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     animate();
 
     const handleResize = () => {
+      if (!container) return;
       const newWidth = container.clientWidth;
-      camera.aspect = newWidth / height;
+      const newHeight = window.innerWidth <= 640 ? 290 : VIEWPORT_HEIGHT;
+      camera.aspect = newWidth / newHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(newWidth, height);
+      renderer.setSize(newWidth, newHeight);
     };
     window.addEventListener("resize", handleResize);
 
@@ -327,7 +337,15 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
         </div>
       </header>
 
-      <div className="viewport" ref={mountRef} />
+      <div className="viewport" ref={mountRef}>
+        {webGlError && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", gap: 6, textAlign: "center", padding: 16 }}>
+            <span style={{ fontSize: 24 }}>📦</span>
+            <strong style={{ fontSize: 13, color: "var(--text)" }}>3D Simulation Paused</strong>
+            <span style={{ fontSize: 11 }}>Hardware acceleration or WebGL is disabled in this environment.</span>
+          </div>
+        )}
+      </div>
 
       <div className="player">
         <button

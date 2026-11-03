@@ -75,8 +75,9 @@ select {
 
 .topbar {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -95,7 +96,7 @@ select {
 
 @media (max-width: 1000px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -103,6 +104,8 @@ select {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+  width: 100%;
 }
 
 /* Panels */
@@ -982,4 +985,315 @@ select {
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.35; }
+}
+
+
+/* =========================================================================
+   PWA & MOBILE RESPONSIVE ENHANCEMENTS
+   ========================================================================= */
+
+/* Topbar Brand & Install Button */
+.brand-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.btn-pwa-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid rgba(0, 113, 227, 0.35);
+  color: var(--accent);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 113, 227, 0.08);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-pwa-install:hover {
+  background: rgba(0, 113, 227, 0.08);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.pwa-icon {
+  font-size: 14px;
+}
+
+/* PWA Modal Bottom Sheet (for iOS / desktop guide) */
+.pwa-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  animation: fadeIn 0.2s ease;
+}
+
+.pwa-modal-sheet {
+  background: var(--surface);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 20px 20px 0 0;
+  padding: 24px 20px max(24px, env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.pwa-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.pwa-modal-head h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.btn-close-modal {
+  background: var(--fill);
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.pwa-steps {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pwa-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.btn-full-width {
+  width: 100%;
+  text-align: center;
+}
+
+/* Horizontal Scroll Container for Tables */
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+/* Mobile Responsive Rules */
+@media (max-width: 768px) {
+  .app {
+    padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+  }
+
+  .topbar {
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .brand-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .brand-group .muted {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .btn-pwa-install {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .panel-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .head-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .telemetry-pill {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .segmented {
+    max-width: 100%;
+  }
+
+  .segmented button {
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+
+  .capture-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .capture-row .btn {
+    margin-left: 0;
+  }
+
+  .row-delete {
+    opacity: 0.75; /* Visible by default on touchscreens */
+  }
+
+  /* Prevent automatic iOS Safari zoom-in on input focus */
+  .num-input,
+  .name-input,
+  .select {
+    font-size: 15px;
+    min-height: 34px;
+  }
+
+  .panel-foot {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .carton-sub-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .viewport {
+    height: 290px;
+  }
+
+  .stage {
+    aspect-ratio: auto;
+    height: 270px;
+  }
+
+  .stage-img {
+    height: 100%;
+  }
+
+  .camera-viewfinder {
+    height: 100%;
+  }
+
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat {
+    padding: 0 8px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-label,
+  .stat-sub {
+    font-size: 11px;
+  }
+
+  .checks {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar h1 {
+    font-size: 18px;
+  }
+
+  .topbar .muted {
+    font-size: 11px;
+  }
+
+  .empty-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .empty-actions .btn {
+    width: 100%;
+  }
+
+  .camera-step-pill {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .shutter-button {
+    width: 58px;
+    height: 58px;
+  }
+
+  .shutter-inner {
+    width: 44px;
+    height: 44px;
+  }
 }
