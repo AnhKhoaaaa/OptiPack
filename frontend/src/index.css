@@ -252,11 +252,22 @@ select {
 }
 
 .bbox {
-  cursor: default;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bbox rect {
   transition: fill-opacity 0.15s, stroke-width 0.15s;
+}
+
+.bbox-badge {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.22));
+}
+
+.bbox-badge text {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.01em;
 }
 
 .stage-scan {
