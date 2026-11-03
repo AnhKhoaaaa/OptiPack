@@ -55,6 +55,10 @@ async def analyze_order(
         raise HTTPException(422, detail="Both images must have identical height, width and color channels")
 
     warnings = []
+    from backend.app.cv.preprocessing import assess_image_quality
+    warnings.extend(assess_image_quality(top).get("warnings", []))
+    warnings.extend(assess_image_quality(oblique).get("warnings", []))
+
     if enable_cloud_sam:
         warnings.append("Cloud SAM was requested but is not integrated into the CV pipeline; YOLOE was used")
     if cv_service is None:

@@ -106,8 +106,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 960 },
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1440, min: 720 },
         },
         audio: false,
       });
@@ -138,8 +138,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     if (!video) return;
 
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 960;
+    canvas.width = video.videoWidth || 1920;
+    canvas.height = video.videoHeight || 1080;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 

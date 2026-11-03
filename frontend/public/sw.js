@@ -22,21 +22,21 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
+// P1 Fix: Only clean up older OptiPack caches, never wipe other apps on the same origin
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
+        keys
+          .filter((key) => key.startsWith("optipack-pwa-") && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
       );
     })
   );
   self.clients.claim();
 });
 
+// P0 Fix: Dynamic runtime caching for JS/CSS bundles and fonts so PWA functions 100% offline
 self.addEventListener("fetch", (event) => {
   // Pass through non-GET and API calls directly to the network
   if (event.request.method !== "GET" || event.request.url.includes("/api/")) {
@@ -46,20 +46,42 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached and update in background (stale-while-revalidate)
+        // Return cached immediately; update in background (stale-while-revalidate)
         fetch(event.request)
           .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, networkResponse);
-              });
+            if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+              const clone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
             }
           })
           .catch(() => {});
         return cachedResponse;
       }
-      return fetch(event.request);
+
+      // Cache miss (e.g. /assets/index-xxx.js, /assets/index-xxx.css, web fonts):
+      // Fetch from network and dynamically store in cache for offline reloads!
+      return fetch(event.request)
+        .then((networkResponse) => {
+          if (!networkResponse || networkResponse.status !== 200) {
+            return networkResponse;
+          }
+          // Only cache same-origin assets or specific cross-origin font CDNs
+          const url = new URL(event.request.url);
+          const isSameOrigin = url.origin === self.location.origin;
+          const isFontCDN = url.hostname.includes("fonts.googleapis.com") || url.hostname.includes("fonts.gstatic.com");
+
+          if (isSameOrigin || isFontCDN) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // If offline and requesting root document, return cached index.html
+          if (event.request.mode === "navigate") {
+            return caches.match("/index.html");
+          }
+        });
     })
   );
 });
-
