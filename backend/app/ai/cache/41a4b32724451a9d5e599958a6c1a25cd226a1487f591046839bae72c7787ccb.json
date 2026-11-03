@@ -1,0 +1,13 @@
+{
+  "item_id": "item_01",
+  "display_name": "White Bluetooth Speaker",
+  "category": "electronics_boxed",
+  "visible_labels": [],
+  "printed_weight_g": null,
+  "fragility_class": "unknown",
+  "fragility_source": "default_safe",
+  "keep_upright": false,
+  "orientation_source": "default_unconstrained",
+  "stackable": true,
+  "reasoning_note": "Unmarked white speaker device"
+}

@@ -424,3 +424,26 @@ def test_epistemic_honesty_maintained_when_display_name_is_mapped(client, monkey
     assert item["display_name"] == "Nivea Skin Cream 50ml"
     assert item["physical_attributes"]["weight_g"] is None
     assert item["physical_attributes"]["weight_source"] == "unknown"
+
+def test_single_top_photo_capture_mode_alias_accepted(client):
+    response = client.post(
+        "/api/v1/orders/analyze",
+        files={"top_image": ("top.jpg", jpeg(), "image/jpeg")},
+        data={"capture_mode": "single_top_photo"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["items"] == []
+    assert body["calibration"]["status"] == "fallback_zenith_only"
+
+
+def test_camera_profile_default_fallback(monkeypatch):
+    monkeypatch.delenv("OPTIPACK_CAMERA_PROFILE_PATH", raising=False)
+    monkeypatch.delenv("OPTIPACK_CAMERA_PROFILE_NAME", raising=False)
+    get_cv_service.cache_clear()
+    try:
+        instance = get_cv_service()
+        assert instance is not None
+        assert isinstance(instance, orders.CVMetrologyService)
+    finally:
+        get_cv_service.cache_clear()

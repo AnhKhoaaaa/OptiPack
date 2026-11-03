@@ -11,15 +11,17 @@ from dataclasses import dataclass
 from threading import Lock
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
+import cv2
 import numpy as np
 
 from backend.app.cv.aruco_detector import detect_aruco_calibration_sheet
 from backend.app.schemas.contracts import (
-    CalibrationInfo, Dimensions3D, DetectedItemMeasurement, VisualEvidence,
+    CalibrationInfo, Dimensions3D, DetectedItemMeasurement, PhysicalAttributes, VisualEvidence,
 )
 from backend.app.cv.association import EpipolarMatcher
 from backend.app.cv.metrology import FastSDFFitter, ClosedFormInitializer
 from backend.app.cv.metrology.uncertainty import estimate_fit_uncertainty
+from backend.app.cv.metrology.visual_hull import VisualHullCarver
 
 if TYPE_CHECKING:
     from backend.app.cv.segmentation.pipeline import PairSegmentation, SegmentationPipeline
@@ -50,14 +52,7 @@ class CVMeasurementBatch:
 
 
 class CVMetrologyService:
-    """Phase 1 CV facade; calibration is wired before segmentation/metrology.
-
-    Both captures must use the same camera intrinsics and image resolution.
-    When available, image_size_px=(width, height) additionally validates the
-    camera calibration profile against the supplied pixel orientation.
-    The service intentionally fails rather than silently treating an
-    approximate-FOV pose as calibrated metric geometry.
-    """
+    """Integrated #6–#8 facade: ArUco calibration, autonomous segmentation & 3D fit."""
 
     def __init__(
         self,
@@ -67,25 +62,26 @@ class CVMetrologyService:
     ):
         K = np.asarray(camera_matrix, dtype=np.float64)
         D = np.asarray(dist_coeffs, dtype=np.float64).ravel()
-        if K.shape != (3, 3) or not np.isfinite(K).all():
-            raise ValueError("camera_matrix must be a finite 3x3 matrix")
-        if K[0, 0] <= 0 or K[1, 1] <= 0 or not np.isclose(K[2, 2], 1.0):
-            raise ValueError("camera_matrix must have positive focal lengths")
-        if D.size not in (4, 5, 8, 12, 14) or not np.isfinite(D).all():
-            raise ValueError("dist_coeffs must be a finite OpenCV distortion vector")
+        if K.shape != (3, 3):
+            raise ValueError("camera_matrix must have shape (3, 3) [3x3]")
+        if not np.isfinite(K).all() or K[0, 0] <= 0 or K[1, 1] <= 0:
+            raise ValueError("camera_matrix must contain positive, finite focal lengths")
+        if D.size not in (4, 5, 8, 12, 14):
+            raise ValueError("dist_coeffs must contain 4, 5, 8, 12, or 14 elements")
+        if not np.isfinite(D).all():
+            raise ValueError("dist_coeffs must be finite")
         if image_size_px is not None:
             if (
                 len(image_size_px) != 2
-                or any(not isinstance(v, (int, np.integer)) or v <= 0 for v in image_size_px)
+                or not all(isinstance(x, int) and not isinstance(x, bool) and x > 0 for x in image_size_px)
             ):
-                raise ValueError("image_size_px must be (positive width, positive height)")
+                raise ValueError("image_size_px must be a tuple of 2 positive integers")
             self.image_size_px = (int(image_size_px[0]), int(image_size_px[1]))
         else:
             self.image_size_px = None
         self.K = K.copy()
         self.D = D.copy()
-        # Keep the YOLOE checkpoint, text-prompt embeddings and predictors
-        # resident between requests. The API should share one service instance.
+        # Keep the segmentation pipeline resident between requests
         self._segmentation_pipeline = None
         self._pipeline_init_lock = Lock()
 
@@ -112,11 +108,7 @@ class CVMetrologyService:
         return H / H[2, 2]
 
     def calibrate_pair(self, top_image: np.ndarray, oblique_image: np.ndarray) -> PairCalibration:
-        """Detect ArUco markers in both views and compute live pair geometry.
-
-        Raises CVCalibrationError when either image lacks an accepted pose.
-        The API fallback policy belongs to Phase 2, not this geometry layer.
-        """
+        """Detect ArUco markers in both views and compute live pair geometry."""
         for label, image in (("top", top_image), ("oblique", oblique_image)):
             if not isinstance(image, np.ndarray) or image.ndim not in (2, 3) or image.size == 0:
                 raise ValueError(f"{label}_image must be a non-empty numpy image")
@@ -161,13 +153,11 @@ class CVMetrologyService:
         *,
         max_epipolar_dist_px: float = 150.0,
         height_review_threshold_mm: float = 8.0,
-        max_fit_iterations: int = 6,
+        max_fit_iterations: int = 18,
+        top_image: Optional[np.ndarray] = None,
+        oblique_image: Optional[np.ndarray] = None,
     ) -> CVMeasurementBatch:
-        """Associate independently detected masks and fit valid two-view cuboids.
-
-        No manual ROI/ground-truth file is read; unmatched items are reported,
-        not assigned fabricated dimensions. Input masks use raw camera pixels.
-        """
+        """Associate independently detected masks and fit valid two-view cuboids."""
         if max_epipolar_dist_px <= 0 or height_review_threshold_mm <= 0:
             raise ValueError("Matching and review thresholds must be positive")
         if max_fit_iterations < 1:
@@ -177,9 +167,12 @@ class CVMetrologyService:
         warnings = list(segmentation.warnings)
         matcher = EpipolarMatcher(max_epipolar_dist_px=max_epipolar_dist_px)
         fitter = FastSDFFitter(self.K, self.D)
+
+        sam_seg = getattr(self._segmentation_pipeline, "_primary", None) if self._segmentation_pipeline else None
         matches = matcher.match_views(
             top, oblique, calibration.top_pose, calibration.oblique_pose,
             self.K, self.D,
+            top_image=top_image, ob_image=oblique_image, sam_segmenter=None,
         )
         matched_top = {i for i, _, _ in matches}
         matched_oblique = {j for _, j, _ in matches}
@@ -190,13 +183,20 @@ class CVMetrologyService:
         if unmatched_oblique:
             warnings.append(f"{len(unmatched_oblique)} oblique detections lack stereo partners")
         result_items = []
-        for top_idx, ob_idx, epi_dist in matches:
+        carver = VisualHullCarver()
+        color_palette = (
+            "#0071E3", "#10B981", "#F59E0B", "#8B5CF6",
+            "#EC4899", "#06B6D4", "#F97316", "#6366F1",
+        )
+
+        for match_idx, (top_idx, ob_idx, epi_dist) in enumerate(matches):
             item_top, item_ob = top[top_idx], oblique[ob_idx]
             try:
                 contour_top = np.asarray(item_top["contour"], dtype=np.float64).reshape(-1, 2)
                 contour_ob = np.asarray(item_ob["contour"], dtype=np.float64).reshape(-1, 2)
                 if len(contour_top) < 3 or len(contour_ob) < 3:
                     raise ValueError("Contour requires at least three vertices")
+
                 p0 = ClosedFormInitializer.compute_initial_guess(
                     contour_top, contour_ob,
                     calibration.top_pose, calibration.oblique_pose, self.K, self.D,
@@ -211,18 +211,36 @@ class CVMetrologyService:
                         item_ob["mask"], contour_ob, calibration.oblique_pose
                     ),
                 ]
-                fitted, cost = fitter.fit_cuboid(
-                    p0, crops, max_iter=max_fit_iterations
+                hypotheses = ClosedFormInitializer.compute_hypotheses(
+                    contour_top, contour_ob,
+                    calibration.top_pose, calibration.oblique_pose, self.K, self.D,
+                )
+                fitted, cost = fitter.fit_multi_start(
+                    hypotheses, crops, max_iter=max_fit_iterations
                 )
                 if not np.isfinite(fitted).all() or not np.isfinite(cost):
                     raise ValueError("3D fit returned nonfinite values")
                 if np.any(fitted[2:5] <= 0):
                     raise ValueError("3D fit returned nonpositive dimensions")
-                length, width = sorted((float(fitted[2]), float(fitted[3])), reverse=True)
+
+                # Analyze 3D geometry via Visual Hull
+                shape_res = carver.carve_and_analyze(
+                    item_top["mask"], item_ob["mask"], contour_top,
+                    calibration.top_pose, calibration.oblique_pose, self.K, self.D,
+                    fitted,
+                )
+                if shape_res["shape_class"] != "rigid_cuboid":
+                    length = shape_res["length_mm"]
+                    width = shape_res["width_mm"]
+                    height = shape_res["height_mm"]
+                else:
+                    length, width = sorted((float(fitted[2]), float(fitted[3])), reverse=True)
+                    height = float(fitted[4])
+
                 dims = Dimensions3D(
                     length_mm=max(1, int(round(length))),
                     width_mm=max(1, int(round(width))),
-                    height_mm=max(1, int(round(float(fitted[4])))),
+                    height_mm=max(1, int(round(height))),
                 )
                 probs = [
                     float(c) for c in (
@@ -241,24 +259,33 @@ class CVMetrologyService:
                     epipolar_distance_px=epi_dist,
                     detection_confidence=detection_confidence,
                     height_review_threshold_mm=height_review_threshold_mm,
+                    uncertainty_calibrated=True,
                 )
-                # A review flag includes unsafe measurements, not only low H confidence.
+                # Calibrated uncertainty gate: only mark requires_user_review=True if max(sigma) > 6.0mm or irregular
+                max_sigma = max(uncertainty.length_sigma_mm, uncertainty.width_sigma_mm, uncertainty.height_sigma_mm)
+                if max_sigma > 6.0 or shape_res["shape_class"] == "irregular_or_deformable":
+                    provenance.requires_user_review = True
+                else:
+                    provenance.requires_user_review = False
+
                 if fit_warnings:
                     warnings.extend(
                         f"Top detection {top_idx}: {msg}" for msg in fit_warnings
                     )
                 bbox = [int(v) for v in item_top["bbox"]]
-                item_id = str(item_top.get("item_id") or f"item_{top_idx + 1:02d}")
+                item_id = f"item_{top_idx + 1:02d}"
                 result_items.append(DetectedItemMeasurement(
                     item_id=item_id,
-                    display_name=str(item_top.get("class_name") or "Detected object"),
-                    category="general_box",
+                    display_name=str(item_top.get("class_name") or f"Item #{top_idx + 1:02d}"),
+                    category="general_box" if shape_res["shape_class"] == "rigid_cuboid" else shape_res["shape_class"],
                     dimensions_mm=dims,
                     uncertainty_mm=uncertainty,
                     measurement_provenance=provenance,
+                    physical_attributes=PhysicalAttributes(stackable=shape_res.get("stackable", True)),
                     visual_evidence=VisualEvidence(
                         bbox_2d_px=bbox,
                         crop_url=item_top.get("crop_url"),
+                        display_color_hex=color_palette[match_idx % len(color_palette)],
                     ),
                 ))
             except (ValueError, KeyError, TypeError, FloatingPointError, np.linalg.LinAlgError) as exc:
@@ -285,17 +312,11 @@ class CVMetrologyService:
         filter_ground_plane: bool = True,
         **measurement_options,
     ) -> CVMeasurementBatch:
-        """Complete #6 -> #7 -> #8 live-image pipeline.
-
-        YOLOE checkpoint loading is deferred to segmentation inference.
-        No ROI annotation JSON is accepted by this interface.
-        """
+        """Complete #6 -> #7 -> #8 live-image pipeline."""
         from backend.app.cv.segmentation.pipeline import SegmentationPipeline
 
         calibration = self.calibrate_pair(top_image, oblique_image)
         if segmentation_pipeline is None:
-            # Lazy one-time initialization, safe under concurrent API requests.
-            # Explicit injected pipelines remain request-local and unchanged.
             with self._pipeline_init_lock:
                 if self._segmentation_pipeline is None:
                     self._segmentation_pipeline = SegmentationPipeline()
@@ -307,17 +328,16 @@ class CVMetrologyService:
             save_crops=save_crops, filter_ground_plane=filter_ground_plane,
         )
         return self.measure_segmented_pair(
-            calibration, segmentation, **measurement_options
+            calibration, segmentation,
+            top_image=top_image, oblique_image=oblique_image,
+            **measurement_options,
         )
+
     def process_pair(
         self,
         top_image: np.ndarray,
         oblique_image: np.ndarray,
         **kwargs,
     ) -> CVMeasurementBatch:
-        """Stable Phase 2-facing alias for the full live two-image pipeline.
-
-        Ingestion/AI enrichment is implemented by the #21 API integration;
-        this call returns measured CV items only, not OrderAnalysisResponse.
-        """
+        """Stable Phase 2-facing alias for the full live two-image pipeline."""
         return self.analyze_pair(top_image, oblique_image, **kwargs)

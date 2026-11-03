@@ -35,19 +35,27 @@ def timestamp_utc() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+DEFAULT_CALIBRATION_PROFILE_PATH = (
+    Path(__file__).resolve().parents[4] / "experiments" / "real_t01" / "calibration_model_variants.json"
+)
+
+
 @lru_cache(maxsize=1)
 def get_cv_service() -> CVMetrologyService | None:
     """Share a warm model across API calls. Never infer intrinsics from FOV."""
     path_string = os.getenv("OPTIPACK_CAMERA_PROFILE_PATH", "").strip()
     if not path_string:
-        return None
+        if DEFAULT_CALIBRATION_PROFILE_PATH.is_file():
+            path_string = str(DEFAULT_CALIBRATION_PROFILE_PATH)
+        else:
+            return None
     path = Path(path_string).expanduser()
     try:
         profile = json.loads(path.read_text(encoding="utf-8"))
         if "camera_matrix" not in profile:
-            name = os.getenv("OPTIPACK_CAMERA_PROFILE_NAME", "").strip()
-            if not name:
-                raise ValueError("OPTIPACK_CAMERA_PROFILE_NAME is required for multi-profile JSON")
+            name = os.getenv("OPTIPACK_CAMERA_PROFILE_NAME", "").strip() or "free_tangent"
+            if name not in profile:
+                raise ValueError(f"Profile '{name}' not found in calibration profile JSON")
             profile = profile[name]
         size = profile.get("image_size_wh") or profile.get("image_size_px")
         return CVMetrologyService(
@@ -86,6 +94,14 @@ async def read_image(upload: UploadFile) -> tuple[np.ndarray, bytes]:
         raise HTTPException(422, detail="Image could not be decoded")
     if image.shape[0] * image.shape[1] > MAX_IMAGE_PIXELS:
         raise HTTPException(413, detail="Image resolution exceeds allowed pixel count")
+
+    # Auto-orient portrait phone photos (H > W) to landscape workspace calibration (W > H)
+    if image.shape[0] > image.shape[1]:
+        image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        success, enc = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if success:
+            data = enc.tobytes()
+
     return image, data
 
 

@@ -9,6 +9,7 @@ Optimizes 3D cuboid parameters [cx, cy, L, W, H, psi] in sub-150ms per trial:
    - Uniformly samples K=24 points along convex hull boundary (<15 us)
    - Bilinear lookups directly on precomputed SDF crop array (<25 us)
    - Vectorized Levenberg-Marquardt step in pure NumPy (<300 us/iter)
+3. Multi-start hypothesis evaluation for global convergence across edge reliefs.
 """
 from typing import Dict, List, Optional, Tuple
 from time import perf_counter
@@ -16,7 +17,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from backend.app.cv.metrology.initializer import ClosedFormInitializer
 
 def sampled_outline(hull: np.ndarray, n: int = 24) -> np.ndarray:
     """Sample boundary uniformly, with no experiment module dependencies."""
@@ -152,7 +152,7 @@ class FastSDFFitter:
 
         return np.asarray(residuals_per_p, dtype=np.float64)
 
-    def fit_cuboid(self, p_init: np.ndarray, views_crops: List[Dict], max_iter: int = 10) -> Tuple[np.ndarray, float]:
+    def fit_cuboid(self, p_init: np.ndarray, views_crops: List[Dict], max_iter: int = 18) -> Tuple[np.ndarray, float]:
         """Refine 3D cuboid parameters using vectorized Levenberg-Marquardt."""
         p = np.asarray(p_init, dtype=np.float64).copy()
         step = np.array([0.5, 0.5, 0.5, 0.5, 0.5, 0.005])
@@ -191,3 +191,30 @@ class FastSDFFitter:
                 break
 
         return p, score
+
+    def fit_multi_start(
+        self,
+        hypotheses: List[np.ndarray],
+        views_crops: List[Dict],
+        max_iter: int = 18,
+    ) -> Tuple[np.ndarray, float]:
+        """Multi-start optimization choosing the global minimum residual SDF cuboid."""
+        if not hypotheses:
+            raise ValueError("hypotheses list cannot be empty")
+
+        P_hypo = np.asarray(hypotheses, dtype=np.float64)
+        all_r = self.evaluate_batch_residual(P_hypo, views_crops)
+        scores = np.sum(all_r * all_r, axis=1)
+
+        # Optimize the top 3 best scoring initial hypotheses
+        sorted_indices = np.argsort(scores)[:3]
+        best_p, best_score = hypotheses[sorted_indices[0]], float("inf")
+
+        for idx in sorted_indices:
+            p_fitted, s_fitted = self.fit_cuboid(
+                hypotheses[idx], views_crops, max_iter=max_iter
+            )
+            if s_fitted < best_score:
+                best_p, best_score = p_fitted, s_fitted
+
+        return best_p, best_score

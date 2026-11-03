@@ -30,6 +30,7 @@ app.add_middleware(
 STATIC_ASSETS_DIR = Path(__file__).resolve().parent / "static" / "crops"
 STATIC_ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/api/v1/assets/crops", StaticFiles(directory=str(STATIC_ASSETS_DIR)), name="crops")
+app.mount("/api/v1/assets", StaticFiles(directory=str(STATIC_ASSETS_DIR)), name="assets")
 
 # Include API routers under /api/v1 prefix
 app.include_router(orders.router, prefix="/api/v1")
