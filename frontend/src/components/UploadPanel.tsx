@@ -7,11 +7,13 @@ import preset2UncertainReview from "../mocks/preset2UncertainReview.json";
 import preset2PackingSolution from "../mocks/preset2PackingSolution.json";
 import preset3OrderAnalysis from "../mocks/preset3OrderAnalysis.json";
 import preset3MultiCartonSplit from "../mocks/preset3MultiCartonSplit.json";
+import packingSolutionSample from "../mocks/packingSolutionSample.json";
 
 interface UploadPanelProps {
   onAnalysisLoaded: (
     analysis: OrderAnalysisResponse,
-    precomputedSolution?: PackingSolutionResponse
+    precomputedSolution?: PackingSolutionResponse,
+    source?: "live" | "demo"
   ) => void;
   loading: boolean;
   setLoading: (l: boolean) => void;
@@ -19,6 +21,7 @@ interface UploadPanelProps {
   items?: ExtendedPackableItem[];
   onReset?: () => void;
   aiTelemetry?: AITelemetry;
+  isDemoData?: boolean;
 }
 
 const SAMPLE_TOP = "/samples/topdown_sample.jpg";
@@ -79,6 +82,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   items = [],
   onReset,
   aiTelemetry,
+  isDemoData = false,
 }) => {
   const [mode, setMode] = useState<"idle" | "camera" | "upload">("idle");
   const [cameraStep, setCameraStep] = useState<"top" | "oblique">("top");
@@ -270,7 +274,9 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   // Trigger Backend Analysis
   const triggerAnalysis = async (top: File | Blob, oblique?: File | Blob | null) => {
     setLoading(true);
+    setCameraError(null);
     setSelectedPreset(null);
+    onReset?.();
     const formData = new FormData();
     formData.append("top_image", top, "zenith_top.jpg");
     if (oblique) {
@@ -283,7 +289,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       onAnalysisLoaded(data);
     } catch (err) {
       console.error("[UploadPanel] Analysis failed:", err);
-      alert(`Order analysis failed: ${err instanceof Error ? err.message : String(err)}`);
+      setCameraError(`Order analysis failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -296,6 +302,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
     const file1 = files[0];
     const file2 = files.length > 1 ? files[1] : null;
+    // Allow re-selecting the same photos after New capture or a failed analysis.
+    e.target.value = "";
 
     const topRes = await normalizeToLandscape(file1);
     setTopFile(topRes.blob);
@@ -339,6 +347,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
   // Preset loader for instant demo pitch
   const handleLoadPreset = (presetNumber: number) => {
+    setCameraError(null);
     setSelectedPreset(presetNumber);
     stopCameraStream();
     setMode("idle");
@@ -350,16 +359,22 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
     setTimeout(() => {
       if (presetNumber === 1) {
-        onAnalysisLoaded(orderAnalysisSample as unknown as OrderAnalysisResponse);
+        onAnalysisLoaded(
+          orderAnalysisSample as unknown as OrderAnalysisResponse,
+          packingSolutionSample as unknown as PackingSolutionResponse,
+          "demo"
+        );
       } else if (presetNumber === 2) {
         onAnalysisLoaded(
           preset2UncertainReview as unknown as OrderAnalysisResponse,
-          preset2PackingSolution as unknown as PackingSolutionResponse
+          preset2PackingSolution as unknown as PackingSolutionResponse,
+          "demo"
         );
       } else {
         onAnalysisLoaded(
           preset3OrderAnalysis as unknown as OrderAnalysisResponse,
-          preset3MultiCartonSplit as unknown as PackingSolutionResponse
+          preset3MultiCartonSplit as unknown as PackingSolutionResponse,
+          "demo"
         );
       }
       setLoading(false);
@@ -367,6 +382,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   };
 
   const handleResetOrder = () => {
+    setCameraError(null);
     stopCameraStream();
     setMode("idle");
     setTopFile(null);
@@ -416,18 +432,20 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       <header className="panel-head">
         <div className="head-actions">
           <h2>Capture</h2>
-          {telemetry && (
+          {(telemetry || isDemoData) && (
             <span
               className={`telemetry-pill ${
-                telemetry.muse_status === "success" || telemetry.muse_status === "cached"
+                !isDemoData && (telemetry?.muse_status === "success" || telemetry?.muse_status === "cached")
                   ? "is-ok"
                   : "is-fallback"
               }`}
-              title={`Model: ${telemetry.muse_model} · Status: ${telemetry.muse_status}`}
+              title={isDemoData ? "Static demo fixture (no live AI call)" : `Model: ${telemetry?.muse_model} · Status: ${telemetry?.muse_status}`}
             >
-              {telemetry.muse_status === "success"
+              {isDemoData
+                ? "Demo Data"
+                : telemetry?.muse_status === "success"
                 ? "Online · Muse 1.3"
-                : telemetry.muse_status === "cached"
+                : telemetry?.muse_status === "cached"
                 ? "Cached · Muse 1.3"
                 : "Offline Local Mode"}
             </span>
@@ -668,11 +686,13 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   Pick Oblique photo…
                 </button>
               </div>
-              {cameraError && <p className="camera-err-hint">{cameraError}</p>}
+
             </div>
           </div>
         )}
       </div>
+
+      {cameraError && <p className="camera-err-hint" role="alert">{cameraError}</p>}
 
       {/* Hidden file inputs */}
       <input

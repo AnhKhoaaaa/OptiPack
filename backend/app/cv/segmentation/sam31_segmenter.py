@@ -13,6 +13,8 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+from collections import OrderedDict
+from threading import RLock
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
@@ -65,6 +67,19 @@ class SAM31Segmenter:
         self.max_edge = int(max_edge)
         self.tiled_inference = True
         self.imgsz = 960
+        # Bounded, per-segmenter hot cache: avoids repeated disk I/O and JSON
+        # parsing for the same prompt/image. Raw mask tokens are unchanged.
+        self._memory_cache: OrderedDict[str, str] = OrderedDict()
+        self._memory_lock = RLock()
+        self._memory_max_entries = 8
+
+    def _remember_response(self, cache_key: str, text: str) -> str:
+        with self._memory_lock:
+            self._memory_cache[cache_key] = text
+            self._memory_cache.move_to_end(cache_key)
+            if len(self._memory_cache) > self._memory_max_entries:
+                self._memory_cache.popitem(last=False)
+        return text
 
     def _prepare_scaled_jpeg(self, image_bgr: np.ndarray) -> Tuple[bytes, int, int, float]:
         """Scale image so max_edge == self.max_edge while preserving aspect ratio."""
@@ -83,14 +98,20 @@ class SAM31Segmenter:
         cache_key = hashlib.sha256(jpeg_bytes + b"|" + prompt.encode("utf-8")).hexdigest()
         cache_path = self.cache_dir / f"sam31_{cache_key}.json"
 
-        if cache_path.is_file():
-            try:
-                cached = json.loads(cache_path.read_text(encoding="utf-8"))
-                text = cached.get("output_text") or cached.get("raw_text")
-                if text:
-                    return text
-            except Exception:
-                pass
+        with self._memory_lock:
+            text = self._memory_cache.get(cache_key)
+            if text is not None:
+                self._memory_cache.move_to_end(cache_key)
+                return text
+
+        try:
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            text = cached.get("output_text") or cached.get("raw_text")
+            if text:
+                return self._remember_response(cache_key, text)
+        except (OSError, ValueError, TypeError):
+            # Missing or corrupt file: consult the model, without inventing a mask.
+            pass
 
         api_key = os.getenv("MODEL_API_KEY", MODEL_API_KEY).strip()
         if not api_key:
@@ -137,7 +158,7 @@ class SAM31Segmenter:
         except Exception:
             pass
 
-        return raw_text
+        return self._remember_response(cache_key, raw_text)
 
     def _decode_stream_to_candidates(
         self,

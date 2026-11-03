@@ -9,7 +9,7 @@ describe("Step 1 Frontend E2E Integration Verification", () => {
     const items = analysis.items.map(convertItem);
 
     expect(items).toHaveLength(4);
-    expect(items[0].crop_url).toBe("/api/v1/assets/crops/ord_20261027_001_item_01.jpg");
+    expect(items[0].crop_url).toBeNull(); // Static demo fixtures must not request nonexistent backend crops.
     expect(items[0].provenance_source).toBe("AI-Extracted");
     expect(items[0].uncertainty_info?.requires_user_review).toBe(false);
   });

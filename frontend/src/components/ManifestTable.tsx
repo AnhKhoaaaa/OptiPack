@@ -1,8 +1,10 @@
 import React from "react";
 import { PackableItem, RotationCode } from "../types/contract";
+import { needsMeasurementReview } from "../utils/review";
 
 export interface ExtendedPackableItem extends PackableItem {
   crop_url?: string | null;
+  review_acknowledged?: boolean;
   provenance_source?: "AI-Extracted" | "Default-Safe";
   uncertainty_info?: {
     height_sigma_mm: number;
@@ -13,6 +15,7 @@ export interface ExtendedPackableItem extends PackableItem {
 interface ManifestTableProps {
   items: ExtendedPackableItem[];
   onUpdateItem: (index: number, updated: ExtendedPackableItem) => void;
+  onConfirmItem: (index: number) => void;
   onAddItem: () => void;
   onDeleteItem: (index: number) => void;
   onPackOrder: () => void;
@@ -26,6 +29,7 @@ type DimField = "length_mm" | "width_mm" | "height_mm";
 export const ManifestTable: React.FC<ManifestTableProps> = ({
   items,
   onUpdateItem,
+  onConfirmItem,
   onAddItem,
   onDeleteItem,
   onPackOrder,
@@ -45,10 +49,8 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
     onUpdateItem(index, {
       ...item,
       dimensions_mm: { ...item.dimensions_mm, [field]: Math.max(0, val) },
-      // Manually editing a dimension counts as completing the review
-      uncertainty_info: item.uncertainty_info
-        ? { ...item.uncertainty_info, requires_user_review: false }
-        : undefined,
+      // Any new edit requires an explicit acknowledgement; never silently clear provenance.
+      review_acknowledged: false,
     });
   };
 
@@ -84,10 +86,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
     onUpdateItem(index, { ...items[index], keep_upright: checked, allowed_rotations: allowed });
   };
 
-  // Review needed when flagged by metrology OR height uncertainty exceeds 8 mm
-  const needsReview = (it: ExtendedPackableItem) =>
-    !!it.uncertainty_info?.requires_user_review || (it.uncertainty_info?.height_sigma_mm || 0) > 8;
-  const reviewCount = items.filter(needsReview).length;
+  const reviewCount = items.filter(needsMeasurementReview).length;
 
   const dimInput = (item: ExtendedPackableItem, idx: number, field: DimField, warn = false) => (
     <input
@@ -125,7 +124,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
         </thead>
         <tbody>
           {items.map((item, idx) => {
-            const review = needsReview(item);
+            const review = needsMeasurementReview(item);
             const normalizedFragility =
               item.fragility_class === "unknown" ? "low" : item.fragility_class;
             return (
@@ -184,6 +183,12 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                       {dimInput(item, idx, "height_mm", review)}
                     </span>
                   </div>
+                  {review && (
+                    <button type="button" className="btn-link confirm-measurement" onClick={() => onConfirmItem(idx)}
+                      aria-label={`Confirm dimensions for ${item.display_name}`}>
+                      Confirm dimensions
+                    </button>
+                  )}
                 </td>
                 <td>
                   <input
@@ -258,11 +263,12 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
           />
           Safety margin
         </label>
+        {reviewCount > 0 && <span className="hint-warn" role="status">Confirm {reviewCount} flagged item(s) before packing.</span>}
         <button
           type="button"
           className="btn btn-primary"
           onClick={onPackOrder}
-          disabled={packingLoading || items.length === 0}
+          disabled={packingLoading || items.length === 0 || reviewCount > 0}
         >
           {packingLoading ? "Packing…" : "Pack"}
         </button>
