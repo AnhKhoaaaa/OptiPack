@@ -75,9 +75,8 @@ select {
 
 .topbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: baseline;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
@@ -992,133 +991,6 @@ select {
    PWA & MOBILE RESPONSIVE ENHANCEMENTS
    ========================================================================= */
 
-/* Topbar Brand & Install Button */
-.brand-group {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-}
-
-.btn-pwa-install {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--surface);
-  border: 1px solid rgba(0, 113, 227, 0.35);
-  color: var(--accent);
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 113, 227, 0.08);
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.btn-pwa-install:hover {
-  background: rgba(0, 113, 227, 0.08);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-}
-
-.pwa-icon {
-  font-size: 14px;
-}
-
-/* PWA Modal Bottom Sheet (for iOS / desktop guide) */
-.pwa-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  z-index: 9999;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0;
-  animation: fadeIn 0.2s ease;
-}
-
-.pwa-modal-sheet {
-  background: var(--surface);
-  width: 100%;
-  max-width: 480px;
-  border-radius: 20px 20px 0 0;
-  padding: 24px 20px max(24px, env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
-  animation: slideUp 0.25s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.pwa-modal-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.pwa-modal-head h3 {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.btn-close-modal {
-  background: var(--fill);
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 12px;
-  cursor: pointer;
-  color: var(--muted);
-}
-
-.pwa-steps {
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.pwa-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.step-num {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.btn-full-width {
-  width: 100%;
-  text-align: center;
-}
-
 /* Horizontal Scroll Container for Tables */
 .table-scroll-container {
   width: 100%;
@@ -1135,29 +1007,14 @@ select {
   }
 
   .topbar {
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .brand-group {
+    display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 2px;
-    min-width: 0;
+    margin-bottom: 14px;
   }
 
-  .brand-group .muted {
-    font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-  }
-
-  .btn-pwa-install {
-    flex-shrink: 0;
-    padding: 5px 10px;
+  .topbar .muted {
     font-size: 11px;
   }
 

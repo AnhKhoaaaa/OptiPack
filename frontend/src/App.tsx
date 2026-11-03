@@ -65,40 +65,6 @@ export const App: React.FC = () => {
   const [activePlanIndex, setActivePlanIndex] = useState<number>(1);
   const [applyUncertaintyMargin, setApplyUncertaintyMargin] = useState<boolean>(true);
 
-  // PWA Install State
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showIosGuide, setShowIosGuide] = useState<boolean>(false);
-  const [isStandalone, setIsStandalone] = useState<boolean>(false);
-
-  React.useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true;
-    setIsStandalone(standalone);
-
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-  }, []);
-
-  const handleInstallClick = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choice: any) => {
-        if (choice.outcome === "accepted") {
-          setDeferredPrompt(null);
-          setIsStandalone(true);
-        }
-      });
-    } else {
-      setShowIosGuide(true);
-    }
-  };
-
   const [cartonMode, setCartonMode] = useState<"auto" | "preset" | "custom">("auto");
   const [selectedCartonSku, setSelectedCartonSku] = useState<string>("BOX-M");
   const [customCartonDims, setCustomCartonDims] = useState<Dimensions3D>({
@@ -247,18 +213,6 @@ export const App: React.FC = () => {
           <h1>OptiPack</h1>
           <span className="muted">3D Metrology & Volume-First Cartonization</span>
         </div>
-
-        {!isStandalone && (
-          <button
-            type="button"
-            className="btn-pwa-install"
-            onClick={handleInstallClick}
-            title="Add OptiPack to Home Screen (Mobile & Desktop App)"
-          >
-            <span className="pwa-icon">📱</span>
-            <span>Add to Screen</span>
-          </button>
-        )}
       </header>
 
       <main className="layout">
@@ -344,55 +298,6 @@ export const App: React.FC = () => {
           )}
         </div>
       </main>
-
-      {/* PWA Home Screen Installation Guide */}
-      {showIosGuide && (
-        <div className="pwa-modal-backdrop" onClick={() => setShowIosGuide(false)}>
-          <div className="pwa-modal-sheet" onClick={(e) => e.stopPropagation()}>
-            <div className="pwa-modal-head">
-              <h3>📱 Add OptiPack to Home Screen</h3>
-              <button
-                type="button"
-                className="btn-close-modal"
-                onClick={() => setShowIosGuide(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <p className="muted text-sm">
-              Install as a Progressive Web App on your phone for full-screen camera and fast access:
-            </p>
-            <div className="pwa-steps">
-              <div className="pwa-step">
-                <span className="step-num">1</span>
-                <span>
-                  Tap the <strong>Share</strong> button (<strong>⎋</strong> at bottom of Safari, or <strong>⋮</strong> menu on Chrome).
-                </span>
-              </div>
-              <div className="pwa-step">
-                <span className="step-num">2</span>
-                <span>
-                  Select <strong>"Add to Home Screen"</strong> (Thêm vào MH chính ⊞).
-                </span>
-              </div>
-              <div className="pwa-step">
-                <span className="step-num">3</span>
-                <span>
-                  Tap <strong>Add</strong> in the top-right corner. Done!
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-full-width"
-              style={{ marginTop: 16 }}
-              onClick={() => setShowIosGuide(false)}
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
