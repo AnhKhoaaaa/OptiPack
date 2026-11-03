@@ -40,23 +40,23 @@ _SYNC_CLIENT: Optional[httpx.Client] = None
 _ASYNC_CLIENT: Optional[httpx.AsyncClient] = None
 
 
-def get_sync_http_client(timeout_sec: float = 3.5) -> httpx.Client:
-    """Return persistent HTTP client with connection pooling and keep-alive."""
+def get_sync_http_client(timeout_sec: float = 20.0) -> httpx.Client:
+    """Return persistent HTTP client with connection pooling and realistic Vision LLM timeouts."""
     global _SYNC_CLIENT
     if _SYNC_CLIENT is None or _SYNC_CLIENT.is_closed:
         _SYNC_CLIENT = httpx.Client(
-            timeout=httpx.Timeout(timeout_sec, connect=1.5),
+            timeout=httpx.Timeout(timeout_sec, connect=5.0, read=timeout_sec, write=10.0),
             limits=httpx.Limits(max_keepalive_connections=10, max_connections=20, keepalive_expiry=60.0),
         )
     return _SYNC_CLIENT
 
 
-def get_async_http_client(timeout_sec: float = 3.5) -> httpx.AsyncClient:
-    """Return persistent async HTTP client with connection pooling."""
+def get_async_http_client(timeout_sec: float = 20.0) -> httpx.AsyncClient:
+    """Return persistent async HTTP client with connection pooling and realistic Vision LLM timeouts."""
     global _ASYNC_CLIENT
     if _ASYNC_CLIENT is None or _ASYNC_CLIENT.is_closed:
         _ASYNC_CLIENT = httpx.AsyncClient(
-            timeout=httpx.Timeout(timeout_sec, connect=1.5),
+            timeout=httpx.Timeout(timeout_sec, connect=5.0, read=timeout_sec, write=10.0),
             limits=httpx.Limits(max_keepalive_connections=10, max_connections=20, keepalive_expiry=60.0),
         )
     return _ASYNC_CLIENT
@@ -584,7 +584,7 @@ async def analyze_items_with_muse_spark(
     overview_image_bytes: bytes,
     item_crops: List[Dict[str, Any]],
     model_name: Optional[str] = None,
-    timeout_sec: float = 3.5,
+    timeout_sec: float = 20.0,
 ) -> Dict[str, Any]:
     """Batched semantic extraction for multiple item crops in a single call.
 

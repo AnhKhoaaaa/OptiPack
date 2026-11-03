@@ -493,7 +493,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         {loading && (
           <div className="stage-scan">
             <div className="stage-scan-line" />
-            <span className="stage-scan-label">Processing dual photos and computing 3D metrology…</span>
+            <span className="stage-scan-label">Analyzing items with Meta AI & computing 3D metrology (approx. 8–12s on first run)…</span>
           </div>
         )}
 
