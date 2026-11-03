@@ -61,6 +61,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const topSingleInputRef = useRef<HTMLInputElement | null>(null);
   const obliqueSingleInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraTopInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraObliqueInputRef = useRef<HTMLInputElement | null>(null);
 
   // Measure stage width to scale SVG typography and badges dynamically
   useEffect(() => {
@@ -98,10 +100,23 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     };
   }, []);
 
-  // Start live webcam
+  // Start live webcam or native mobile camera
   const startCamera = async () => {
     setCameraError(null);
     setCameraStep("top");
+
+    // Check if browser supports WebRTC live streaming (desktop or secure HTTPS context)
+    const hasStreamSupport =
+      typeof navigator !== "undefined" &&
+      !!navigator.mediaDevices &&
+      typeof navigator.mediaDevices.getUserMedia === "function";
+
+    if (!hasStreamSupport) {
+      // Mobile Safari / iOS over HTTP: trigger native high-res camera directly
+      cameraTopInputRef.current?.click();
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -120,9 +135,37 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         }
       }, 50);
     } catch (err) {
-      console.error("Camera access failed:", err);
-      setCameraError("Camera unavailable or permission denied. Please upload photos instead.");
-      setMode("upload");
+      console.warn("Webcam live stream unavailable, falling back to native camera:", err);
+      // Fallback to native mobile camera
+      cameraTopInputRef.current?.click();
+    }
+  };
+
+  const handleNativeCameraTop = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    topFileRef.current = file;
+    setTopFile(file);
+    setTopPreview(URL.createObjectURL(file));
+    setCameraStep("oblique");
+    e.target.value = "";
+
+    // Automatically prompt photo 2 after a brief delay
+    setTimeout(() => {
+      cameraObliqueInputRef.current?.click();
+    }, 450);
+  };
+
+  const handleNativeCameraOblique = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setObliqueFile(file);
+    setObliquePreview(URL.createObjectURL(file));
+    e.target.value = "";
+
+    const topBlob = topFileRef.current || topFile;
+    if (topBlob) {
+      triggerAnalysis(topBlob, file);
     }
   };
 
@@ -216,8 +259,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const handleSingleTopChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    topFileRef.current = file;
     setTopFile(file);
     setTopPreview(URL.createObjectURL(file));
+    e.target.value = "";
     if (obliqueFile) {
       triggerAnalysis(file, obliqueFile);
     }
@@ -228,8 +273,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     if (!file) return;
     setObliqueFile(file);
     setObliquePreview(URL.createObjectURL(file));
-    if (topFile) {
-      triggerAnalysis(topFile, file);
+    e.target.value = "";
+    const topBlob = topFileRef.current || topFile;
+    if (topBlob) {
+      triggerAnalysis(topBlob, file);
     }
   };
 
@@ -593,6 +640,23 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         style={{ display: "none" }}
         onChange={handleSingleObliqueChange}
       />
+      {/* Mobile Native Camera Inputs (Zero-permission native camera trigger) */}
+      <input
+        ref={cameraTopInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={handleNativeCameraTop}
+      />
+      <input
+        ref={cameraObliqueInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: "none" }}
+        onChange={handleNativeCameraOblique}
+      />
 
       {/* Bottom Bar when an image is active */}
       {mode !== "camera" && hasCapturedContent && (
@@ -611,11 +675,21 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => obliqueSingleInputRef.current?.click()}
+            onClick={() => (topFile && !obliqueFile ? cameraObliqueInputRef.current?.click() : obliqueSingleInputRef.current?.click())}
             title="Select Oblique (35°-45°) Photo"
           >
             {obliqueFile || obliquePreview ? "✓ Oblique Photo" : "+ Oblique Photo"}
           </button>
+          {topFile && !obliqueFile && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => cameraObliqueInputRef.current?.click()}
+              style={{ marginLeft: "auto" }}
+            >
+              📷 Chụp ảnh 2 (Nghiêng)
+            </button>
+          )}
           {topFile && obliqueFile && (
             <button
               type="button"
