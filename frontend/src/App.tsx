@@ -166,7 +166,7 @@ export const App: React.FC = () => {
         ...(data.calibration?.warnings || []),
       ];
       if (allWarnings.length > 0) {
-        alert("Analysis Notice:\n• " + allWarnings.join("\n• "));
+        console.warn("Analysis Notice:", allWarnings);
       }
     }
   };

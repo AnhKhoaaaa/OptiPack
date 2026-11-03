@@ -1297,3 +1297,34 @@ select {
     height: 44px;
   }
 }
+
+/* Calibration Overlay & Step 2 Highlights */
+.calibration-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  gap: 6px;
+  text-align: center;
+  z-index: 10;
+  animation: fadeIn 0.2s ease;
+}
+
+.camera-step-pill.is-step2 {
+  background: rgba(255, 159, 10, 0.92);
+  color: #1d1d1f;
+  font-weight: 600;
+  box-shadow: 0 0 12px rgba(255, 159, 10, 0.5);
+  animation: pulseStep2 1.5s infinite;
+}
+
+@keyframes pulseStep2 {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}

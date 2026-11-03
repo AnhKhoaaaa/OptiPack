@@ -54,6 +54,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const topFileRef = useRef<File | Blob | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const topSingleInputRef = useRef<HTMLInputElement | null>(null);
   const obliqueSingleInputRef = useRef<HTMLInputElement | null>(null);
@@ -127,6 +128,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         const previewUrl = URL.createObjectURL(blob);
 
         if (step === "top") {
+          topFileRef.current = blob;
           setTopFile(blob);
           setTopPreview(previewUrl);
           setCameraStep("oblique");
@@ -136,8 +138,9 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           stopCameraStream();
           setMode("idle");
 
-          if (topFile) {
-            triggerAnalysis(topFile, blob);
+          const topBlob = topFileRef.current || topFile;
+          if (topBlob) {
+            triggerAnalysis(topBlob, blob);
           }
         }
       },
@@ -310,12 +313,12 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           <div className="camera-viewfinder">
             <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
             <div className="camera-hud">
-              <div className="camera-step-pill">
+              <div className={`camera-step-pill ${cameraStep === "oblique" ? "is-step2" : ""}`}>
                 <span className="camera-dot" />
                 <span>
                   {cameraStep === "top"
-                    ? "Step 1 of 2: Overhead (Top-Down Zenith View)"
-                    : "Step 2 of 2: Tilt 35°–45° (Oblique Side View)"}
+                    ? "Bước 1/2: Đặt góc thẳng trên xuống (Zenith)"
+                    : "✓ Đã chụp ảnh 1! Bước 2/2: Nghiêng 35°–45° rồi bấm chụp"}
                 </span>
               </div>
 
@@ -415,6 +418,25 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   );
                 })}
               </svg>
+            )}
+
+            {!loading && analysis && analysisItems.length === 0 && (
+              <div className="calibration-banner-overlay">
+                <span style={{ fontSize: 28 }}>⚠️</span>
+                <strong>Chưa phát hiện bảng đo chuẩn (Calibration Board)</strong>
+                <p className="muted text-xs" style={{ maxWidth: 280, textAlign: "center", lineHeight: 1.4 }}>
+                  {analysis.global_warnings?.[0] ||
+                    "OptiPack cần bảng A4 có 4 mã ArUco để tính kích thước mm chính xác từ camera."}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ marginTop: 8 }}
+                  onClick={() => handleLoadPreset(1)}
+                >
+                  👉 Bấm vào đây để thử ngay dữ liệu mẫu (Preset 1)
+                </button>
+              </div>
             )}
           </>
         )}
