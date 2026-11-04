@@ -42,3 +42,4 @@ yoloe-*.pt
 mobileclip*_b.ts
 backend/app/cv/segmentation/.cache/
 yoloe-*.onnx
+backend/app/ai/cache/

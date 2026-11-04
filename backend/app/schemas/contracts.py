@@ -109,7 +109,7 @@ class PhysicalAttributes(BaseModel):
     stackable: bool = Field(True, description="True if other items may be placed on top")
     max_top_load_g: Optional[int] = Field(None, ge=0, description="Maximum downward load tolerated in grams")
     visible_labels: List[str] = Field(default_factory=list, description="Detected labels (e.g. Fragile, CE)")
-    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"] = "rigid_box"
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"] = "rigid_box"
     weight_tier: Literal["light", "medium", "heavy"] = "medium"
 
 
@@ -183,7 +183,7 @@ class SolverConfig(BaseModel):
     custom_carton_dimensions: Optional[Dimensions3D] = Field(None, description="Optional custom user-specified carton dimensions in mm")
     user_selected_boxes: List[CartonSpec] = Field(
         default_factory=list,
-        description="User-selected boxes to evaluate via What-If engine"
+        description="User-selected boxes to evaluate via What-If engine from anchor carousel"
     )
 
 
@@ -200,12 +200,14 @@ class PackableItem(BaseModel):
     keep_upright: bool = Field(False, description="If true, restricts orientations to LWH and WLH")
     stackable: bool = Field(True, description="If false, no other item can be stacked on top")
     max_top_load_g: Optional[int] = Field(None, ge=0, description="Maximum downward load tolerated")
-    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"] = "rigid_box"
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"] = "rigid_box"
     weight_tier: Literal["light", "medium", "heavy"] = "medium"
     allowed_rotations: List[RotationCode] = Field(
         default_factory=lambda: [r for r in RotationCode]
     )
     display_color_hex: str = Field("#3B82F6", description="Hex color code for 3D visualization")
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"] = "rigid_box"
+    weight_tier: Literal["light", "medium", "heavy"] = "medium"
 
 
 class PackingRequest(BaseModel):
@@ -285,7 +287,7 @@ class PackingScenarioCard(BaseModel):
     scenario_id: str = Field(..., description="Unique scenario ID, e.g. scenario_user_box_1")
     title: str = Field(..., description="Short title e.g. 'Your Box (Box M)'")
     badge_status: Literal["GREEN", "YELLOW", "RED", "BEST_FIT"] = Field(..., description="Classification badge")
-    carton: CartonSpec = Field(..., description="Carton specification evaluated")
+    carton: Optional[CartonSpec] = Field(None, description="Carton specification evaluated")
     is_user_box: bool = Field(False, description="True if box was selected by user")
     is_selected_default: bool = Field(False, description="True if this scenario is the primary recommended one")
     volume_utilization_pct: float = Field(0.0, ge=0.0, le=100.0, description="Volume utilization percentage")
@@ -315,4 +317,4 @@ class PackingSolutionResponse(BaseModel):
     unpacked_item_ids: List[str] = Field(default_factory=list, description="Items that could not be packed")
     infeasibility_diagnostics: Optional[Dict[str, Any]] = None
     candidate_carton_comparison: List[CandidateCartonEvaluation] = Field(default_factory=list)
-    scenarios: List[PackingScenarioCard] = Field(default_factory=list, description="What-If packing scenario cards")
+    scenarios: List[PackingScenarioCard] = Field(default_factory=list, description="What-If multi-scenario cards (Green/Yellow/Red/BestFit)")

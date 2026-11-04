@@ -350,6 +350,8 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
             box_cost_usd=round(0.50 + (c_dims.length_mm * c_dims.width_mm * c_dims.height_mm / 10_000_000), 2),
         )
         cartons_to_evaluate = [custom_carton]
+    elif request.solver_config.user_selected_boxes:
+        cartons_to_evaluate = request.solver_config.user_selected_boxes
     elif request.solver_config.target_carton_id:
         target_id = request.solver_config.target_carton_id.strip().upper()
         matched = [c for c in STANDARD_CARTONS if c.carton_id.upper() == target_id]

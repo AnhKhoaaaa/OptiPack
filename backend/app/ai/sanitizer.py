@@ -88,7 +88,7 @@ def sanitize_physical_attributes(raw_attrs: Dict[str, Any]) -> PhysicalAttribute
 
     # 2. Material type and Weight tier
     raw_material = str(raw_attrs.get("material_type", "")).strip().lower()
-    if raw_material in ("soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"):
+    if raw_material in ("soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"):
         material_type = raw_material
     else:
         material_type = "rigid_box"

@@ -37,13 +37,13 @@ def test_health_endpoint():
 
 
 def test_catalog_endpoint():
-    """Verify carton catalog endpoint returns all 5 standard cartons."""
+    """Verify carton catalog endpoint returns all standard cartons (BOX-XS through BOX-XXL)."""
     response = client.get("/api/v1/catalog/cartons")
     assert response.status_code == 200
     cartons = response.json()
-    assert len(cartons) == 5
+    assert len(cartons) == 6
     carton_ids = [c["carton_id"] for c in cartons]
-    assert carton_ids == ["BOX-S", "BOX-M", "BOX-L", "BOX-XL", "BOX-XXL"]
+    assert carton_ids == ["BOX-XS", "BOX-S", "BOX-M", "BOX-L", "BOX-XL", "BOX-XXL"]
 
 
 # -----------------------------------------------------------------------------

@@ -395,3 +395,8 @@ def evaluate_what_if_scenarios(
         scenarios[0].is_selected_default = True
 
     return scenarios
+
+
+# Backward compatibility alias
+generate_what_if_scenarios = evaluate_what_if_scenarios
+

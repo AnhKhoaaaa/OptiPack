@@ -8,6 +8,7 @@ interface UploadPanelProps {
     analysis: OrderAnalysisResponse,
     precomputedSolution?: PackingSolutionResponse
   ) => void;
+  onEnterManually?: () => void;
   loading: boolean;
   setLoading: (l: boolean) => void;
   analysis?: OrderAnalysisResponse | null;
@@ -61,8 +62,60 @@ const normalizeToLandscape = (fileOrBlob: File | Blob): Promise<{ blob: Blob; ur
   });
 };
 
+// Helper to match oblique image dimensions with zenith top image
+// to ensure identical width & height for stereo calibration pipeline
+const matchImageDimensions = (
+  referenceBlob: File | Blob,
+  targetBlob: File | Blob
+): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const refUrl = URL.createObjectURL(referenceBlob);
+    const targetUrl = URL.createObjectURL(targetBlob);
+    const refImg = new Image();
+    refImg.onload = () => {
+      const targetW = refImg.naturalWidth;
+      const targetH = refImg.naturalHeight;
+      URL.revokeObjectURL(refUrl);
+
+      const targetImg = new Image();
+      targetImg.onload = () => {
+        URL.revokeObjectURL(targetUrl);
+        if (targetImg.naturalWidth === targetW && targetImg.naturalHeight === targetH) {
+          resolve(targetBlob);
+          return;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(targetImg, 0, 0, targetW, targetH);
+          canvas.toBlob(
+            (b) => resolve(b || targetBlob),
+            "image/jpeg",
+            0.95
+          );
+        } else {
+          resolve(targetBlob);
+        }
+      };
+      targetImg.onerror = () => {
+        URL.revokeObjectURL(targetUrl);
+        resolve(targetBlob);
+      };
+      targetImg.src = targetUrl;
+    };
+    refImg.onerror = () => {
+      URL.revokeObjectURL(refUrl);
+      resolve(targetBlob);
+    };
+    refImg.src = refUrl;
+  });
+};
+
 export const UploadPanel: React.FC<UploadPanelProps> = ({
   onAnalysisLoaded,
+  onEnterManually,
   loading,
   setLoading,
   analysis,
@@ -261,12 +314,22 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     setLoading(true);
     setCameraError(null);
     onReset?.();
+
+    let finalOblique = oblique;
+    if (top && oblique) {
+      try {
+        finalOblique = await matchImageDimensions(top, oblique);
+      } catch (err) {
+        console.warn("[UploadPanel] Error matching dimensions:", err);
+      }
+    }
+
     const formData = new FormData();
     formData.append("top_image", top, "zenith_top.jpg");
-    if (oblique) {
-      formData.append("oblique_image", oblique, "oblique.jpg");
+    if (finalOblique) {
+      formData.append("oblique_image", finalOblique, "oblique.jpg");
     }
-    formData.append("capture_mode", oblique ? "dual_photo" : "zenith_only");
+    formData.append("capture_mode", finalOblique ? "dual_photo" : "zenith_only");
 
     try {
       const data = await OptiPackClient.analyzeOrder(formData);
@@ -442,7 +505,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       </header>
 
       {/* Main Viewport / Stage */}
-      <div className="stage" ref={stageRef}>
+      <div className={`stage ${!analysis && mode !== "camera" ? "is-initial" : ""}`} ref={stageRef}>
         {/* Mode 1: Live Webcam Viewfinder */}
         {mode === "camera" && (
           <div className="camera-viewfinder">
@@ -483,8 +546,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           </div>
         )}
 
-        {/* Mode 3: Captured Photo with AI Bounding Boxes */}
-        {mode !== "camera" && topPreview && (
+        {/* Mode 3: Captured Photo with AI Bounding Boxes (When Analysis is Loaded) */}
+        {mode !== "camera" && analysis && topPreview && (
           <>
             <img
               src={topPreview}
@@ -597,76 +660,228 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
             {!loading && analysis && analysisItems.length === 0 && (
               <div className="calibration-banner-overlay">
-                <span style={{ fontSize: 28 }}>📐</span>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="calib-warn-icon">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
                 <strong>Calibration Board Not Detected</strong>
-                <p className="muted text-xs" style={{ maxWidth: 300, textAlign: "center", lineHeight: 1.4 }}>
+                <p className="muted text-xs" style={{ maxWidth: 320, textAlign: "center", lineHeight: 1.4 }}>
                   {analysis.global_warnings?.[0] ||
                     "OptiPack requires an A4 4-corner ArUco sheet to calculate exact physical millimeters from live photos."}
                 </p>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ marginTop: 8 }}
-                  onClick={handleLoadSamplePhotos}
-                  disabled={loading}
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleLoadSamplePhotos}
+                    disabled={loading}
+                  >
+                    Try sample photos
+                  </button>
+                  {onEnterManually && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={onEnterManually}
+                    >
+                      Enter items manually →
+                    </button>
+                  )}
+                </div>
+                <a
+                  href="/calibration_sheet.png"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs muted"
+                  style={{ marginTop: 8, textDecoration: "underline", display: "inline-flex", alignItems: "center", gap: 4 }}
                 >
-                  Try with benchmark sample photos
-                </button>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  <span>View / Download A4 ArUco Board</span>
+                </a>
               </div>
             )}
           </>
         )}
 
-        {/* Mode 4: Empty Initial State */}
-        {mode !== "camera" && !topPreview && (
-          <div className="stage-empty-clean">
-            <div className="empty-prompt">
-              <span className="empty-icon">📷</span>
-              <h3>Capture Order on Calibration Board</h3>
-              <p className="muted text-sm">
-                Take or upload 2 photos (Top-down & Oblique) to measure items and pack.
-              </p>
-              <div className="empty-actions">
-                <button type="button" className="btn btn-primary" onClick={startCamera}>
-                  Open Camera
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Upload 2 Photos
-                </button>
-              </div>
-              <div className="empty-actions" style={{ marginTop: 8 }}>
-                <button
-                  type="button"
-                  className="btn-link text-xs"
+        {/* Mode 4: Initial eKYC-Style Dual-Card Capture */}
+        {mode !== "camera" && !analysis && (
+          <div className="dual-capture-wrapper">
+            <div className="dual-capture-header">
+              <h3>Capture Order</h3>
+            </div>
+
+            <div className="dual-capture-grid">
+              {/* Box 1: Top-down View (Zenith) */}
+              <div className="slot-col">
+                <div
+                  className={`capture-slot-card ${topPreview ? "has-image" : ""}`}
                   onClick={() => topSingleInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  title="Top-down photo (90° overhead)"
                 >
-                  Pick Top photo…
-                </button>
-                <span className="muted text-xs">·</span>
-                <button
-                  type="button"
-                  className="btn-link text-xs"
-                  onClick={() => obliqueSingleInputRef.current?.click()}
-                >
-                  Pick Oblique photo…
-                </button>
-                <span className="muted text-xs">·</span>
-                <button
-                  type="button"
-                  className="btn-link text-xs"
-                  onClick={handleLoadSamplePhotos}
-                  disabled={loading}
-                  title="Run real end-to-end CV metrology and Meta AI analysis with benchmark sample photos"
-                >
-                  Try with sample photos
-                </button>
+                  <div className="viewfinder-corner top-left" />
+                  <div className="viewfinder-corner top-right" />
+                  <div className="viewfinder-corner bottom-left" />
+                  <div className="viewfinder-corner bottom-right" />
+
+                  {topPreview ? (
+                    <div className="slot-preview-wrapper">
+                      <img src={topPreview} alt="Top view" className="slot-preview-img" />
+                      <div className="slot-badge is-ready">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Top View (90°)</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="slot-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          topSingleInputRef.current?.click();
+                        }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="slot-empty-content">
+                      <div className="slot-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                          <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                      </div>
+                      <h4 className="slot-title">Top View</h4>
+                      <div className="slot-cue-pill">90° Overhead</div>
+                    </div>
+                  )}
+                </div>
               </div>
 
+              {/* Box 2: Oblique View (Side tilt) */}
+              <div className="slot-col">
+                <div
+                  className={`capture-slot-card ${obliquePreview ? "has-image" : ""}`}
+                  onClick={() => obliqueSingleInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  title="Side photo (45° angle)"
+                >
+                  <div className="viewfinder-corner top-left" />
+                  <div className="viewfinder-corner top-right" />
+                  <div className="viewfinder-corner bottom-left" />
+                  <div className="viewfinder-corner bottom-right" />
+
+                  {obliquePreview ? (
+                    <div className="slot-preview-wrapper">
+                      <img src={obliquePreview} alt="Side view" className="slot-preview-img" />
+                      <div className="slot-badge is-ready">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Side View (45°)</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="slot-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          obliqueSingleInputRef.current?.click();
+                        }}
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="slot-empty-content">
+                      <div className="slot-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 22h20"/>
+                          <path d="M2 22 17 7"/>
+                          <path d="M9 22a7 7 0 0 0 7-7"/>
+                        </svg>
+                      </div>
+                      <h4 className="slot-title">Side View</h4>
+                      <div className="slot-cue-pill">45° Angle</div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Bottom Actions / CTA */}
+            <div className="dual-capture-cta">
+              {topFile && obliqueFile ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-lg pulse-cta"
+                  onClick={() => triggerAnalysis(topFile, obliqueFile)}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    "Analyzing…"
+                  ) : (
+                    <span className="btn-icon-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                      <span>Analyze Items</span>
+                    </span>
+                  )}
+                </button>
+              ) : topFile && !obliqueFile ? (
+                <div className="cta-status-prompt">
+                  <span className="cta-dot is-pending" />
+                  <span>Tap right box for <strong>Side View</strong>.</span>
+                </div>
+              ) : !topFile && obliqueFile ? (
+                <div className="cta-status-prompt">
+                  <span className="cta-dot is-pending" />
+                  <span>Tap left box for <strong>Top View</strong>.</span>
+                </div>
+              ) : (
+                <div className="cta-empty-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <span>Upload Photos</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-link text-xs"
+                    onClick={handleLoadSamplePhotos}
+                    disabled={loading}
+                    title="Run with sample photos"
+                  >
+                    Try sample order
+                  </button>
+                  {onEnterManually && (
+                    <button
+                      type="button"
+                      className="btn-link text-xs"
+                      onClick={onEnterManually}
+                      title="Enter dimensions directly without photos"
+                    >
+                      Enter items manually
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <div style={{ textAlign: "center", marginTop: 4 }}>
+              <a
+                href="/calibration_sheet.png"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs muted"
+                style={{ textDecoration: "underline", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <span>Download A4 ArUco Board</span>
+              </a>
+            </div>
+            {cameraError && <p className="camera-err-hint">{cameraError}</p>}
           </div>
         )}
       </div>
@@ -715,7 +930,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       />
 
       {/* Bottom Bar when an image is active */}
-      {mode !== "camera" && hasCapturedContent && (
+      {mode !== "camera" && analysis && hasCapturedContent && (
         <div className="capture-row">
           <button type="button" className="btn btn-secondary btn-sm" onClick={startCamera}>
             📷 Camera

@@ -10,7 +10,7 @@
  */
 
 export type RotationCode = "LWH" | "WLH" | "LHW" | "HLW" | "WHL" | "HWL";
-export type MaterialType = "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other";
+export type MaterialType = "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "plastic" | "other";
 export type WeightTier = "light" | "medium" | "heavy";
 
 export interface Dimensions3D {
@@ -221,8 +221,8 @@ export interface PackingScenarioCard {
   carton?: CartonSpec;
   is_user_box?: boolean;
   is_selected_default?: boolean;
-  volume_utilization_pct: number;
-  feasible: boolean;
+  volume_utilization_pct?: number;
+  feasible?: boolean;
   requires_physical_verification?: boolean;
   overflow_height_mm?: number;
   original_box_height_mm?: number;

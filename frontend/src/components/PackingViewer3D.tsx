@@ -6,6 +6,9 @@ import { mapPlacementToThreeJSFloor } from "../utils/coordinateTransform";
 
 interface PackingViewer3DProps {
   plan: PackingPlan;
+  originalBoxHeightMm?: number;
+  overflowHeightMm?: number;
+  isYellowBulge?: boolean;
 }
 
 type CameraPreset = "iso" | "top" | "front" | "side";
@@ -70,7 +73,12 @@ const createItemTopLabelTexture = (
   return texture;
 };
 
-export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
+export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
+  plan,
+  originalBoxHeightMm,
+  overflowHeightMm,
+  isYellowBulge = false,
+}) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -185,11 +193,49 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     const cartonGeo = new THREE.BoxGeometry(cartonDims.length_mm, cartonDims.height_mm, cartonDims.width_mm);
     const cartonWire = new THREE.LineSegments(
       new THREE.EdgesGeometry(cartonGeo),
-      new THREE.LineBasicMaterial({ color: 0x86868b })
+      new THREE.LineBasicMaterial({ color: isYellowBulge ? 0xd97706 : 0x86868b })
     );
     cartonGeo.dispose();
     cartonWire.position.set(0, cartonDims.height_mm / 2, 0);
     scene.add(cartonWire);
+
+    // If yellow bulge scenario, draw original lid height as amber dashed wireframe & subtle plane
+    if (isYellowBulge && originalBoxHeightMm && originalBoxHeightMm < cartonDims.height_mm) {
+      const halfL = cartonDims.length_mm / 2;
+      const halfW = cartonDims.width_mm / 2;
+      const lidY = originalBoxHeightMm;
+      const bulgePoints = [
+        new THREE.Vector3(-halfL, lidY, -halfW),
+        new THREE.Vector3(halfL, lidY, -halfW),
+        new THREE.Vector3(halfL, lidY, halfW),
+        new THREE.Vector3(-halfL, lidY, halfW),
+        new THREE.Vector3(-halfL, lidY, -halfW),
+      ];
+      const bulgeGeo = new THREE.BufferGeometry().setFromPoints(bulgePoints);
+      const bulgeMat = new THREE.LineDashedMaterial({
+        color: 0xf59e0b,
+        dashSize: 10,
+        gapSize: 6,
+      });
+      const bulgeLine = new THREE.Line(bulgeGeo, bulgeMat);
+      bulgeLine.computeLineDistances();
+      scene.add(bulgeLine);
+
+      // Translucent plane at original lid
+      const lidPlaneGeo = new THREE.PlaneGeometry(cartonDims.length_mm, cartonDims.width_mm);
+      lidPlaneGeo.rotateX(-Math.PI / 2);
+      const lidPlaneMesh = new THREE.Mesh(
+        lidPlaneGeo,
+        new THREE.MeshBasicMaterial({
+          color: 0xf59e0b,
+          transparent: true,
+          opacity: 0.12,
+          side: THREE.DoubleSide,
+        })
+      );
+      lidPlaneMesh.position.y = lidY;
+      scene.add(lidPlaneMesh);
+    }
 
     // Carton floor
     const floorGeo = new THREE.PlaneGeometry(cartonDims.length_mm, cartonDims.width_mm);
@@ -266,6 +312,8 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
     plan.carton.internal_dimensions_mm.length_mm,
     plan.carton.internal_dimensions_mm.width_mm,
     plan.carton.internal_dimensions_mm.height_mm,
+    isYellowBulge,
+    originalBoxHeightMm,
   ]);
 
   // Effect 2: Rebuild item meshes when the step or placements change (camera state is preserved)
@@ -384,6 +432,13 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({ plan }) => {
 
   return (
     <section className="panel panel-flush">
+      {isYellowBulge && (
+        <div className="yellow-bulge-banner">
+          <span>
+            🟡 <strong>Lid Flex:</strong> +{overflowHeightMm ?? 15}mm over rim (amber dashed line). Secure with H-tape.
+          </span>
+        </div>
+      )}
       <header className="panel-head padded">
         <h2>
           Packing <span className="muted">{plan.carton.display_name || plan.carton.carton_id}</span>

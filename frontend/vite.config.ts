@@ -10,6 +10,7 @@ export default defineConfig({
     environment: "node",
   },
   server: {
+    host: true,
     port: 5173,
     proxy: {
       "/api": {
