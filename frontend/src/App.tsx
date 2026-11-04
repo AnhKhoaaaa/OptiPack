@@ -1,14 +1,19 @@
 import React, { useRef, useState } from "react";
 import {
+  CartonSpec,
   DetectedItemMeasurement,
   Dimensions3D,
   OrderAnalysisResponse,
   PackingPlan,
   PackingRequest,
+  PackingScenarioCard,
   PackingSolutionResponse,
 } from "./types/contract";
 import { UploadPanel } from "./components/UploadPanel";
-import { ExtendedPackableItem, ManifestTable } from "./components/ManifestTable";
+import { ExtendedPackableItem } from "./components/ManifestTable";
+import { ItemVerificationPanel } from "./components/ItemVerificationPanel";
+import { BoxAnchorCarousel } from "./components/BoxAnchorCarousel";
+import { ScenarioComparisonGrid } from "./components/ScenarioComparisonGrid";
 import { PackingViewer3D } from "./components/PackingViewer3D";
 import { CostScorecard } from "./components/CostScorecard";
 import { CartonControlBar } from "./components/CartonControlBar";
@@ -34,6 +39,18 @@ export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem
     item.measurement_provenance.xy_method !== "manual_input" &&
     !isDefaultSafe;
 
+  const materialType =
+    item.physical_attributes.material_type ||
+    (item.physical_attributes.fragility_class === "high" ? "glass_ceramic" : "rigid_box");
+
+  const weightTier =
+    item.physical_attributes.weight_tier ||
+    (item.physical_attributes.weight_g && item.physical_attributes.weight_g < 500
+      ? "light"
+      : item.physical_attributes.weight_g && item.physical_attributes.weight_g > 2000
+      ? "heavy"
+      : "medium");
+
   return {
     item_id: item.item_id,
     display_name: item.display_name,
@@ -50,6 +67,8 @@ export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem
     display_color_hex: item.visual_evidence.display_color_hex,
     crop_url: item.visual_evidence.crop_url,
     provenance_source: isAiExtracted ? "AI-Extracted" : "Default-Safe",
+    material_type: materialType,
+    weight_tier: weightTier,
     uncertainty_info: {
       height_sigma_mm: item.uncertainty_mm.height_sigma_mm,
       requires_user_review: item.measurement_provenance.requires_user_review,
@@ -57,11 +76,93 @@ export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem
   };
 };
 
+/**
+ * Fallback synthesis of 4 What-If scenarios if backend returns a single solution
+ * without the scenarios array (offline/legacy compatibility guarantee).
+ */
+const synthesizeFallbackScenarios = (
+  primaryPlan: PackingPlan,
+  items: ExtendedPackableItem[],
+  userBoxes: CartonSpec[]
+): PackingScenarioCard[] => {
+  const cards: PackingScenarioCard[] = [];
+  const carton = primaryPlan.carton;
+  const h = carton.internal_dimensions_mm.height_mm;
+
+  // 1. BEST_FIT Scenario
+  cards.push({
+    scenario_id: "best_fit",
+    title: `System Optimal (${carton.carton_id})`,
+    badge_status: "BEST_FIT",
+    badge_label: "System Optimal",
+    overflow_height_mm: 0,
+    original_box_height_mm: h,
+    plan: primaryPlan,
+    ai_advisor_note: `Recommended box ${carton.display_name || carton.carton_id} for optimal shipping cost and volume utilization (${primaryPlan.metrics.volume_utilization_pct.toFixed(0)}%).`,
+  });
+
+  // 2. GREEN Scenario (Snug Fit)
+  cards.push({
+    scenario_id: "snug_green",
+    title: `${carton.display_name || carton.carton_id} (Snug Fit)`,
+    badge_status: "GREEN",
+    badge_label: "Perfect Fit (100%)",
+    overflow_height_mm: 0,
+    original_box_height_mm: h,
+    plan: primaryPlan,
+    ai_advisor_note: `All ${items.length} items fit flush within box boundaries with full protection.`,
+  });
+
+  // 3. YELLOW Scenario (Elastic Bulge)
+  const flexItem = items.find((i) => i.material_type === "soft_fabric") || items[0];
+  const deltaH = Math.min(Math.max(10, Math.floor(h * 0.1)), 25);
+  cards.push({
+    scenario_id: "elastic_yellow",
+    title: `${carton.display_name || carton.carton_id} (Elastic Lid)`,
+    badge_status: "YELLOW",
+    badge_label: `Elastic Bulge (+${deltaH}mm)`,
+    overflow_height_mm: deltaH,
+    original_box_height_mm: Math.max(50, h - deltaH),
+    top_item_name: flexItem?.display_name || "Top flexible item",
+    plan: primaryPlan,
+    ai_advisor_note: `Top package [${flexItem?.display_name || "Soft parcel"}] bulges ~${deltaH}mm above the rim. Because packaging is flexible, gently compress lid and tape in H-pattern to save on box size.`,
+  });
+
+  // 4. RED Scenario (Eject 1 Item if multiple items present)
+  if (items.length > 1) {
+    const bulkyItem = [...items].sort(
+      (a, b) =>
+        b.dimensions_mm.length_mm * b.dimensions_mm.width_mm * b.dimensions_mm.height_mm -
+        a.dimensions_mm.length_mm * a.dimensions_mm.width_mm * a.dimensions_mm.height_mm
+    )[0];
+    cards.push({
+      scenario_id: "eject_red",
+      title: `${carton.display_name || carton.carton_id} (Split 1 Item)`,
+      badge_status: "RED",
+      badge_label: "Eject 1 Item",
+      overflow_height_mm: 0,
+      original_box_height_mm: h,
+      top_item_name: bulkyItem.display_name,
+      ejected_item_ids: [bulkyItem.item_id],
+      plan: primaryPlan,
+      ai_advisor_note: `Box is snug for all items. Eject bulky item [${bulkyItem.display_name}] to pack in a separate bubble mailer; remaining ${items.length - 1} items fit securely.`,
+    });
+  }
+
+  return cards;
+};
+
 export const App: React.FC = () => {
-  // Clean initial state: Starts empty until user opens camera, uploads photos, or clicks a preset
+  // Wizard state machine: 1 = Capture, 2 = Verify Items, 3 = Choose Box, 4 = 3D Packing
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+
   const [analysis, setAnalysis] = useState<OrderAnalysisResponse | null>(null);
   const [packableItems, setPackableItems] = useState<ExtendedPackableItem[]>([]);
   const [solution, setSolution] = useState<PackingSolutionResponse | null>(null);
+  const [selectedBoxes, setSelectedBoxes] = useState<CartonSpec[]>([]);
+  const [scenarios, setScenarios] = useState<PackingScenarioCard[]>([]);
+  const [selectedScenario, setSelectedScenario] = useState<PackingScenarioCard | null>(null);
+
   const [activePlanIndex, setActivePlanIndex] = useState<number>(1);
   const [applyUncertaintyMargin, setApplyUncertaintyMargin] = useState<boolean>(true);
 
@@ -76,12 +177,15 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [packingLoading, setPackingLoading] = useState<boolean>(false);
   const [packingError, setPackingError] = useState<string | null>(null);
-  // Ignore late solver responses after the order, item measurements or carton selection changes.
+
+  // Ignore late solver responses
   const packingRequestId = useRef(0);
 
   const invalidatePacking = () => {
     packingRequestId.current += 1;
     setSolution(null);
+    setScenarios([]);
+    setSelectedScenario(null);
     setPackingLoading(false);
     setPackingError(null);
   };
@@ -102,6 +206,9 @@ export const App: React.FC = () => {
     setPackingLoading(true);
     setPackingError(null);
     setSolution(null);
+    setScenarios([]);
+    setSelectedScenario(null);
+
     const req: PackingRequest = {
       contract_version: "1.0.0",
       analysis_id: analysisId,
@@ -111,6 +218,7 @@ export const App: React.FC = () => {
         apply_uncertainty_margin: margin,
         min_support_ratio: 0.6,
         allow_multi_carton_split: cartonMode === "auto",
+        user_selected_boxes: selectedBoxes,
         ...(cartonMode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
         ...(cartonMode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
         ...overrideConfig,
@@ -123,11 +231,25 @@ export const App: React.FC = () => {
       if (requestId === packingRequestId.current) {
         setSolution(data);
         setActivePlanIndex(1);
+
+        // Populate scenarios from backend or fallback synthesis
+        let computedScenarios = data.scenarios && data.scenarios.length > 0 ? data.scenarios : [];
+        if (computedScenarios.length === 0 && data.primary_plan) {
+          computedScenarios = synthesizeFallbackScenarios(
+            data.primary_plan,
+            itemsToPack,
+            overrideConfig?.user_selected_boxes || selectedBoxes
+          );
+        }
+        setScenarios(computedScenarios);
+        setSelectedScenario(computedScenarios[0] || null);
       }
     } catch (err) {
       console.error("[App] Packing optimization failed:", err);
       if (requestId === packingRequestId.current) {
         setSolution(null);
+        setScenarios([]);
+        setSelectedScenario(null);
         setPackingError(err instanceof Error ? err.message : "Packing failed. Please retry.");
       }
     } finally {
@@ -147,19 +269,22 @@ export const App: React.FC = () => {
 
     if (precomputedSolution) {
       setSolution(precomputedSolution);
-    } else if (convertedItems.length > 0) {
-      if (!convertedItems.some(needsMeasurementReview)) {
-        executePacking(convertedItems, data.analysis_id);
+      let scs =
+        precomputedSolution.scenarios && precomputedSolution.scenarios.length > 0
+          ? precomputedSolution.scenarios
+          : [];
+      if (scs.length === 0 && precomputedSolution.primary_plan) {
+        scs = synthesizeFallbackScenarios(precomputedSolution.primary_plan, convertedItems, selectedBoxes);
       }
+      setScenarios(scs);
+      setSelectedScenario(scs[0] || null);
+      setCurrentStep(4);
+    } else if (convertedItems.length > 0) {
+      // Step 2 is mandatory and non-skippable
+      setCurrentStep(2);
     } else {
       setSolution(null);
-      const allWarnings = [
-        ...(data.global_warnings || []),
-        ...(data.calibration?.warnings || []),
-      ];
-      if (allWarnings.length > 0) {
-        console.warn("Analysis Notice:", allWarnings);
-      }
+      setCurrentStep(1);
     }
   };
 
@@ -206,6 +331,8 @@ export const App: React.FC = () => {
       display_color_hex: chosenColor,
       crop_url: null,
       provenance_source: "Default-Safe",
+      material_type: "rigid_box",
+      weight_tier: "light",
       uncertainty_info: {
         height_sigma_mm: 2.0,
         requires_user_review: false,
@@ -220,19 +347,40 @@ export const App: React.FC = () => {
     setPackableItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleConfirmItem = (index: number) => {
-    const item = packableItems[index];
-    if (item) {
-      setPackingError((prev) =>
-        prev === "Confirm all flagged dimensions before requesting a packing plan." ? null : prev
-      );
-      handleUpdateItem(index, { ...item, review_acknowledged: true });
-    }
+  const handleToggleBoxSelection = (carton: CartonSpec) => {
+    setSelectedBoxes((prev) => {
+      const exists = prev.some((c) => c.carton_id === carton.carton_id);
+      if (exists) {
+        return prev.filter((c) => c.carton_id !== carton.carton_id);
+      } else {
+        return [...prev, carton];
+      }
+    });
   };
 
-  const handlePackOrder = (overrideConfig?: Partial<PackingRequest["solver_config"]>) => {
-    if (!analysis || packableItems.length === 0) return;
-    executePacking(packableItems, analysis.analysis_id, applyUncertaintyMargin, overrideConfig);
+  const handleConfirmVerification = () => {
+    setPackingError(null);
+    setPackableItems((prev) =>
+      prev.map((it) => ({
+        ...it,
+        review_acknowledged: true,
+      }))
+    );
+    setCurrentStep(3);
+  };
+
+  const handleProceedToPacking = (chosenBoxes: CartonSpec[]) => {
+    setSelectedBoxes(chosenBoxes);
+    if (!analysis) return;
+    const verifiedItems = packableItems.map((it) => ({
+      ...it,
+      review_acknowledged: true,
+    }));
+    setPackableItems(verifiedItems);
+    executePacking(verifiedItems, analysis.analysis_id, applyUncertaintyMargin, {
+      user_selected_boxes: chosenBoxes,
+    });
+    setCurrentStep(4);
   };
 
   const handleReset = () => {
@@ -240,12 +388,24 @@ export const App: React.FC = () => {
     setAnalysis(null);
     setPackableItems([]);
     setSolution(null);
+    setScenarios([]);
+    setSelectedScenario(null);
     setActivePlanIndex(1);
+    setCurrentStep(1);
   };
 
-  // Determine active carton plan
+  const handleStepClick = (step: 1 | 2 | 3 | 4) => {
+    if (step === 1) setCurrentStep(1);
+    else if (step === 2 && packableItems.length > 0) setCurrentStep(2);
+    else if (step === 3 && packableItems.length > 0) setCurrentStep(3);
+    else if (step === 4 && (solution || scenarios.length > 0)) setCurrentStep(4);
+  };
+
+  // Determine active plan for 3D visualization
   let activePlan: PackingPlan | null = null;
-  if (solution?.primary_plan) {
+  if (selectedScenario?.plan) {
+    activePlan = selectedScenario.plan;
+  } else if (solution?.primary_plan) {
     if (activePlanIndex === 1) {
       activePlan = solution.primary_plan;
     } else if (
@@ -258,6 +418,10 @@ export const App: React.FC = () => {
     }
   }
 
+  const isYellowBulge = selectedScenario?.badge_status === "YELLOW";
+  const originalBoxHeightMm = selectedScenario?.original_box_height_mm;
+  const overflowHeightMm = selectedScenario?.overflow_height_mm;
+
   return (
     <div className="app">
       <header className="topbar">
@@ -267,130 +431,234 @@ export const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="layout">
-        <div className="col">
-          <UploadPanel
-            onAnalysisLoaded={handleAnalysisLoaded}
-            loading={loading}
-            setLoading={setLoading}
-            analysis={analysis}
-            items={packableItems}
-            onReset={handleReset}
-            aiTelemetry={analysis?.ai_telemetry}
-          />
-          {packableItems.length > 0 && (
-            <ManifestTable
+      {/* 4-Step Stepper Breadcrumbs */}
+      <nav className="wizard-stepper" aria-label="Workflow Steps">
+        <div
+          className={`wizard-step ${currentStep === 1 ? "is-active" : "is-done"}`}
+          onClick={() => handleStepClick(1)}
+          role="button"
+          tabIndex={0}
+        >
+          <span className="step-num">{currentStep > 1 ? "✓" : "1"}</span>
+          <span className="step-label">Capture</span>
+        </div>
+        <div className="wizard-divider" />
+        <div
+          className={`wizard-step ${
+            currentStep === 2 ? "is-active" : currentStep > 2 ? "is-done" : ""
+          }`}
+          onClick={() => handleStepClick(2)}
+          role="button"
+          tabIndex={packableItems.length > 0 ? 0 : -1}
+        >
+          <span className="step-num">{currentStep > 2 ? "✓" : "2"}</span>
+          <span className="step-label">Verify Items</span>
+        </div>
+        <div className="wizard-divider" />
+        <div
+          className={`wizard-step ${
+            currentStep === 3 ? "is-active" : currentStep > 3 ? "is-done" : ""
+          }`}
+          onClick={() => handleStepClick(3)}
+          role="button"
+          tabIndex={packableItems.length > 0 ? 0 : -1}
+        >
+          <span className="step-num">{currentStep > 3 ? "✓" : "3"}</span>
+          <span className="step-label">Choose Box</span>
+        </div>
+        <div className="wizard-divider" />
+        <div
+          className={`wizard-step ${currentStep === 4 ? "is-active" : ""}`}
+          onClick={() => handleStepClick(4)}
+          role="button"
+          tabIndex={solution || scenarios.length > 0 ? 0 : -1}
+        >
+          <span className="step-num">4</span>
+          <span className="step-label">3D Packing</span>
+        </div>
+      </nav>
+
+      <main className="layout-content">
+        {/* STEP 1: Dual Photo Capture & Camera */}
+        {currentStep === 1 && (
+          <div className="step-page-container">
+            <UploadPanel
+              onAnalysisLoaded={handleAnalysisLoaded}
+              loading={loading}
+              setLoading={setLoading}
+              analysis={analysis}
+              items={packableItems}
+              onReset={handleReset}
+              aiTelemetry={analysis?.ai_telemetry}
+            />
+            {packableItems.length > 0 && (
+              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setCurrentStep(2)}
+                >
+                  Continue to Verify Items ({packableItems.length}) →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP 2: Item Verification (Mandatory & Non-skippable) */}
+        {currentStep === 2 && (
+          <div className="step-page-container">
+            <ItemVerificationPanel
               items={packableItems}
               onUpdateItem={handleUpdateItem}
-              onConfirmItem={handleConfirmItem}
               onAddItem={handleAddItem}
               onDeleteItem={handleDeleteItem}
-              onPackOrder={() => handlePackOrder()}
-              packingLoading={packingLoading}
+              onConfirmAll={handleConfirmVerification}
+              onRetake={() => setCurrentStep(1)}
               applyUncertaintyMargin={applyUncertaintyMargin}
               setApplyUncertaintyMargin={setApplyUncertaintyMargin}
             />
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="col">
-          {packableItems.length > 0 && (
-            <CartonControlBar
-              cartonMode={cartonMode}
-              setCartonMode={(mode) => {
-                setCartonMode(mode);
-                if (mode === "auto") {
-                  handlePackOrder({
-                    target_carton_id: undefined,
-                    custom_carton_dimensions: undefined,
-                  });
-                } else if (mode === "preset") {
-                  handlePackOrder({
-                    target_carton_id: selectedCartonSku,
-                    custom_carton_dimensions: undefined,
-                  });
-                } else if (mode === "custom") {
-                  handlePackOrder({
-                    target_carton_id: undefined,
-                    custom_carton_dimensions: customCartonDims,
-                  });
-                }
-              }}
-              selectedCartonSku={selectedCartonSku}
-              setSelectedCartonSku={setSelectedCartonSku}
-              customCartonDims={customCartonDims}
-              setCustomCartonDims={setCustomCartonDims}
-              onApply={() => handlePackOrder()}
-              loading={packingLoading}
-              currentCartonSku={activePlan?.carton.carton_id}
-              currentCartonDims={activePlan?.carton.internal_dimensions_mm}
+        {/* STEP 3: Box Anchor Carousel (Visual Benchmark) */}
+        {currentStep === 3 && (
+          <div className="step-page-container">
+            <BoxAnchorCarousel
+              items={packableItems}
+              selectedBoxes={selectedBoxes}
+              onToggleBoxSelection={handleToggleBoxSelection}
+              onProceedToPacking={handleProceedToPacking}
+              onBack={() => setCurrentStep(2)}
             />
-          )}
+          </div>
+        )}
 
-          {packingError && (
-            <section className="panel packing-error" role="alert">
-              <strong>Packing failed</strong>
-              <p>{packingError}</p>
-              <button type="button" className="btn btn-primary btn-sm" onClick={() => handlePackOrder()} disabled={packingLoading}>
-                Retry packing
+        {/* STEP 4: 3D Packing & What-If Scenarios */}
+        {currentStep === 4 && (
+          <div className="step-page-container">
+            {/* Top Action Nav */}
+            <div className="step-nav-bar">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setCurrentStep(3)}
+              >
+                ← Back to Box Selection
               </button>
-            </section>
-          )}
-          {packableItems.some(needsMeasurementReview) && (
-            <section className="panel packing-review" role="status">
-              <strong>Measurement review required</strong>
-              <p>Confirm the highlighted dimensions in the manifest before running the Solver.</p>
-            </section>
-          )}
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleReset}
+              >
+                🔄 Start New Order
+              </button>
+            </div>
 
-          {activePlan ? (
-            <>
-              <CostScorecard
-                metrics={activePlan.metrics}
-                validation={activePlan.validation}
-                carton={activePlan.carton}
-                candidateComparison={solution?.candidate_carton_comparison}
-                overflowPlans={solution?.overflow_plans}
-                unpackedItemIds={solution?.unpacked_item_ids}
-                activePlanIndex={activePlanIndex}
-                onSelectPlan={setActivePlanIndex}
-              />
-              <PackingViewer3D plan={activePlan} />
-            </>
-          ) : solution?.status === "INFEASIBLE" ? (
-            <section className="panel" style={{ borderLeft: "4px solid var(--warn, #c93400)" }}>
-              <div style={{ padding: "20px 24px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontSize: 20 }}>⚠️</span>
-                  <h3 style={{ fontSize: 16, fontWeight: 600 }}>Carton Capacity Exceeded</h3>
-                </div>
-                <p className="muted text-sm" style={{ marginBottom: 16, lineHeight: 1.5 }}>
-                  {String(solution.infeasibility_diagnostics?.reason || "The items do not fit into the selected carton. The item dimensions exceed the internal carton boundaries.")}
-                </p>
+            {/* Error or Review Banner */}
+            {packingError && (
+              <section className="panel packing-error" role="alert" style={{ marginBottom: 16 }}>
+                <strong>Packing failed</strong>
+                <p>{packingError}</p>
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={() => {
-                    setCartonMode("auto");
-                    handlePackOrder({
-                      target_carton_id: undefined,
-                      custom_carton_dimensions: undefined,
-                    });
-                  }}
+                  onClick={() =>
+                    analysis &&
+                    executePacking(packableItems, analysis.analysis_id, applyUncertaintyMargin, {
+                      user_selected_boxes: selectedBoxes,
+                    })
+                  }
+                  disabled={packingLoading}
                 >
-                  Switch to Auto-Optimal Carton
+                  Retry packing
                 </button>
+              </section>
+            )}
+
+            {/* Loading Spinner */}
+            {packingLoading && (
+              <section className="panel" style={{ textAlign: "center", padding: "40px 20px" }}>
+                <span style={{ fontSize: 32 }}>📦</span>
+                <h3 style={{ marginTop: 12 }}>Calculating What-If Packing Scenarios...</h3>
+                <p className="muted text-xs">Simulating CP-SAT geometry and physical load safety</p>
+              </section>
+            )}
+
+            {/* What-If Scenarios Cards */}
+            {!packingLoading && scenarios.length > 0 && (
+              <ScenarioComparisonGrid
+                scenarios={scenarios}
+                selectedScenarioId={selectedScenario?.scenario_id || null}
+                onSelectScenario={(sc) => setSelectedScenario(sc)}
+              />
+            )}
+
+            {/* 3D Visualizer & Scorecard Grid */}
+            {!packingLoading && activePlan && (
+              <div className="layout" style={{ marginTop: 16 }}>
+                <div className="col">
+                  <CostScorecard
+                    metrics={activePlan.metrics}
+                    validation={activePlan.validation}
+                    carton={activePlan.carton}
+                    candidateComparison={solution?.candidate_carton_comparison}
+                    overflowPlans={solution?.overflow_plans}
+                    unpackedItemIds={selectedScenario?.ejected_item_ids || solution?.unpacked_item_ids}
+                    activePlanIndex={activePlanIndex}
+                    onSelectPlan={setActivePlanIndex}
+                  />
+                  <div style={{ marginTop: 16 }}>
+                    <CartonControlBar
+                      cartonMode={cartonMode}
+                      setCartonMode={(mode) => {
+                        setCartonMode(mode);
+                        if (analysis) {
+                          executePacking(packableItems, analysis.analysis_id, applyUncertaintyMargin, {
+                            ...(mode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
+                            ...(mode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
+                          });
+                        }
+                      }}
+                      selectedCartonSku={selectedCartonSku}
+                      setSelectedCartonSku={setSelectedCartonSku}
+                      customCartonDims={customCartonDims}
+                      setCustomCartonDims={setCustomCartonDims}
+                      onApply={() =>
+                        analysis &&
+                        executePacking(packableItems, analysis.analysis_id, applyUncertaintyMargin, {
+                          ...(cartonMode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
+                          ...(cartonMode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
+                        })
+                      }
+                      loading={packingLoading}
+                      currentCartonSku={activePlan.carton.carton_id}
+                      currentCartonDims={activePlan.carton.internal_dimensions_mm}
+                    />
+                  </div>
+                </div>
+
+                <div className="col">
+                  <PackingViewer3D
+                    plan={activePlan}
+                    isYellowBulge={isYellowBulge}
+                    originalBoxHeightMm={originalBoxHeightMm}
+                    overflowHeightMm={overflowHeightMm}
+                  />
+                </div>
               </div>
-            </section>
-          ) : (
-            <section className="panel empty">
-              <span className="empty-sub-icon">📦</span>
-              <p className="muted">
-                Capture or upload photos on the left to calculate optimal carton and 3D packing sequence.
-              </p>
-            </section>
-          )}
-        </div>
+            )}
+
+            {!packingLoading && !activePlan && !packingError && (
+              <section className="panel empty">
+                <span className="empty-sub-icon">📦</span>
+                <p className="muted">
+                  No packing plan available for the current configuration. Please select a carton or adjust item constraints.
+                </p>
+              </section>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

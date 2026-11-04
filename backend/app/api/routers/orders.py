@@ -18,6 +18,7 @@ from backend.app.schemas.contracts import (
     AITelemetry, OrderAnalysisResponse, PackingRequest, PackingSolutionResponse,
 )
 from backend.app.solver.cpsat_solver import solve_packing
+from backend.app.solver.what_if_engine import generate_what_if_scenarios
 
 
 router = APIRouter(prefix="/orders", tags=["Orders & Packing"])
@@ -185,5 +186,16 @@ async def analyze_order(
 
 @router.post("/pack", response_model=PackingSolutionResponse)
 async def pack_order(request: PackingRequest) -> PackingSolutionResponse:
-    """Run the existing 3D cartonization solver, unchanged."""
-    return solve_packing(request)
+    """Run 3D cartonization solver and generate What-If scenario cards."""
+    solution = solve_packing(request)
+    try:
+        user_boxes = request.solver_config.user_selected_boxes or []
+        solution.scenarios = generate_what_if_scenarios(
+            items=request.items,
+            user_boxes=user_boxes,
+            base_solution=solution,
+            solver_config=request.solver_config,
+        )
+    except Exception:
+        solution.scenarios = []
+    return solution

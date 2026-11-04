@@ -69,6 +69,8 @@ export interface PhysicalAttributes {
   stackable: boolean;
   max_top_load_g: number | null;
   visible_labels: string[];
+  material_type?: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other";
+  weight_tier?: "light" | "medium" | "heavy";
 }
 
 export interface VisualEvidence {
@@ -117,6 +119,7 @@ export interface SolverConfig {
   allow_multi_carton_split: boolean;
   target_carton_id?: string;
   custom_carton_dimensions?: Dimensions3D;
+  user_selected_boxes?: CartonSpec[];
 }
 
 export interface PackableItem {
@@ -133,6 +136,8 @@ export interface PackableItem {
   max_top_load_g: number | null;
   allowed_rotations: RotationCode[];
   display_color_hex: string;
+  material_type?: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other";
+  weight_tier?: "light" | "medium" | "heavy";
 }
 
 export interface PackingRequest {
@@ -206,6 +211,20 @@ export interface CandidateCartonEvaluation {
   rejection_reason?: string;
 }
 
+export interface PackingScenarioCard {
+  scenario_id: string;
+  title: string;
+  badge_status: "GREEN" | "YELLOW" | "RED" | "BEST_FIT";
+  badge_label: string;
+  overflow_height_mm?: number;
+  original_box_height_mm?: number;
+  top_item_name?: string;
+  ejected_item_ids?: string[];
+  ai_advisor_note?: string;
+  plan?: PackingPlan | null;
+  overflow_plans?: PackingPlan[];
+}
+
 export interface PackingSolutionResponse {
   contract_version: string;
   status: "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "TIMEOUT_FALLBACK";
@@ -217,4 +236,5 @@ export interface PackingSolutionResponse {
   unpacked_item_ids: string[];
   infeasibility_diagnostics?: Record<string, unknown> | null;
   candidate_carton_comparison: CandidateCartonEvaluation[];
+  scenarios?: PackingScenarioCard[];
 }
