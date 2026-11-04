@@ -1738,6 +1738,12 @@ select {
   font-weight: 600;
 }
 
+.wizard-step.is-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .step-num {
   width: 20px;
   height: 20px;

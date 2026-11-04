@@ -77,84 +77,37 @@ export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem
 };
 
 /**
- * Fallback synthesis of 4 What-If scenarios if backend returns a single solution
- * without the scenarios array (offline/legacy compatibility guarantee).
+ * Extract verified packing scenarios.
+ * Uses official solver-verified scenarios from backend what_if_engine.
+ * If backend returns only a single primary_plan without scenarios,
+ * returns only that single verified solution as Snug Fit.
+ * Never synthesizes unverified fake compression or fake ejection on frontend.
  */
-const synthesizeFallbackScenarios = (
+const getVerifiedScenarios = (
   primaryPlan: PackingPlan,
-  items: ExtendedPackableItem[],
-  userBoxes: CartonSpec[]
+  backendScenarios?: PackingScenarioCard[]
 ): PackingScenarioCard[] => {
-  const cards: PackingScenarioCard[] = [];
-  const carton = primaryPlan.carton;
-  const h = carton.internal_dimensions_mm.height_mm;
-
-  // 1. BEST_FIT Scenario
-  cards.push({
-    scenario_id: "best_fit",
-    title: `Best Fit · ${carton.carton_id}`,
-    badge_status: "BEST_FIT",
-    badge_label: "Best Fit",
-    overflow_height_mm: 0,
-    original_box_height_mm: h,
-    plan: primaryPlan,
-    ai_advisor_note: `Optimal fit with lowest shipping cost.`,
-  });
-
-  // 2. GREEN Scenario (Snug Fit)
-  cards.push({
-    scenario_id: "snug_green",
-    title: `Snug Fit · ${carton.carton_id}`,
-    badge_status: "GREEN",
-    badge_label: "Snug Fit",
-    overflow_height_mm: 0,
-    original_box_height_mm: h,
-    plan: primaryPlan,
-    ai_advisor_note: `All ${items.length} items fit flush inside.`,
-  });
-
-  // 3. YELLOW Scenario (Elastic Bulge)
-  const flexItem = items.find((i) => i.material_type === "soft_fabric") || items[0];
-  const deltaH = Math.min(Math.max(10, Math.floor(h * 0.1)), 25);
-  cards.push({
-    scenario_id: "elastic_yellow",
-    title: `Lid Flex · ${carton.carton_id}`,
-    badge_status: "YELLOW",
-    badge_label: `Lid Flex (+${deltaH}mm)`,
-    overflow_height_mm: deltaH,
-    original_box_height_mm: Math.max(50, h - deltaH),
-    top_item_name: flexItem?.display_name || "flexible item",
-    plan: primaryPlan,
-    ai_advisor_note: `Lid flexes +${deltaH}mm over soft item. Secure with H-tape.`,
-  });
-
-  // 4. RED Scenario (Eject 1 Item if multiple items present)
-  if (items.length > 1) {
-    const bulkyItem = [...items].sort(
-      (a, b) =>
-        b.dimensions_mm.length_mm * b.dimensions_mm.width_mm * b.dimensions_mm.height_mm -
-        a.dimensions_mm.length_mm * a.dimensions_mm.width_mm * a.dimensions_mm.height_mm
-    )[0];
-    cards.push({
-      scenario_id: "eject_red",
-      title: `Split Item · ${carton.carton_id}`,
-      badge_status: "RED",
-      badge_label: "Split Item",
-      overflow_height_mm: 0,
-      original_box_height_mm: h,
-      top_item_name: bulkyItem.display_name,
-      ejected_item_ids: [bulkyItem.item_id],
-      plan: primaryPlan,
-      ai_advisor_note: `Ship [${bulkyItem.display_name}] separately in a mailer bag.`,
-    });
+  if (backendScenarios && backendScenarios.length > 0) {
+    return backendScenarios;
   }
-
-  return cards;
+  return [
+    {
+      scenario_id: "default_verified_plan",
+      title: `Snug Fit · ${primaryPlan.carton.carton_id}`,
+      badge_status: "GREEN",
+      badge_label: "Snug Fit",
+      overflow_height_mm: 0,
+      original_box_height_mm: primaryPlan.carton.internal_dimensions_mm.height_mm,
+      plan: primaryPlan,
+      ai_advisor_note: `Solver-verified optimal fit for ${primaryPlan.metrics.total_items_packed} item(s).`,
+    },
+  ];
 };
 
 export const App: React.FC = () => {
   // Wizard state machine: 1 = Capture, 2 = Verify Items, 3 = Choose Box, 4 = 3D Packing
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  const [itemsReviewed, setItemsReviewed] = useState<boolean>(false);
 
   const [analysis, setAnalysis] = useState<OrderAnalysisResponse | null>(null);
   const [packableItems, setPackableItems] = useState<ExtendedPackableItem[]>([]);
@@ -232,15 +185,10 @@ export const App: React.FC = () => {
         setSolution(data);
         setActivePlanIndex(1);
 
-        // Populate scenarios from backend or fallback synthesis
-        let computedScenarios = data.scenarios && data.scenarios.length > 0 ? data.scenarios : [];
-        if (computedScenarios.length === 0 && data.primary_plan) {
-          computedScenarios = synthesizeFallbackScenarios(
-            data.primary_plan,
-            itemsToPack,
-            overrideConfig?.user_selected_boxes || selectedBoxes
-          );
-        }
+        // Populate verified scenarios from backend
+        const computedScenarios = data.primary_plan
+          ? getVerifiedScenarios(data.primary_plan, data.scenarios)
+          : data.scenarios || [];
         setScenarios(computedScenarios);
         setSelectedScenario(computedScenarios[0] || null);
       }
@@ -266,21 +214,20 @@ export const App: React.FC = () => {
     const convertedItems: ExtendedPackableItem[] = data.items.map(convertItem);
     setPackableItems(convertedItems);
     setActivePlanIndex(1);
+    setItemsReviewed(false);
 
     if (precomputedSolution) {
       setSolution(precomputedSolution);
-      let scs =
-        precomputedSolution.scenarios && precomputedSolution.scenarios.length > 0
-          ? precomputedSolution.scenarios
-          : [];
-      if (scs.length === 0 && precomputedSolution.primary_plan) {
-        scs = synthesizeFallbackScenarios(precomputedSolution.primary_plan, convertedItems, selectedBoxes);
-      }
+      const scs = precomputedSolution.primary_plan
+        ? getVerifiedScenarios(precomputedSolution.primary_plan, precomputedSolution.scenarios)
+        : precomputedSolution.scenarios || [];
       setScenarios(scs);
       setSelectedScenario(scs[0] || null);
-      setCurrentStep(4);
-    } else if (convertedItems.length > 0) {
-      // Step 2 is mandatory and non-skippable
+    }
+
+    // Step 2 is ALWAYS mandatory and cannot be bypassed.
+    // User must verify items, materials, and constraints before proceeding.
+    if (convertedItems.length > 0) {
       setCurrentStep(2);
     } else {
       setSolution(null);
@@ -366,6 +313,7 @@ export const App: React.FC = () => {
 
   const handleConfirmVerification = () => {
     setPackingError(null);
+    setItemsReviewed(true);
     setPackableItems((prev) =>
       prev.map((it) => ({
         ...it,
@@ -408,9 +356,10 @@ export const App: React.FC = () => {
       display_color_hex: "#0071e3",
       crop_url: null,
       provenance_source: "Default-Safe",
-      review_acknowledged: true,
+      review_acknowledged: false,
     };
     setPackableItems([defaultItem]);
+    setItemsReviewed(false);
     setCurrentStep(2);
   };
 
@@ -418,6 +367,7 @@ export const App: React.FC = () => {
     invalidatePacking();
     setAnalysis(null);
     setPackableItems([]);
+    setItemsReviewed(false);
     setSolution(null);
     setScenarios([]);
     setSelectedScenario(null);
@@ -428,8 +378,8 @@ export const App: React.FC = () => {
   const handleStepClick = (step: 1 | 2 | 3 | 4) => {
     if (step === 1) setCurrentStep(1);
     else if (step === 2 && packableItems.length > 0) setCurrentStep(2);
-    else if (step === 3 && packableItems.length > 0) setCurrentStep(3);
-    else if (step === 4 && (solution || scenarios.length > 0)) setCurrentStep(4);
+    else if (step === 3 && packableItems.length > 0 && itemsReviewed) setCurrentStep(3);
+    else if (step === 4 && itemsReviewed && (solution || scenarios.length > 0)) setCurrentStep(4);
   };
 
   // Determine active plan for 3D visualization
@@ -488,21 +438,25 @@ export const App: React.FC = () => {
         <div className="wizard-divider" />
         <div
           className={`wizard-step ${
-            currentStep === 3 ? "is-active" : currentStep > 3 ? "is-done" : ""
+            currentStep === 3 ? "is-active" : currentStep > 3 ? "is-done" : !itemsReviewed ? "is-disabled" : ""
           }`}
           onClick={() => handleStepClick(3)}
           role="button"
-          tabIndex={packableItems.length > 0 ? 0 : -1}
+          tabIndex={itemsReviewed ? 0 : -1}
+          aria-disabled={!itemsReviewed}
         >
           <span className="step-num">{currentStep > 3 ? "✓" : "3"}</span>
           <span className="step-label">Boxes</span>
         </div>
         <div className="wizard-divider" />
         <div
-          className={`wizard-step ${currentStep === 4 ? "is-active" : ""}`}
+          className={`wizard-step ${
+            currentStep === 4 ? "is-active" : !itemsReviewed ? "is-disabled" : ""
+          }`}
           onClick={() => handleStepClick(4)}
           role="button"
-          tabIndex={solution || scenarios.length > 0 ? 0 : -1}
+          tabIndex={itemsReviewed && (solution || scenarios.length > 0) ? 0 : -1}
+          aria-disabled={!itemsReviewed || (!solution && scenarios.length === 0)}
         >
           <span className="step-num">4</span>
           <span className="step-label">3D Pack</span>
@@ -688,15 +642,38 @@ export const App: React.FC = () => {
             )}
 
             {!packingLoading && !activePlan && !packingError && (
-              <section className="panel empty" style={{ textAlign: "center", padding: "40px 20px" }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="empty-sub-icon">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                  <line x1="12" y1="22.08" x2="12" y2="12" />
-                </svg>
-                <p className="muted" style={{ marginTop: 8 }}>
-                  No packing plan available for the current configuration. Please select a carton or adjust item constraints.
+              <section className="panel empty" style={{ textAlign: "center", padding: "36px 20px" }}>
+                <div style={{ display: "inline-flex", padding: 12, borderRadius: "50%", background: "rgba(255, 159, 10, 0.12)", color: "#ff9f0a", marginBottom: 12 }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text)" }}>Box Too Small for Selected Items</h3>
+                <p className="muted text-sm" style={{ maxWidth: 440, margin: "8px auto 20px", lineHeight: 1.5 }}>
+                  The selected carton cannot fit the items in this order. Please choose a larger box from our catalog or adjust custom dimensions.
                 </p>
+                <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setCurrentStep(3)}
+                  >
+                    ← Choose Larger Box
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      executePacking(packableItems, analysis?.analysis_id || "manual_order", applyUncertaintyMargin, {
+                        target_carton_id: "BOX-L",
+                      });
+                    }}
+                  >
+                    Auto-Fit: Large Carton (BOX-L) →
+                  </button>
+                </div>
               </section>
             )}
           </div>
