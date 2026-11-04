@@ -26,6 +26,7 @@ interface CartonMeta {
 }
 
 export const STANDARD_CARTON_SPECS: Record<string, CartonMeta> = {
+  "BOX-XS": { dimensions: "160 × 110 × 70 mm", volumeL: 1.2, maxPayloadKg: 1.5, name: "Mini Mailer Box" },
   "BOX-S": { dimensions: "200 × 150 × 100 mm", volumeL: 3.0, maxPayloadKg: 3.0, name: "Small Mailer Box" },
   "BOX-M": { dimensions: "300 × 220 × 150 mm", volumeL: 9.9, maxPayloadKg: 8.0, name: "Medium Standard Carton" },
   "BOX-L": { dimensions: "400 × 300 × 200 mm", volumeL: 24.0, maxPayloadKg: 15.0, name: "Large E-Commerce Carton" },

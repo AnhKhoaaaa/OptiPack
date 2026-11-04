@@ -18,8 +18,16 @@ RATE_VOID_PER_LITER_USD = 0.04  # $0.04 per 10^6 mm^3
 DEFAULT_ASSUMED_DENSITY_G_PER_CM3 = 0.25
 
 
-# Finite standard carton catalog (5 standard corrugated mailer/carton sizes)
+# Finite standard carton catalog (6 standard corrugated mailer/carton sizes)
 STANDARD_CARTONS: List[CartonSpec] = [
+    CartonSpec(
+        carton_id="BOX-XS",
+        display_name="Mini Mailer Box",
+        internal_dimensions_mm=Dimensions3D(length_mm=160, width_mm=110, height_mm=70),
+        tare_weight_g=50,
+        max_payload_g=1500,
+        box_cost_usd=0.30,
+    ),
     CartonSpec(
         carton_id="BOX-S",
         display_name="Small Mailer Box",
