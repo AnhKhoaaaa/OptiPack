@@ -17,10 +17,7 @@ export const ScenarioComparisonGrid: React.FC<ScenarioComparisonGridProps> = ({
   return (
     <div className="scenarios-container">
       <div className="scenarios-header">
-        <h3>What-If Packing Scenarios</h3>
-        <p className="muted text-xs">
-          Click any card to switch the 3D packing preview instantly.
-        </p>
+        <h3>Packing Options</h3>
       </div>
 
       <div className="scenarios-grid">
@@ -46,13 +43,13 @@ export const ScenarioComparisonGrid: React.FC<ScenarioComparisonGridProps> = ({
               {/* Card Header & Badge */}
               <div className="sc-card-head">
                 <span className={`sc-status-pill is-${status.toLowerCase()}`}>
-                  {status === "GREEN" && "🟢 Perfect Fit"}
-                  {status === "YELLOW" && `🟡 Elastic Bulge (+${sc.overflow_height_mm}mm)`}
-                  {status === "RED" && "🔴 Eject Item"}
-                  {status === "BEST_FIT" && "⭐ Best-Fit Optimal"}
+                  {status === "GREEN" && "🟢 Snug Fit"}
+                  {status === "YELLOW" && `🟡 Lid Flex (+${sc.overflow_height_mm}mm)`}
+                  {status === "RED" && "🔴 Split Item"}
+                  {status === "BEST_FIT" && "⭐ Best Fit"}
                 </span>
 
-                {isSelected && <span className="sc-active-indicator">✓ Active 3D</span>}
+                {isSelected && <span className="sc-active-indicator">✓ Active</span>}
               </div>
 
               {/* Title & Carton Dimensions */}
@@ -69,35 +66,19 @@ export const ScenarioComparisonGrid: React.FC<ScenarioComparisonGridProps> = ({
                 {/* Key Metrics row */}
                 {metrics && (
                   <div className="sc-metrics-row">
-                    <div className="sc-metric">
-                      <span className="sc-metric-label">Volume:</span>
-                      <strong>{metrics.volume_utilization_pct.toFixed(0)}%</strong>
-                    </div>
-                    <div className="sc-metric">
-                      <span className="sc-metric-label">Items:</span>
-                      <strong>
-                        {metrics.total_items_packed}
-                        {sc.ejected_item_ids && sc.ejected_item_ids.length > 0 && (
-                          <span className="ejected-count">
-                            {" "}
-                            (-{sc.ejected_item_ids.length})
-                          </span>
-                        )}
-                      </strong>
-                    </div>
-                    <div className="sc-metric">
-                      <span className="sc-metric-label">Cost:</span>
+                    <span className="sc-metric-inline text-xs">
+                      <strong>{metrics.volume_utilization_pct.toFixed(0)}%</strong> vol ·{" "}
+                      <strong>{metrics.total_items_packed}</strong> items ·{" "}
                       <strong className="sc-cost">
                         ${metrics.total_estimated_cost_usd.toFixed(2)}
                       </strong>
-                    </div>
+                    </span>
                   </div>
                 )}
 
                 {/* AI Copilot Advice Note */}
                 {sc.ai_advisor_note && (
                   <div className="sc-ai-note">
-                    <span className="ai-icon">💡</span>
                     <p className="ai-note-text text-xs">{sc.ai_advisor_note}</p>
                   </div>
                 )}
@@ -105,12 +86,12 @@ export const ScenarioComparisonGrid: React.FC<ScenarioComparisonGridProps> = ({
                 {/* Bulge or Ejection Notice */}
                 {status === "YELLOW" && (sc.overflow_height_mm ?? 0) > 0 && (
                   <div className="sc-bulge-notice">
-                    <span>⚠️ Lid bulges by ~{sc.overflow_height_mm}mm. Safe to press with H-pattern tape.</span>
+                    <span>Lid flexes +{sc.overflow_height_mm}mm. Safe to seal with H-tape.</span>
                   </div>
                 )}
                 {status === "RED" && sc.ejected_item_ids && sc.ejected_item_ids.length > 0 && (
                   <div className="sc-eject-notice">
-                    <span>📦 Exclude: <strong>{sc.top_item_name || sc.ejected_item_ids.join(", ")}</strong> for separate wrap.</span>
+                    <span>Ship <strong>{sc.top_item_name || "item"}</strong> in separate mailer.</span>
                   </div>
                 )}
               </div>
@@ -124,7 +105,7 @@ export const ScenarioComparisonGrid: React.FC<ScenarioComparisonGridProps> = ({
                     onSelectScenario(sc);
                   }}
                 >
-                  {isSelected ? "Selected in 3D" : "Inspect in 3D →"}
+                  {isSelected ? "Active" : "View 3D"}
                 </button>
               </div>
             </div>

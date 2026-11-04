@@ -92,25 +92,25 @@ const synthesizeFallbackScenarios = (
   // 1. BEST_FIT Scenario
   cards.push({
     scenario_id: "best_fit",
-    title: `System Optimal (${carton.carton_id})`,
+    title: `Best Fit · ${carton.carton_id}`,
     badge_status: "BEST_FIT",
-    badge_label: "System Optimal",
+    badge_label: "Best Fit",
     overflow_height_mm: 0,
     original_box_height_mm: h,
     plan: primaryPlan,
-    ai_advisor_note: `Recommended box ${carton.display_name || carton.carton_id} for optimal shipping cost and volume utilization (${primaryPlan.metrics.volume_utilization_pct.toFixed(0)}%).`,
+    ai_advisor_note: `Optimal fit with lowest shipping cost.`,
   });
 
   // 2. GREEN Scenario (Snug Fit)
   cards.push({
     scenario_id: "snug_green",
-    title: `${carton.display_name || carton.carton_id} (Snug Fit)`,
+    title: `Snug Fit · ${carton.carton_id}`,
     badge_status: "GREEN",
-    badge_label: "Perfect Fit (100%)",
+    badge_label: "Snug Fit",
     overflow_height_mm: 0,
     original_box_height_mm: h,
     plan: primaryPlan,
-    ai_advisor_note: `All ${items.length} items fit flush within box boundaries with full protection.`,
+    ai_advisor_note: `All ${items.length} items fit flush inside.`,
   });
 
   // 3. YELLOW Scenario (Elastic Bulge)
@@ -118,14 +118,14 @@ const synthesizeFallbackScenarios = (
   const deltaH = Math.min(Math.max(10, Math.floor(h * 0.1)), 25);
   cards.push({
     scenario_id: "elastic_yellow",
-    title: `${carton.display_name || carton.carton_id} (Elastic Lid)`,
+    title: `Lid Flex · ${carton.carton_id}`,
     badge_status: "YELLOW",
-    badge_label: `Elastic Bulge (+${deltaH}mm)`,
+    badge_label: `Lid Flex (+${deltaH}mm)`,
     overflow_height_mm: deltaH,
     original_box_height_mm: Math.max(50, h - deltaH),
-    top_item_name: flexItem?.display_name || "Top flexible item",
+    top_item_name: flexItem?.display_name || "flexible item",
     plan: primaryPlan,
-    ai_advisor_note: `Top package [${flexItem?.display_name || "Soft parcel"}] bulges ~${deltaH}mm above the rim. Because packaging is flexible, gently compress lid and tape in H-pattern to save on box size.`,
+    ai_advisor_note: `Lid flexes +${deltaH}mm over soft item. Secure with H-tape.`,
   });
 
   // 4. RED Scenario (Eject 1 Item if multiple items present)
@@ -137,15 +137,15 @@ const synthesizeFallbackScenarios = (
     )[0];
     cards.push({
       scenario_id: "eject_red",
-      title: `${carton.display_name || carton.carton_id} (Split 1 Item)`,
+      title: `Split Item · ${carton.carton_id}`,
       badge_status: "RED",
-      badge_label: "Eject 1 Item",
+      badge_label: "Split Item",
       overflow_height_mm: 0,
       original_box_height_mm: h,
       top_item_name: bulkyItem.display_name,
       ejected_item_ids: [bulkyItem.item_id],
       plan: primaryPlan,
-      ai_advisor_note: `Box is snug for all items. Eject bulky item [${bulkyItem.display_name}] to pack in a separate bubble mailer; remaining ${items.length - 1} items fit securely.`,
+      ai_advisor_note: `Ship [${bulkyItem.display_name}] separately in a mailer bag.`,
     });
   }
 
@@ -427,7 +427,7 @@ export const App: React.FC = () => {
       <header className="topbar">
         <div className="brand-group">
           <h1>OptiPack</h1>
-          <span className="muted">3D Metrology & Volume-First Cartonization</span>
+          <span className="muted">3D Cartonization</span>
         </div>
       </header>
 
@@ -452,7 +452,7 @@ export const App: React.FC = () => {
           tabIndex={packableItems.length > 0 ? 0 : -1}
         >
           <span className="step-num">{currentStep > 2 ? "✓" : "2"}</span>
-          <span className="step-label">Verify Items</span>
+          <span className="step-label">Items</span>
         </div>
         <div className="wizard-divider" />
         <div
@@ -464,7 +464,7 @@ export const App: React.FC = () => {
           tabIndex={packableItems.length > 0 ? 0 : -1}
         >
           <span className="step-num">{currentStep > 3 ? "✓" : "3"}</span>
-          <span className="step-label">Choose Box</span>
+          <span className="step-label">Boxes</span>
         </div>
         <div className="wizard-divider" />
         <div
@@ -474,7 +474,7 @@ export const App: React.FC = () => {
           tabIndex={solution || scenarios.length > 0 ? 0 : -1}
         >
           <span className="step-num">4</span>
-          <span className="step-label">3D Packing</span>
+          <span className="step-label">3D Pack</span>
         </div>
       </nav>
 
@@ -498,7 +498,7 @@ export const App: React.FC = () => {
                   className="btn btn-primary"
                   onClick={() => setCurrentStep(2)}
                 >
-                  Continue to Verify Items ({packableItems.length}) →
+                  Verify Items ({packableItems.length}) →
                 </button>
               </div>
             )}
@@ -544,14 +544,14 @@ export const App: React.FC = () => {
                 className="btn btn-secondary btn-sm"
                 onClick={() => setCurrentStep(3)}
               >
-                ← Back to Box Selection
+                ← Change Box
               </button>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={handleReset}
               >
-                🔄 Start New Order
+                New Order
               </button>
             </div>
 
@@ -580,8 +580,7 @@ export const App: React.FC = () => {
             {packingLoading && (
               <section className="panel" style={{ textAlign: "center", padding: "40px 20px" }}>
                 <span style={{ fontSize: 32 }}>📦</span>
-                <h3 style={{ marginTop: 12 }}>Calculating What-If Packing Scenarios...</h3>
-                <p className="muted text-xs">Simulating CP-SAT geometry and physical load safety</p>
+                <h3 style={{ marginTop: 12 }}>Solving 3D Packing…</h3>
               </section>
             )}
 

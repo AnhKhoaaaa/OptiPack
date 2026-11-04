@@ -85,10 +85,7 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
       {/* Header */}
       <header className="panel-head">
         <div>
-          <h2>Step 2: Verify Item Semantics</h2>
-          <p className="muted text-xs">
-            Confirm physical materials, orientation & stackability. AI has pre-selected defaults.
-          </p>
+          <h2>Verify Items</h2>
         </div>
         <div className="head-actions">
           <label className="checkbox-label text-xs">
@@ -97,7 +94,7 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
               checked={applyUncertaintyMargin}
               onChange={(e) => setApplyUncertaintyMargin(e.target.checked)}
             />
-            <span>Apply safety margins (+5mm)</span>
+            <span>+5mm buffer</span>
           </label>
         </div>
       </header>
@@ -179,105 +176,105 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
                       className={`pill-chip ${material === "soft_fabric" ? "is-active" : ""}`}
                       onClick={() => handleMaterialSelect(idx, "soft_fabric")}
                     >
-                      🧸 Soft / Fabric
+                      Soft
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${material === "rigid_box" ? "is-active" : ""}`}
                       onClick={() => handleMaterialSelect(idx, "rigid_box")}
                     >
-                      📦 Rigid Box
+                      Box
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${material === "glass_ceramic" ? "is-active is-warn" : ""}`}
                       onClick={() => handleMaterialSelect(idx, "glass_ceramic")}
                     >
-                      🍷 Fragile Glass
+                      Fragile
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${material === "metal_wood" ? "is-active" : ""}`}
                       onClick={() => handleMaterialSelect(idx, "metal_wood")}
                     >
-                      🪵 Wood / Metal
+                      Wood/Metal
                     </button>
                   </div>
                 </div>
 
                 {/* 2. Stackability */}
                 <div className="chip-group-row">
-                  <span className="chip-group-label">Top Load</span>
+                  <span className="chip-group-label">Stacking</span>
                   <div className="chips-row">
                     <button
                       type="button"
                       className={`pill-chip ${item.stackable && (item.max_top_load_g === null || item.max_top_load_g >= 2000) ? "is-active" : ""}`}
                       onClick={() => handleStackingSelect(idx, true, 3000)}
                     >
-                      🧱 Stackable
+                      Stackable
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${item.stackable && item.max_top_load_g !== null && item.max_top_load_g < 2000 && item.max_top_load_g > 0 ? "is-active" : ""}`}
                       onClick={() => handleStackingSelect(idx, true, 1000)}
                     >
-                      📦 Light Top-Load
+                      Light load
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${!item.stackable || item.max_top_load_g === 0 ? "is-active is-danger" : ""}`}
                       onClick={() => handleStackingSelect(idx, false, 0)}
                     >
-                      🚫 Do Not Stack
+                      No stack
                     </button>
                   </div>
                 </div>
 
                 {/* 3. Orientation */}
                 <div className="chip-group-row">
-                  <span className="chip-group-label">Orientation</span>
+                  <span className="chip-group-label">Placement</span>
                   <div className="chips-row">
                     <button
                       type="button"
                       className={`pill-chip ${!item.keep_upright ? "is-active" : ""}`}
                       onClick={() => handleOrientationSelect(idx, false)}
                     >
-                      🔄 Rotate Freely
+                      Any side
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${item.keep_upright ? "is-active is-upright" : ""}`}
                       onClick={() => handleOrientationSelect(idx, true)}
                     >
-                      ⬆️ Strictly Upright
+                      Upright
                     </button>
                   </div>
                 </div>
 
                 {/* 4. Weight Tier */}
                 <div className="chip-group-row">
-                  <span className="chip-group-label">Weight Tier</span>
+                  <span className="chip-group-label">Weight</span>
                   <div className="chips-row">
                     <button
                       type="button"
                       className={`pill-chip ${weightTier === "light" ? "is-active" : ""}`}
                       onClick={() => handleWeightTierSelect(idx, "light")}
                     >
-                      🪶 Light (&lt;0.5 kg)
+                      &lt;0.5 kg
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${weightTier === "medium" ? "is-active" : ""}`}
                       onClick={() => handleWeightTierSelect(idx, "medium")}
                     >
-                      ⚖️ Medium (0.5–2 kg)
+                      0.5–2 kg
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${weightTier === "heavy" ? "is-active" : ""}`}
                       onClick={() => handleWeightTierSelect(idx, "heavy")}
                     >
-                      🏋️ Heavy (&gt;2 kg)
+                      &gt;2 kg
                     </button>
                   </div>
                 </div>
@@ -290,7 +287,7 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
       {/* Footer & Actions */}
       <footer className="panel-foot verification-foot">
         <button type="button" className="btn btn-secondary" onClick={onRetake}>
-          📷 Retake Photos
+          ← Retake
         </button>
         <button type="button" className="btn btn-secondary" onClick={onAddItem}>
           + Add Item
@@ -301,7 +298,7 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
           onClick={onConfirmAll}
           disabled={items.length === 0}
         >
-          ✓ Confirm {items.length} Items & Choose Boxes →
+          Next: Choose Box →
         </button>
       </footer>
     </div>

@@ -2428,3 +2428,79 @@ select {
   font-family: monospace;
   color: var(--muted, #86868b);
 }
+
+/* macOS Segmented Pill Chips */
+.item-chips-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #e5e5ea);
+}
+
+.chip-group-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chip-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #86868b);
+  width: 65px;
+  flex-shrink: 0;
+}
+
+.chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+}
+
+.pill-chip {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text, #1d1d1f);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pill-chip:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.pill-chip.is-active {
+  background: #0071e3;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.pill-chip.is-active.is-warn {
+  background: #f59e0b;
+}
+
+.pill-chip.is-active.is-danger {
+  background: #ef4444;
+}
+
+.pill-chip.is-active.is-upright {
+  background: #8b5cf6;
+}
+
+@media (max-width: 600px) {
+  .chip-group-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .chip-group-label {
+    width: auto;
+  }
+}

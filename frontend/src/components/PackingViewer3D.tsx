@@ -435,9 +435,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
       {isYellowBulge && (
         <div className="yellow-bulge-banner">
           <span>
-            🟡 <strong>Elastic Bulge Notice:</strong> Box lid is raised by +
-            {overflowHeightMm ?? (plan.carton.internal_dimensions_mm.height_mm - (originalBoxHeightMm ?? plan.carton.internal_dimensions_mm.height_mm))}
-            mm above the normal carton rim (shown as amber dashed line). Safe for flexible goods; secure with H-pattern tape.
+            🟡 <strong>Lid Flex:</strong> +{overflowHeightMm ?? 15}mm over rim (amber dashed line). Secure with H-tape.
           </span>
         </div>
       )}

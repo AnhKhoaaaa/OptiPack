@@ -74,3 +74,4 @@ def test_what_if_scenarios_generated():
     # Check that best_fit is among scenarios
     has_best_fit = any(sc.badge_status == "BEST_FIT" for sc in scenarios)
     assert has_best_fit
+

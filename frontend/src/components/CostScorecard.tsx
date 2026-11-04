@@ -96,27 +96,27 @@ export const CostScorecard: React.FC<CostScorecardProps> = ({
 
       <div className="stats">
         <div className="stat">
-          <span className="stat-label">Recommended Box</span>
+          <span className="stat-label">Carton</span>
           <span className="stat-value">{carton?.carton_id ?? "—"}</span>
           {cartonDims && (
             <span className="stat-sub">
-              {cartonDims.length_mm}×{cartonDims.width_mm}×{cartonDims.height_mm} mm ({cartonVolLiters} L)
+              {cartonDims.length_mm}×{cartonDims.width_mm}×{cartonDims.height_mm} mm
             </span>
           )}
         </div>
         <div className="stat">
-          <span className="stat-label">Space Used</span>
-          <span className="stat-value">{metrics.volume_utilization_pct.toFixed(1)}%</span>
+          <span className="stat-label">Volume Fill</span>
+          <span className="stat-value">{metrics.volume_utilization_pct.toFixed(0)}%</span>
           <div className="meter">
             <div style={{ width: `${Math.min(100, metrics.volume_utilization_pct)}%` }} />
           </div>
-          <span className="stat-sub">{voidLiters} L void slack</span>
+          <span className="stat-sub">{voidLiters}L void</span>
         </div>
         <div className="stat">
-          <span className="stat-label">Billable Weight</span>
-          <span className="stat-value">{metrics.billable_weight_kg.toFixed(2)} kg</span>
+          <span className="stat-label">Est. Cost</span>
+          <span className="stat-value">{usd(metrics.total_estimated_cost_usd)}</span>
           <span className={`stat-sub ${validation.is_valid ? "positive" : ""}`}>
-            {passedCount}/6 physics checks · {usd(metrics.total_estimated_cost_usd)} est.
+            {metrics.billable_weight_kg.toFixed(1)} kg · {passedCount}/6 passed
           </span>
         </div>
       </div>
@@ -124,7 +124,7 @@ export const CostScorecard: React.FC<CostScorecardProps> = ({
       {(unpackedItemIds.length > 0 || !validation.is_valid) && (
         <p className="notice">
           {unpackedItemIds.length > 0
-            ? `${unpackedItemIds.length} item(s) don't fit any carton: ${unpackedItemIds.join(", ")}`
+            ? `${unpackedItemIds.length} item(s) unplaced: ${unpackedItemIds.join(", ")}`
             : `${6 - passedCount} geometry check(s) failed.`}
         </p>
       )}
@@ -136,9 +136,9 @@ export const CostScorecard: React.FC<CostScorecardProps> = ({
         aria-expanded={showDetails}
       >
         <span className={`chevron ${showDetails ? "open" : ""}`}>›</span>
-        Carton Evaluation & Details
+        Carton Details
         <span className="muted">
-          {metrics.total_items_packed} items · {passedCount}/6 verified
+          {metrics.total_items_packed} items packed
         </span>
       </button>
 

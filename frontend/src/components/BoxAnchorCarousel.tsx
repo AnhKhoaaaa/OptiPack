@@ -60,8 +60,8 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
     return [
       {
         id: "BOX-S",
-        name: "Snug Fit (Mailer Box)",
-        realWorldLabel: "Fits ~80% of anchor footprint. Ideal for single compact order.",
+        name: "Mailer Box",
+        realWorldLabel: "Snug fit for single items",
         dims: {
           length_mm: Math.max(200, Math.round(aL * 1.25)),
           width_mm: Math.max(150, Math.round(aW * 1.25)),
@@ -79,8 +79,8 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
       },
       {
         id: "BOX-M",
-        name: "Shoe Box (Standard Medium)",
-        realWorldLabel: "Shoe box size (~1/2 length). Fits multiple items snugly.",
+        name: "Medium Box",
+        realWorldLabel: "Shoe box size for small orders",
         dims: {
           length_mm: Math.max(300, Math.round(aL * 2.0)),
           width_mm: Math.max(220, Math.round(aW * 1.6)),
@@ -98,8 +98,8 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
       },
       {
         id: "BOX-L",
-        name: "Noodle Box (Large E-Commerce)",
-        realWorldLabel: "Noodle box size (~1/3 length). Spacious for bulky packages.",
+        name: "Large Box",
+        realWorldLabel: "Spacious for multi-item orders",
         dims: {
           length_mm: Math.max(400, Math.round(aL * 2.8)),
           width_mm: Math.max(300, Math.round(aW * 2.2)),
@@ -117,8 +117,8 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
       },
       {
         id: "BOX-XL",
-        name: "Fulfillment Box (Extra-Large)",
-        realWorldLabel: "Extra large bulk carton. For full multi-item orders.",
+        name: "XL Box",
+        realWorldLabel: "Bulk fulfillment master carton",
         dims: {
           length_mm: Math.max(500, Math.round(aL * 3.5)),
           width_mm: Math.max(350, Math.round(aW * 2.6)),
@@ -170,10 +170,7 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
       {/* Header */}
       <header className="panel-head">
         <div>
-          <h2>Step 3: Select Your Available Cartons</h2>
-          <p className="muted text-xs">
-            Choose boxes you have on hand to test. The solver will simulate packing into each.
-          </p>
+          <h2>Choose Box</h2>
         </div>
 
         {/* Tab switch */}
@@ -183,14 +180,14 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
             className={activeTab === "carousel" ? "is-active" : ""}
             onClick={() => setActiveTab("carousel")}
           >
-            Visual Benchmarks
+            Standard
           </button>
           <button
             type="button"
             className={activeTab === "custom" ? "is-active" : ""}
             onClick={() => setActiveTab("custom")}
           >
-            📐 Custom Box (cm)
+            Custom (cm)
           </button>
         </div>
       </header>
@@ -206,12 +203,11 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
             )}
           </div>
           <div className="anchor-text">
-            <span>Visual Benchmark: </span>
+            <span>Reference: </span>
             <strong>{anchorItem.display_name}</strong>
             <span className="muted">
               {" "}
-              ({anchorItem.dimensions_mm.length_mm} × {anchorItem.dimensions_mm.width_mm} ×{" "}
-              {anchorItem.dimensions_mm.height_mm} mm)
+              ({anchorItem.dimensions_mm.length_mm}×{anchorItem.dimensions_mm.width_mm}×{anchorItem.dimensions_mm.height_mm} mm)
             </span>
           </div>
         </div>
@@ -406,16 +402,16 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
       {/* Footer Navigation */}
       <footer className="panel-foot box-anchor-foot">
         <button type="button" className="btn btn-secondary" onClick={onBack}>
-          ← Back to Items
+          ← Back
         </button>
 
         <div className="selection-summary text-xs muted">
           {hasSelections ? (
             <span>
-              <strong>{selectedBoxes.length}</strong> box(es) selected for What-If simulation
+              <strong>{selectedBoxes.length}</strong> box{selectedBoxes.length > 1 ? "es" : ""} selected
             </span>
           ) : (
-            <span>No box selected — will evaluate all catalog cartons automatically</span>
+            <span>Auto-select optimal box</span>
           )}
         </div>
 
@@ -425,8 +421,8 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
           onClick={() => onProceedToPacking(selectedBoxes)}
         >
           {hasSelections
-            ? `🚀 Solve Packing Scenarios (${selectedBoxes.length} Boxes) →`
-            : "🚀 Solve with Best-Fit Box →"}
+            ? `Pack in ${selectedBoxes.length} Box${selectedBoxes.length > 1 ? "es" : ""} →`
+            : "Find Best Box →"}
         </button>
       </footer>
     </div>

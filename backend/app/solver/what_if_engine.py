@@ -53,18 +53,14 @@ def generate_what_if_scenarios(
         scenarios.append(
             PackingScenarioCard(
                 scenario_id="best_fit",
-                title=f"System Optimal ({best_plan.carton.carton_id})",
+                title=f"Best Fit · {best_plan.carton.carton_id}",
                 badge_status="BEST_FIT",
-                badge_label="System Optimal",
+                badge_label="Best Fit",
                 overflow_height_mm=0,
                 original_box_height_mm=best_plan.carton.internal_dimensions_mm.height_mm,
                 plan=best_plan,
                 overflow_plans=base_solution.overflow_plans,
-                ai_advisor_note=(
-                    f"Recommended {best_plan.carton.display_name or best_plan.carton.carton_id} "
-                    f"for optimal volume fill ({best_plan.metrics.volume_utilization_pct:.0f}%) "
-                    f"and lowest shipping footprint."
-                ),
+                ai_advisor_note=f"Recommended for optimal cost and {best_plan.metrics.volume_utilization_pct:.0f}% volume fill.",
             )
         )
 
@@ -91,15 +87,13 @@ def generate_what_if_scenarios(
                 scenarios.append(
                     PackingScenarioCard(
                         scenario_id=f"{sc_id_base}_green",
-                        title=f"{box.display_name or box.carton_id} (Snug)",
+                        title=f"Snug Fit · {box.carton_id}",
                         badge_status="GREEN",
-                        badge_label="Perfect Fit (100%)",
+                        badge_label="Snug Fit",
                         overflow_height_mm=0,
                         original_box_height_mm=box_h,
                         plan=plan,
-                        ai_advisor_note=(
-                            f"All {len(items)} items fit within {box.carton_id} with 0mm height overflow."
-                        ),
+                        ai_advisor_note=f"All {len(items)} items fit flush.",
                     )
                 )
                 continue  # Fits perfectly, move to next box
@@ -135,21 +129,18 @@ def generate_what_if_scenarios(
                         placements=e_pl,
                         validation=val,
                     )
-                    top_name = overhang_items[0].display_name if overhang_items else "Top item"
+                    top_name = overhang_items[0].display_name if overhang_items else "top item"
                     scenarios.append(
                         PackingScenarioCard(
                             scenario_id=f"{sc_id_base}_yellow",
-                            title=f"{box.display_name or box.carton_id} (Elastic Lid)",
+                            title=f"Lid Flex · {box.carton_id}",
                             badge_status="YELLOW",
-                            badge_label=f"Elastic Bulge (+{actual_overflow}mm)",
+                            badge_label=f"Lid Flex (+{actual_overflow}mm)",
                             overflow_height_mm=actual_overflow,
                             original_box_height_mm=box_h,
                             top_item_name=top_name,
                             plan=plan,
-                            ai_advisor_note=(
-                                f"Bulges +{actual_overflow}mm at [{top_name}]. "
-                                "Because packaging is non-fragile, press lid down gently and seal with H-pattern tape."
-                            ),
+                            ai_advisor_note=f"Lid flexes +{actual_overflow}mm over soft item. Secure with H-tape.",
                         )
                     )
                     continue
@@ -169,22 +160,19 @@ def generate_what_if_scenarios(
                     placements=sub_pl,
                     validation=val,
                 )
-                ejected_name = sub_unpacked[0].display_name if sub_unpacked else "bulky item"
+                ejected_name = sub_unpacked[0].display_name if sub_unpacked else "item"
                 scenarios.append(
                     PackingScenarioCard(
                         scenario_id=f"{sc_id_base}_red",
-                        title=f"{box.display_name or box.carton_id} (Split 1 Item)",
+                        title=f"Split Item · {box.carton_id}",
                         badge_status="RED",
-                        badge_label=f"Eject {len(ejected_ids)} Item",
+                        badge_label="Split Item",
                         overflow_height_mm=0,
                         original_box_height_mm=box_h,
                         top_item_name=ejected_name,
                         ejected_item_ids=ejected_ids,
                         plan=plan,
-                        ai_advisor_note=(
-                            f"Box is too small for all items. Eject [{ejected_name}] to pack in a separate "
-                            f"bubble mailer; remaining {len(sub_pl)} items fit securely."
-                        ),
+                        ai_advisor_note=f"Ship [{ejected_name}] separately in a mailer; pack remaining {len(sub_pl)} here.",
                     )
                 )
 

@@ -621,10 +621,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
         {mode !== "camera" && !analysis && (
           <div className="dual-capture-wrapper">
             <div className="dual-capture-header">
-              <h3>Capture Order on Calibration Board</h3>
-              <p className="muted text-xs">
-                Take or select 2 photos (top-down & oblique) to measure items in 3D and get optimal cartonization.
-              </p>
+              <h3>Capture Order</h3>
             </div>
 
             <div className="dual-capture-grid">
@@ -635,12 +632,12 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   onClick={() => topSingleInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  title="Tap to snap or select top-down photo (Zenith 90°)"
+                  title="Top-down photo (90° overhead)"
                 >
                   {topPreview ? (
                     <div className="slot-preview-wrapper">
-                      <img src={topPreview} alt="Top-down view" className="slot-preview-img" />
-                      <div className="slot-badge is-ready">✓ Top View Ready</div>
+                      <img src={topPreview} alt="Top view" className="slot-preview-img" />
+                      <div className="slot-badge is-ready">✓ Top View</div>
                       <button
                         type="button"
                         className="slot-action-btn"
@@ -649,7 +646,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                           topSingleInputRef.current?.click();
                         }}
                       >
-                        Change photo
+                        Change
                       </button>
                     </div>
                   ) : (
@@ -657,17 +654,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                       <div className="slot-icon-circle">
                         <span className="slot-icon">📷</span>
                       </div>
-                      <h4 className="slot-title">Top View (Zenith)</h4>
-                      <span className="slot-sub">Tap to capture or choose photo</span>
-                      <div className="slot-cue-pill">Zenith · 90°</div>
+                      <h4 className="slot-title">Top View</h4>
+                      <div className="slot-cue-pill">90° Overhead</div>
                     </div>
                   )}
-                </div>
-                <div className="slot-footer-note">
-                  <span className="note-badge">Top view (Zenith 90°):</span>
-                  <p className="note-text">
-                    Position camera directly above at 90°, framing all 4 corner ArUco markers and items on the board.
-                  </p>
                 </div>
               </div>
 
@@ -678,12 +668,12 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   onClick={() => obliqueSingleInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  title="Tap to snap or select oblique photo (35°–45°)"
+                  title="Side photo (45° angle)"
                 >
                   {obliquePreview ? (
                     <div className="slot-preview-wrapper">
-                      <img src={obliquePreview} alt="Oblique view" className="slot-preview-img" />
-                      <div className="slot-badge is-ready">✓ Side View Ready</div>
+                      <img src={obliquePreview} alt="Side view" className="slot-preview-img" />
+                      <div className="slot-badge is-ready">✓ Side View</div>
                       <button
                         type="button"
                         className="slot-action-btn"
@@ -692,7 +682,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                           obliqueSingleInputRef.current?.click();
                         }}
                       >
-                        Change photo
+                        Change
                       </button>
                     </div>
                   ) : (
@@ -700,17 +690,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                       <div className="slot-icon-circle">
                         <span className="slot-icon">📐</span>
                       </div>
-                      <h4 className="slot-title">Side / Oblique View</h4>
-                      <span className="slot-sub">Tap to capture or choose photo</span>
-                      <div className="slot-cue-pill">Oblique · 35°–45°</div>
+                      <h4 className="slot-title">Side View</h4>
+                      <div className="slot-cue-pill">45° Angle</div>
                     </div>
                   )}
-                </div>
-                <div className="slot-footer-note">
-                  <span className="note-badge">Side view (Oblique 35°–45°):</span>
-                  <p className="note-text">
-                    Tilt camera 35°–45° from one side so computer vision can reconstruct 3D heights of products.
-                  </p>
                 </div>
               </div>
             </div>
@@ -724,17 +707,17 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   onClick={() => triggerAnalysis(topFile, obliqueFile)}
                   disabled={loading}
                 >
-                  {loading ? "Analyzing dual photos…" : "🚀 Analyze 3D Order & Dimensions"}
+                  {loading ? "Analyzing…" : "🚀 Analyze Items"}
                 </button>
               ) : topFile && !obliqueFile ? (
                 <div className="cta-status-prompt">
                   <span className="cta-dot is-pending" />
-                  <span>Top view ready. Tap the right box to capture the <strong>Oblique View</strong>.</span>
+                  <span>Tap right box for <strong>Side View</strong>.</span>
                 </div>
               ) : !topFile && obliqueFile ? (
                 <div className="cta-status-prompt">
                   <span className="cta-dot is-pending" />
-                  <span>Oblique view ready. Tap the left box to capture the <strong>Top View (Zenith)</strong>.</span>
+                  <span>Tap left box for <strong>Top View</strong>.</span>
                 </div>
               ) : (
                 <div className="cta-empty-actions">
@@ -743,16 +726,16 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                     className="btn btn-secondary btn-sm"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    📁 Select both photos together
+                    📁 Upload Photos
                   </button>
                   <button
                     type="button"
                     className="btn-link text-xs"
                     onClick={handleLoadSamplePhotos}
                     disabled={loading}
-                    title="Run real end-to-end CV metrology and Meta AI analysis with benchmark sample photos"
+                    title="Run with sample photos"
                   >
-                    ⚡ Try with sample photos
+                    ⚡ Try sample order
                   </button>
                 </div>
               )}
