@@ -17,7 +17,7 @@ import { ScenarioComparisonGrid } from "./components/ScenarioComparisonGrid";
 import { PackingViewer3D } from "./components/PackingViewer3D";
 import { CostScorecard } from "./components/CostScorecard";
 import { CartonControlBar } from "./components/CartonControlBar";
-import { OptiPackClient } from "./api/optipackClient";
+import { OptiPackClient, resolveAssetUrl } from "./api/optipackClient";
 import { needsMeasurementReview } from "./utils/review";
 
 export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem => {
@@ -65,7 +65,7 @@ export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem
     max_top_load_g: item.physical_attributes.max_top_load_g,
     allowed_rotations: item.allowed_rotations,
     display_color_hex: item.visual_evidence.display_color_hex,
-    crop_url: item.visual_evidence.crop_url,
+    crop_url: resolveAssetUrl(item.visual_evidence.crop_url),
     provenance_source: isAiExtracted ? "AI-Extracted" : "Default-Safe",
     material_type: materialType,
     weight_tier: weightTier,

@@ -17,10 +17,11 @@ app = FastAPI(
     description="E-Commerce Multi-Item 3D Cartonization & Packing Assistant API",
 )
 
-# Enable CORS for local frontend development (Vite default :5173)
+# Enable CORS for local frontend development (Vite default :5173) and production deployments (Vercel)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_origin_regex=r"^https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,6 +36,18 @@ app.mount("/api/v1/assets", StaticFiles(directory=str(STATIC_ASSETS_DIR)), name=
 # Include API routers under /api/v1 prefix
 app.include_router(orders.router, prefix="/api/v1")
 app.include_router(catalog.router, prefix="/api/v1")
+
+
+@app.get("/", tags=["System"])
+async def root():
+    """Root endpoint confirming API status and documentation links."""
+    return {
+        "status": "ok",
+        "app": "OptiPack API",
+        "version": "1.0.0",
+        "health": "/health",
+        "docs": "/docs",
+    }
 
 
 @app.get("/health", tags=["System"])

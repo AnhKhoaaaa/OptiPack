@@ -10,6 +10,27 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
+/**
+ * Resolves an asset or crop URL returned by the backend into an accessible URL
+ * when the frontend is hosted on Vercel and the backend is hosted on Render.
+ */
+export function resolveAssetUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:") ||
+    url.startsWith("blob:")
+  ) {
+    return url;
+  }
+  const base = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/api\/v1\/?$/, "");
+  if (base) {
+    return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
+  }
+  return url;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
