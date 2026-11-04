@@ -109,6 +109,8 @@ class PhysicalAttributes(BaseModel):
     stackable: bool = Field(True, description="True if other items may be placed on top")
     max_top_load_g: Optional[int] = Field(None, ge=0, description="Maximum downward load tolerated in grams")
     visible_labels: List[str] = Field(default_factory=list, description="Detected labels (e.g. Fragile, CE)")
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"] = "rigid_box"
+    weight_tier: Literal["light", "medium", "heavy"] = "medium"
 
 
 class VisualEvidence(BaseModel):
@@ -160,6 +162,16 @@ class OrderAnalysisResponse(BaseModel):
 # Solver Schemas (Endpoint 2: POST /api/v1/orders/pack)
 # -----------------------------------------------------------------------------
 
+class CartonSpec(BaseModel):
+    """Standard carton definition from catalog."""
+    carton_id: str = Field(..., description="Carton SKU code (e.g. BOX-M)")
+    display_name: str = Field(..., description="Human-readable carton name")
+    internal_dimensions_mm: Dimensions3D = Field(..., description="Usable internal dimensions")
+    tare_weight_g: int = Field(..., ge=0, description="Empty box tare weight in grams")
+    max_payload_g: int = Field(..., gt=0, description="Maximum payload capacity in grams")
+    box_cost_usd: float = Field(..., ge=0.0, description="Unit cost of corrugated packaging box")
+
+
 class SolverConfig(BaseModel):
     """Configuration passed to the 3D Bin Packing and Cartonization solver."""
     mode: Literal["cpsat_with_heuristic_fallback", "extreme_point_only", "cpsat_exact_only"] = "cpsat_with_heuristic_fallback"
@@ -169,6 +181,10 @@ class SolverConfig(BaseModel):
     allow_multi_carton_split: bool = Field(True, description="Allow splitting order if single box cannot fit")
     target_carton_id: Optional[str] = Field(None, description="Optional target standard carton SKU (e.g. BOX-S, BOX-M)")
     custom_carton_dimensions: Optional[Dimensions3D] = Field(None, description="Optional custom user-specified carton dimensions in mm")
+    user_selected_boxes: List[CartonSpec] = Field(
+        default_factory=list,
+        description="User-selected boxes to evaluate via What-If engine"
+    )
 
 
 class PackableItem(BaseModel):
@@ -184,6 +200,8 @@ class PackableItem(BaseModel):
     keep_upright: bool = Field(False, description="If true, restricts orientations to LWH and WLH")
     stackable: bool = Field(True, description="If false, no other item can be stacked on top")
     max_top_load_g: Optional[int] = Field(None, ge=0, description="Maximum downward load tolerated")
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"] = "rigid_box"
+    weight_tier: Literal["light", "medium", "heavy"] = "medium"
     allowed_rotations: List[RotationCode] = Field(
         default_factory=lambda: [r for r in RotationCode]
     )
@@ -201,16 +219,6 @@ class PackingRequest(BaseModel):
 # -----------------------------------------------------------------------------
 # Packing Solution & Validation Schemas
 # -----------------------------------------------------------------------------
-
-class CartonSpec(BaseModel):
-    """Standard carton definition from catalog."""
-    carton_id: str = Field(..., description="Carton SKU code (e.g. BOX-M)")
-    display_name: str = Field(..., description="Human-readable carton name")
-    internal_dimensions_mm: Dimensions3D = Field(..., description="Usable internal dimensions")
-    tare_weight_g: int = Field(..., ge=0, description="Empty box tare weight in grams")
-    max_payload_g: int = Field(..., gt=0, description="Maximum payload capacity in grams")
-    box_cost_usd: float = Field(..., ge=0.0, description="Unit cost of corrugated packaging box")
-
 
 class PlacedItem(BaseModel):
     """A single placed item inside the carton coordinate system."""
@@ -272,6 +280,23 @@ class CandidateCartonEvaluation(BaseModel):
     rejection_reason: Optional[str] = Field(None, description="Explanation if rejected or infeasible")
 
 
+class PackingScenarioCard(BaseModel):
+    """A What-If packing scenario presented to the user with actionable AI guidance."""
+    scenario_id: str = Field(..., description="Unique scenario ID, e.g. scenario_user_box_1")
+    title: str = Field(..., description="Short title e.g. 'Thùng của bạn (Box M)'")
+    badge_status: Literal["GREEN", "YELLOW", "RED", "BEST_FIT"] = Field(..., description="Classification badge")
+    carton: CartonSpec = Field(..., description="Carton specification evaluated")
+    is_user_box: bool = Field(False, description="True if box was selected by user")
+    is_selected_default: bool = Field(False, description="True if this scenario is the primary recommended one")
+    volume_utilization_pct: float = Field(0.0, ge=0.0, le=100.0, description="Volume utilization percentage")
+    feasible: bool = Field(True, description="True if completely packable without remaining items")
+    overflow_height_mm: int = Field(0, ge=0, description="Height overflow in mm if elastic lid compression applied")
+    ejected_item_ids: List[str] = Field(default_factory=list, description="Item IDs ejected in RED scenario")
+    advisor_title: str = Field("", description="AI Copilot short recommendation title")
+    advisor_explanation: str = Field("", description="AI Copilot natural language advice")
+    plan: Optional[PackingPlan] = None
+
+
 class PackingSolutionResponse(BaseModel):
     """Complete response payload for POST /api/v1/orders/pack."""
     contract_version: str = "1.0.0"
@@ -284,3 +309,4 @@ class PackingSolutionResponse(BaseModel):
     unpacked_item_ids: List[str] = Field(default_factory=list, description="Items that could not be packed")
     infeasibility_diagnostics: Optional[Dict[str, Any]] = None
     candidate_carton_comparison: List[CandidateCartonEvaluation] = Field(default_factory=list)
+    scenarios: List[PackingScenarioCard] = Field(default_factory=list, description="What-If packing scenario cards")
