@@ -10,6 +10,8 @@
  */
 
 export type RotationCode = "LWH" | "WLH" | "LHW" | "HLW" | "WHL" | "HWL";
+export type MaterialType = "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other";
+export type WeightTier = "light" | "medium" | "heavy";
 
 export interface Dimensions3D {
   length_mm: number;
@@ -69,6 +71,8 @@ export interface PhysicalAttributes {
   stackable: boolean;
   max_top_load_g: number | null;
   visible_labels: string[];
+  material_type?: MaterialType;
+  weight_tier?: WeightTier;
 }
 
 export interface VisualEvidence {
@@ -117,6 +121,7 @@ export interface SolverConfig {
   allow_multi_carton_split: boolean;
   target_carton_id?: string;
   custom_carton_dimensions?: Dimensions3D;
+  user_selected_boxes?: CartonSpec[];
 }
 
 export interface PackableItem {
@@ -131,6 +136,8 @@ export interface PackableItem {
   keep_upright: boolean;
   stackable: boolean;
   max_top_load_g: number | null;
+  material_type?: MaterialType;
+  weight_tier?: WeightTier;
   allowed_rotations: RotationCode[];
   display_color_hex: string;
 }
@@ -206,6 +213,28 @@ export interface CandidateCartonEvaluation {
   rejection_reason?: string;
 }
 
+export interface PackingScenarioCard {
+  scenario_id: string;
+  title: string;
+  badge_status: "GREEN" | "YELLOW" | "RED" | "BEST_FIT";
+  badge_label?: string;
+  carton?: CartonSpec;
+  is_user_box?: boolean;
+  is_selected_default?: boolean;
+  volume_utilization_pct: number;
+  feasible: boolean;
+  requires_physical_verification?: boolean;
+  overflow_height_mm?: number;
+  original_box_height_mm?: number;
+  top_item_name?: string;
+  ejected_item_ids?: string[];
+  advisor_title?: string;
+  advisor_explanation?: string;
+  ai_advisor_note?: string;
+  plan?: PackingPlan | null;
+  overflow_plans?: PackingPlan[];
+}
+
 export interface PackingSolutionResponse {
   contract_version: string;
   status: "OPTIMAL" | "FEASIBLE" | "INFEASIBLE" | "TIMEOUT_FALLBACK";
@@ -217,4 +246,5 @@ export interface PackingSolutionResponse {
   unpacked_item_ids: string[];
   infeasibility_diagnostics?: Record<string, unknown> | null;
   candidate_carton_comparison: CandidateCartonEvaluation[];
+  scenarios?: PackingScenarioCard[];
 }
