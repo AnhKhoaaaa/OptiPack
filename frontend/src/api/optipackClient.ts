@@ -21,13 +21,11 @@ export function getApiBaseUrl(): string {
     const clean = envVal.replace(/\/+$/, "");
     return clean.endsWith("/api/v1") ? clean : `${clean}/api/v1`;
   }
-  if (
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-  ) {
-    return "/api/v1";
+  // Auto-fallback to live Render backend only when running in browser on Vercel deployment
+  if (typeof window !== "undefined" && window.location?.hostname?.includes("vercel.app")) {
+    return "https://optipack-backend.onrender.com/api/v1";
   }
-  return "https://optipack-backend.onrender.com/api/v1";
+  return "/api/v1";
 }
 
 const API_BASE = getApiBaseUrl();

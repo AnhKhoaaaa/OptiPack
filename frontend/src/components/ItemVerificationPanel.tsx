@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { RotationCode } from "../types/contract";
 import { ExtendedPackableItem } from "./ManifestTable";
+import { resolveAssetUrl } from "../api/optipackClient";
 
 interface ItemVerificationPanelProps {
   items: ExtendedPackableItem[];
@@ -156,7 +157,7 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
               <div className="item-card-header">
                 <div className="item-thumb-wrapper">
                   {item.crop_url ? (
-                    <img src={item.crop_url} alt={item.display_name} className="item-crop-thumb" />
+                    <img src={resolveAssetUrl(item.crop_url) || item.crop_url} alt={item.display_name} className="item-crop-thumb" />
                   ) : (
                     <div className="item-thumb-placeholder">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="cube-placeholder-svg">
