@@ -59,31 +59,42 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
 
   const handleMaterialSelect = (
     index: number,
-    material: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other"
+    material: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "plastic" | "other"
   ) => {
     const item = items[index];
-    const isFragile = material === "glass_ceramic";
+    const isGlass = material === "glass_ceramic";
+    // Glass items automatically default to high fragility and no stacking
+    const newFragility = isGlass ? "high" : item.fragility_class === "high" ? "medium" : item.fragility_class;
+    const isStackable = newFragility !== "high";
+    const maxTopLoad = newFragility === "high" ? 0 : newFragility === "medium" ? 1000 : 3000;
     const updated: ExtendedPackableItem = {
       ...item,
       material_type: material,
-      fragility_class: isFragile ? "high" : item.fragility_class === "high" ? "medium" : item.fragility_class,
-      stackable: isFragile ? false : item.stackable,
-      max_top_load_g: isFragile ? 0 : item.max_top_load_g,
+      fragility_class: newFragility,
+      stackable: isStackable,
+      max_top_load_g: maxTopLoad,
     };
     onUpdateItem(index, updated);
   };
 
-  const handleStackingSelect = (
+  const handleFragilitySelect = (
     index: number,
-    stackable: boolean,
-    maxTopLoadG: number | null
+    fragility: "low" | "medium" | "high"
   ) => {
     const item = items[index];
-    onUpdateItem(index, {
+    // Automatically infer stackability based on fragility level:
+    // - High: Fragile contents; no items can be stacked on top (stackable = false, max_top_load_g = 0)
+    // - Medium: Semi-fragile or moderate strength; light load allowed (stackable = true, max_top_load_g = 1000g)
+    // - Low: Sturdy; robust load-bearing (stackable = true, max_top_load_g = 3000g)
+    const isStackable = fragility !== "high";
+    const maxTopLoad = fragility === "high" ? 0 : fragility === "medium" ? 1000 : 3000;
+    const updated: ExtendedPackableItem = {
       ...item,
-      stackable,
-      max_top_load_g: maxTopLoadG,
-    });
+      fragility_class: fragility,
+      stackable: isStackable,
+      max_top_load_g: maxTopLoad,
+    };
+    onUpdateItem(index, updated);
   };
 
   const handleOrientationSelect = (index: number, keepUpright: boolean) => {
@@ -136,6 +147,7 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
         {items.map((item, idx) => {
           const dims = item.dimensions_mm;
           const material = item.material_type || (item.fragility_class === "high" ? "glass_ceramic" : "rigid_box");
+          const fragility = item.fragility_class === "high" ? "high" : item.fragility_class === "low" ? "low" : "medium";
           const weightTier = item.weight_tier || (item.weight_g && item.weight_g < 500 ? "light" : item.weight_g && item.weight_g > 2000 ? "heavy" : "medium");
 
           return (
@@ -264,68 +276,66 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
                   <div className="chips-row">
                     <button
                       type="button"
-                      className={`pill-chip ${material === "soft_fabric" ? "is-active" : ""}`}
-                      onClick={() => handleMaterialSelect(idx, "soft_fabric")}
-                    >
-                      Soft
-                    </button>
-                    <button
-                      type="button"
                       className={`pill-chip ${material === "rigid_box" ? "is-active" : ""}`}
                       onClick={() => handleMaterialSelect(idx, "rigid_box")}
                     >
-                      Box
+                      Box / Paper
                     </button>
                     <button
                       type="button"
-                      className={`pill-chip ${material === "glass_ceramic" ? "is-active is-warn" : ""}`}
+                      className={`pill-chip ${material === "plastic" ? "is-active" : ""}`}
+                      onClick={() => handleMaterialSelect(idx, "plastic")}
+                    >
+                      Plastic
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill-chip ${material === "soft_fabric" ? "is-active" : ""}`}
+                      onClick={() => handleMaterialSelect(idx, "soft_fabric")}
+                    >
+                      Fabric
+                    </button>
+                    <button
+                      type="button"
+                      className={`pill-chip ${material === "glass_ceramic" ? "is-active" : ""}`}
                       onClick={() => handleMaterialSelect(idx, "glass_ceramic")}
                     >
-                      Fragile
+                      Glass
                     </button>
                     <button
                       type="button"
                       className={`pill-chip ${material === "metal_wood" ? "is-active" : ""}`}
                       onClick={() => handleMaterialSelect(idx, "metal_wood")}
                     >
-                      Wood/Metal
+                      Wood / Metal
                     </button>
                   </div>
                 </div>
 
-                {/* 2. Stackability */}
+                {/* 2. Fragility */}
                 <div className="chip-group-row">
-                  <span className="chip-group-label">
-                    Stacking
-                    {material === "glass_ceramic" && (
-                      <span className="fragile-clamp-hint" title="Fragile items cannot bear top load">
-                        Locked (Fragile)
-                      </span>
-                    )}
-                  </span>
+                  <span className="chip-group-label">Fragility</span>
                   <div className="chips-row">
                     <button
                       type="button"
-                      disabled={material === "glass_ceramic"}
-                      className={`pill-chip ${item.stackable && (item.max_top_load_g === null || item.max_top_load_g >= 2000) ? "is-active" : ""} ${material === "glass_ceramic" ? "is-disabled" : ""}`}
-                      onClick={() => handleStackingSelect(idx, true, 3000)}
+                      className={`pill-chip ${fragility === "low" ? "is-active" : ""}`}
+                      onClick={() => handleFragilitySelect(idx, "low")}
                     >
-                      Stackable
+                      Low
                     </button>
                     <button
                       type="button"
-                      disabled={material === "glass_ceramic"}
-                      className={`pill-chip ${item.stackable && item.max_top_load_g !== null && item.max_top_load_g < 2000 && item.max_top_load_g > 0 ? "is-active" : ""} ${material === "glass_ceramic" ? "is-disabled" : ""}`}
-                      onClick={() => handleStackingSelect(idx, true, 1000)}
+                      className={`pill-chip ${fragility === "medium" ? "is-active is-warn" : ""}`}
+                      onClick={() => handleFragilitySelect(idx, "medium")}
                     >
-                      Light load
+                      Medium
                     </button>
                     <button
                       type="button"
-                      className={`pill-chip ${!item.stackable || item.max_top_load_g === 0 ? "is-active is-danger" : ""}`}
-                      onClick={() => handleStackingSelect(idx, false, 0)}
+                      className={`pill-chip ${fragility === "high" ? "is-active is-danger" : ""}`}
+                      onClick={() => handleFragilitySelect(idx, "high")}
                     >
-                      No stack
+                      High
                     </button>
                   </div>
                 </div>

@@ -139,6 +139,14 @@ def sanitize_physical_attributes(raw_attrs: Dict[str, Any]) -> PhysicalAttribute
     else:
         visible_labels = []
 
+    raw_material = raw_attrs.get("material_type", "rigid_box")
+    if raw_material not in ("soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"):
+        raw_material = "glass_ceramic" if fragility == "high" else "rigid_box"
+
+    raw_tier = raw_attrs.get("weight_tier", "medium")
+    if raw_tier not in ("light", "medium", "heavy"):
+        raw_tier = "medium"
+
     return PhysicalAttributes(
         weight_g=weight_g,
         weight_source=weight_source,
@@ -149,4 +157,6 @@ def sanitize_physical_attributes(raw_attrs: Dict[str, Any]) -> PhysicalAttribute
         stackable=stackable,
         max_top_load_g=max_top_load,
         visible_labels=visible_labels,
+        material_type=raw_material,
+        weight_tier=raw_tier,
     )

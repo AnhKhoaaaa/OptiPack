@@ -231,7 +231,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
-                    <option value="high">Fragile</option>
+                    <option value="high">High</option>
                   </select>
                 </td>
                 <td className="right">

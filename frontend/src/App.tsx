@@ -237,16 +237,20 @@ export const App: React.FC = () => {
 
   const handleUpdateItem = (index: number, updated: ExtendedPackableItem) => {
     const current = packableItems[index];
-    const affectsGeometry =
+    const affectsConstraints =
       !current ||
       current.quantity !== updated.quantity ||
       current.keep_upright !== updated.keep_upright ||
+      current.stackable !== updated.stackable ||
+      current.fragility_class !== updated.fragility_class ||
+      current.material_type !== updated.material_type ||
+      current.max_top_load_g !== updated.max_top_load_g ||
       current.dimensions_mm.length_mm !== updated.dimensions_mm.length_mm ||
       current.dimensions_mm.width_mm !== updated.dimensions_mm.width_mm ||
       current.dimensions_mm.height_mm !== updated.dimensions_mm.height_mm ||
       JSON.stringify(current.allowed_rotations) !== JSON.stringify(updated.allowed_rotations);
 
-    if (affectsGeometry) {
+    if (affectsConstraints) {
       invalidatePacking();
     }
     setPackableItems((prev) => {

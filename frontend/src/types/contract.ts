@@ -69,7 +69,7 @@ export interface PhysicalAttributes {
   stackable: boolean;
   max_top_load_g: number | null;
   visible_labels: string[];
-  material_type?: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other";
+  material_type?: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "plastic" | "other";
   weight_tier?: "light" | "medium" | "heavy";
 }
 
@@ -136,7 +136,7 @@ export interface PackableItem {
   max_top_load_g: number | null;
   allowed_rotations: RotationCode[];
   display_color_hex: string;
-  material_type?: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other";
+  material_type?: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "plastic" | "other";
   weight_tier?: "light" | "medium" | "heavy";
 }
 

@@ -109,7 +109,7 @@ class PhysicalAttributes(BaseModel):
     stackable: bool = Field(True, description="True if other items may be placed on top")
     max_top_load_g: Optional[int] = Field(None, ge=0, description="Maximum downward load tolerated in grams")
     visible_labels: List[str] = Field(default_factory=list, description="Detected labels (e.g. Fragile, CE)")
-    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"] = "rigid_box"
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"] = "rigid_box"
     weight_tier: Literal["light", "medium", "heavy"] = "medium"
 
 
@@ -191,7 +191,7 @@ class PackableItem(BaseModel):
         default_factory=lambda: [r for r in RotationCode]
     )
     display_color_hex: str = Field("#3B82F6", description="Hex color code for 3D visualization")
-    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"] = "rigid_box"
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"] = "rigid_box"
     weight_tier: Literal["light", "medium", "heavy"] = "medium"
 
 
