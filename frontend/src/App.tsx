@@ -16,7 +16,6 @@ import { BoxAnchorCarousel } from "./components/BoxAnchorCarousel";
 import { ScenarioComparisonGrid } from "./components/ScenarioComparisonGrid";
 import { PackingViewer3D } from "./components/PackingViewer3D";
 import { CostScorecard } from "./components/CostScorecard";
-import { CartonControlBar } from "./components/CartonControlBar";
 import { OptiPackClient, resolveAssetUrl } from "./api/optipackClient";
 import { needsMeasurementReview } from "./utils/review";
 
@@ -604,34 +603,7 @@ export const App: React.FC = () => {
                     activePlanIndex={activePlanIndex}
                     onSelectPlan={setActivePlanIndex}
                   />
-                  <div style={{ marginTop: 16 }}>
-                    <CartonControlBar
-                      cartonMode={cartonMode}
-                      setCartonMode={(mode) => {
-                        setCartonMode(mode);
-                        if (analysis) {
-                          executePacking(packableItems, analysis.analysis_id, applyUncertaintyMargin, {
-                            ...(mode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
-                            ...(mode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
-                          });
-                        }
-                      }}
-                      selectedCartonSku={selectedCartonSku}
-                      setSelectedCartonSku={setSelectedCartonSku}
-                      customCartonDims={customCartonDims}
-                      setCustomCartonDims={setCustomCartonDims}
-                      onApply={() =>
-                        analysis &&
-                        executePacking(packableItems, analysis.analysis_id, applyUncertaintyMargin, {
-                          ...(cartonMode === "preset" ? { target_carton_id: selectedCartonSku } : {}),
-                          ...(cartonMode === "custom" ? { custom_carton_dimensions: customCartonDims } : {}),
-                        })
-                      }
-                      loading={packingLoading}
-                      currentCartonSku={activePlan.carton.carton_id}
-                      currentCartonDims={activePlan.carton.internal_dimensions_mm}
-                    />
-                  </div>
+                  
                 </div>
 
                 <div className="col">

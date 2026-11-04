@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { PackingPlan } from "../types/contract";
+import { PackingPlan, PlacedItem } from "../types/contract";
 import { mapPlacementToThreeJSFloor } from "../utils/coordinateTransform";
 
 interface PackingViewer3DProps {
@@ -13,65 +13,16 @@ interface PackingViewer3DProps {
 
 type CameraPreset = "iso" | "top" | "front" | "side";
 
+interface HoveredItemState {
+  placement: PlacedItem;
+  stepNumber: number;
+  clientX: number;
+  clientY: number;
+}
+
 const VIEWPORT_HEIGHT = 400;
 const DROP_HEIGHT_MM = 150;
 const DROP_DURATION_MS = 380;
-
-// Helper to draw clean item label with step number & name on top face of 3D box
-const createItemTopLabelTexture = (
-  stepNumber: number,
-  itemName: string,
-  dimsStr: string,
-  baseColorHex: string
-): THREE.CanvasTexture => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return new THREE.CanvasTexture(canvas);
-
-  // Background filled with item color
-  ctx.fillStyle = baseColorHex;
-  ctx.fillRect(0, 0, 512, 512);
-
-  // Inset contrast panel
-  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
-  ctx.beginPath();
-  if (typeof ctx.roundRect === "function") {
-    ctx.roundRect(20, 20, 472, 472, 28);
-  } else {
-    ctx.rect(20, 20, 472, 472);
-  }
-  ctx.fill();
-
-  // White circular badge for step / item number
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.arc(256, 160, 90, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Number text inside badge
-  ctx.fillStyle = "#0f172a";
-  ctx.font = "bold 100px -apple-system, Inter, sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(String(stepNumber), 256, 165);
-
-  // Clean Item Name
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 40px -apple-system, Inter, sans-serif";
-  const displayName = itemName.length > 18 ? itemName.slice(0, 16) + "…" : itemName;
-  ctx.fillText(displayName, 256, 330);
-
-  // Dimensions
-  ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-  ctx.font = "500 30px monospace";
-  ctx.fillText(dimsStr, 256, 395);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-  return texture;
-};
 
 export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
   plan,
@@ -90,7 +41,9 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
   const [activePreset, setActivePreset] = useState<CameraPreset>("iso");
   const [showSafetyHalo, setShowSafetyHalo] = useState<boolean>(true);
   const [webGlError, setWebGlError] = useState<string | null>(null);
+  const [hoveredItem, setHoveredItem] = useState<HoveredItemState | null>(null);
 
+  const isOrbitingRef = useRef<boolean>(false);
   const totalSteps = plan.placements.length;
 
   // Reset step on plan change
@@ -98,6 +51,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     setCurrentStep(plan.placements.length);
     prevStepRef.current = plan.placements.length;
     setIsPlaying(false);
+    setHoveredItem(null);
   }, [plan]);
 
   // Auto-play timer
@@ -124,7 +78,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     const targetY = plan.carton.internal_dimensions_mm.height_mm / 2;
     controls.target.set(0, targetY, 0);
     if (preset === "iso") camera.position.set(380, 320, 480);
-    if (preset === "top") camera.position.set(0, 680, 1); // Small Z offset avoids gimbal lock
+    if (preset === "top") camera.position.set(0, 680, 1);
     if (preset === "front") camera.position.set(0, targetY, 560);
     if (preset === "side") camera.position.set(560, targetY, 0);
     controls.update();
@@ -142,7 +96,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     group.clear();
   };
 
-  // Effect 1: Scene, camera, renderer, controls & carton. Re-runs only when the carton changes.
+  // Effect 1: Scene, camera, renderer, controls & carton
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -151,7 +105,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     const height = window.innerWidth <= 640 ? 290 : VIEWPORT_HEIGHT;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f5f7);
+    scene.background = new THREE.Color(0xf8fafc);
 
     const cartonDims = plan.carton.internal_dimensions_mm;
     const camera = new THREE.PerspectiveCamera(45, width / height, 1, 3000);
@@ -180,12 +134,24 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     controls.target.set(0, cartonDims.height_mm / 2, 0);
     controlsRef.current = controls;
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    controls.addEventListener("start", () => {
+      isOrbitingRef.current = true;
+      setHoveredItem(null);
+    });
+    controls.addEventListener("end", () => {
+      isOrbitingRef.current = false;
+    });
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.92));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
     keyLight.position.set(250, 450, 300);
     scene.add(keyLight);
 
-    const grid = new THREE.GridHelper(900, 30, 0xd2d2d7, 0xe8e8ed);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
+    fillLight.position.set(-200, 250, -200);
+    scene.add(fillLight);
+
+    const grid = new THREE.GridHelper(900, 30, 0xd2d2d7, 0xe2e8f0);
     grid.position.y = -1;
     scene.add(grid);
 
@@ -193,13 +159,13 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     const cartonGeo = new THREE.BoxGeometry(cartonDims.length_mm, cartonDims.height_mm, cartonDims.width_mm);
     const cartonWire = new THREE.LineSegments(
       new THREE.EdgesGeometry(cartonGeo),
-      new THREE.LineBasicMaterial({ color: isYellowBulge ? 0xd97706 : 0x86868b })
+      new THREE.LineBasicMaterial({ color: isYellowBulge ? 0xd97706 : 0x94a3b8, linewidth: 1.5 })
     );
     cartonGeo.dispose();
     cartonWire.position.set(0, cartonDims.height_mm / 2, 0);
     scene.add(cartonWire);
 
-    // If yellow bulge scenario, draw original lid height as amber dashed wireframe & subtle plane
+    // If yellow bulge scenario, draw original lid height
     if (isYellowBulge && originalBoxHeightMm && originalBoxHeightMm < cartonDims.height_mm) {
       const halfL = cartonDims.length_mm / 2;
       const halfW = cartonDims.width_mm / 2;
@@ -221,7 +187,6 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
       bulgeLine.computeLineDistances();
       scene.add(bulgeLine);
 
-      // Translucent plane at original lid
       const lidPlaneGeo = new THREE.PlaneGeometry(cartonDims.length_mm, cartonDims.width_mm);
       lidPlaneGeo.rotateX(-Math.PI / 2);
       const lidPlaneMesh = new THREE.Mesh(
@@ -242,7 +207,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     floorGeo.rotateX(-Math.PI / 2);
     const floorMesh = new THREE.Mesh(
       floorGeo,
-      new THREE.MeshStandardMaterial({ color: 0xe8e8ed, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: 0xedeef2, roughness: 0.9 })
     );
     scene.add(floorMesh);
 
@@ -250,7 +215,80 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     scene.add(itemGroup);
     itemGroupRef.current = itemGroup;
 
-    // Render loop: drop easing + active outline pulse
+    // Hover raycaster setup
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let currentHoveredMesh: THREE.Mesh | null = null;
+
+    const clearHighlight = () => {
+      if (currentHoveredMesh) {
+        if (currentHoveredMesh.material instanceof THREE.MeshStandardMaterial) {
+          currentHoveredMesh.material.emissive.setHex(0x000000);
+          currentHoveredMesh.material.emissiveIntensity = 0;
+        }
+        currentHoveredMesh = null;
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (isOrbitingRef.current || !itemGroupRef.current || !renderer.domElement) return;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const meshes: THREE.Mesh[] = [];
+      itemGroupRef.current.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.userData?.placement) {
+          meshes.push(child);
+        }
+      });
+
+      const intersects = raycaster.intersectObjects(meshes, false);
+      if (intersects.length > 0) {
+        const hitMesh = intersects[0].object as THREE.Mesh;
+        if (currentHoveredMesh !== hitMesh) {
+          clearHighlight();
+          currentHoveredMesh = hitMesh;
+          if (hitMesh.material instanceof THREE.MeshStandardMaterial) {
+            hitMesh.material.emissive.setHex(0x38bdf8);
+            hitMesh.material.emissiveIntensity = 0.4;
+          }
+        }
+        renderer.domElement.style.cursor = "pointer";
+        setHoveredItem({
+          placement: hitMesh.userData.placement,
+          stepNumber: hitMesh.userData.stepNumber,
+          clientX: e.clientX - rect.left,
+          clientY: e.clientY - rect.top,
+        });
+        return;
+      }
+
+      clearHighlight();
+      renderer.domElement.style.cursor = "default";
+      setHoveredItem(null);
+    };
+
+    const handlePointerLeave = () => {
+      clearHighlight();
+      if (renderer.domElement) renderer.domElement.style.cursor = "default";
+      setHoveredItem(null);
+    };
+
+    const handlePointerDown = () => {
+      if (currentHoveredMesh && currentHoveredMesh.userData?.stepNumber) {
+        setCurrentStep(currentHoveredMesh.userData.stepNumber);
+      }
+    };
+
+    renderer.domElement.addEventListener("pointermove", handlePointerMove);
+    renderer.domElement.addEventListener("pointerleave", handlePointerLeave);
+    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
+
+    // Render loop
     let animationFrameId: number;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
@@ -261,7 +299,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
         const d = child.userData;
         if (d?.isAnimating) {
           const t = Math.min(1, (now - d.startTime) / d.duration);
-          const ease = 1 - (1 - t) * (1 - t); // easeOutQuad
+          const ease = 1 - (1 - t) * (1 - t);
           child.position.y = d.startY + (d.targetY - d.startY) * ease;
           if (t >= 1) {
             child.position.y = d.targetY;
@@ -292,11 +330,15 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      if (renderer.domElement) {
+        renderer.domElement.removeEventListener("pointermove", handlePointerMove);
+        renderer.domElement.removeEventListener("pointerleave", handlePointerLeave);
+        renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
+      }
       cancelAnimationFrame(animationFrameId);
       controls.dispose();
       itemGroupRef.current = null;
 
-      // GPU memory cleanup
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh || obj instanceof THREE.LineSegments) {
           obj.geometry?.dispose();
@@ -316,7 +358,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
     originalBoxHeightMm,
   ]);
 
-  // Effect 2: Rebuild item meshes when the step or placements change (camera state is preserved)
+  // Effect 2: Rebuild item meshes with clean solid faces and crisp white edge lines
   useEffect(() => {
     const itemGroup = itemGroupRef.current;
     if (!itemGroup) return;
@@ -330,7 +372,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
       .filter((p) => p.step_number <= currentStep)
       .forEach((p) => {
         const { size, position } = mapPlacementToThreeJSFloor(plan.carton, p);
-        const [wPlaced, hPlaced, dPlaced] = size; // placed dimensions incl. safety margin
+        const [wPlaced, hPlaced, dPlaced] = size;
         const [x, y, z] = position;
         const isActive = p.step_number === currentStep;
 
@@ -347,48 +389,34 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
           isActive,
         };
 
-        // Halo ON: nominal box + margin envelope. Halo OFF: solid box at placed dims.
         const nom = p.nominal_dimensions_mm || p.placed_dimensions_mm;
         const solidGeo = showSafetyHalo
           ? new THREE.BoxGeometry(Math.min(nom.dx, wPlaced), Math.min(nom.dz, hPlaced), Math.min(nom.dy, dPlaced))
           : new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
 
-        // Side material
-        const sideMat = new THREE.MeshStandardMaterial({
+        // Clean, smooth solid material on all faces (eliminating distorted canvas text)
+        const solidMat = new THREE.MeshStandardMaterial({
           color: new THREE.Color(p.display_color_hex || "#0071e3"),
-          roughness: 0.55,
+          roughness: 0.42,
+          metalness: 0.08,
           transparent: !isActive && currentStep < totalSteps,
-          opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
+          opacity: !isActive && currentStep < totalSteps ? 0.76 : 1.0,
         });
 
-        // Top face material with crisp item label (+Y is face index 2 in BoxGeometry)
-        const labelTexture = createItemTopLabelTexture(
-          p.step_number,
-          p.display_name || `Item #${p.step_number}`,
-          `${nom.dx}×${nom.dy}×${nom.dz}`,
-          p.display_color_hex || "#0071e3"
-        );
-        const topMat = new THREE.MeshStandardMaterial({
-          map: labelTexture,
-          roughness: 0.55,
-          transparent: !isActive && currentStep < totalSteps,
-          opacity: !isActive && currentStep < totalSteps ? 0.7 : 1,
-        });
-
-        const materials = [sideMat, sideMat, topMat, sideMat, sideMat, sideMat];
-        const solid = new THREE.Mesh(solidGeo, materials);
+        const solid = new THREE.Mesh(solidGeo, solidMat);
         solid.name = `item_${p.step_number}`;
-        solid.userData = { placement: p };
+        solid.userData = { placement: p, stepNumber: p.step_number };
 
+        // Crisp white edges for clean CAD-like definition
         solid.add(
           new THREE.LineSegments(
             new THREE.EdgesGeometry(solidGeo),
-            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 })
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 })
           )
         );
         group.add(solid);
 
-        // Safety margin envelope (subtle)
+        // Safety margin halo envelope (subtle)
         const haloGeo = new THREE.BoxGeometry(wPlaced, hPlaced, dPlaced);
         const haloEdges = new THREE.EdgesGeometry(haloGeo);
         haloGeo.dispose();
@@ -396,7 +424,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
           group.add(
             new THREE.LineSegments(
               haloEdges.clone(),
-              new THREE.LineBasicMaterial({ color: 0x86868b, transparent: true, opacity: 0.35 })
+              new THREE.LineBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.35 })
             )
           );
         }
@@ -405,7 +433,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
         if (isActive) {
           const outline = new THREE.LineSegments(
             haloEdges.clone(),
-            new THREE.LineBasicMaterial({ color: 0x0071e3, transparent: true, opacity: 1 })
+            new THREE.LineBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 1 })
           );
           outline.name = "activeOutline";
           group.add(outline);
@@ -444,26 +472,26 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
           Packing <span className="muted">{plan.carton.display_name || plan.carton.carton_id}</span>
         </h2>
         <div className="head-actions">
-        <label className="check" title="Show the measurement safety margin around each item">
-          <input
-            type="checkbox"
-            checked={showSafetyHalo}
-            onChange={(e) => setShowSafetyHalo(e.target.checked)}
-          />
-          Margin
-        </label>
-        <div className="segmented">
-          {(["iso", "top", "front", "side"] as CameraPreset[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              className={activePreset === p ? "is-active" : ""}
-              onClick={() => setCameraView(p)}
-            >
-              {{ iso: "3D", top: "Top", front: "Front", side: "Side" }[p]}
-            </button>
-          ))}
-        </div>
+          <label className="check" title="Show the measurement safety margin around each item">
+            <input
+              type="checkbox"
+              checked={showSafetyHalo}
+              onChange={(e) => setShowSafetyHalo(e.target.checked)}
+            />
+            Margin
+          </label>
+          <div className="segmented">
+            {(["iso", "top", "front", "side"] as CameraPreset[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={activePreset === p ? "is-active" : ""}
+                onClick={() => setCameraView(p)}
+              >
+                {{ iso: "3D", top: "Top", front: "Front", side: "Side" }[p]}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -473,6 +501,46 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
             <span style={{ fontSize: 24 }}>📦</span>
             <strong style={{ fontSize: 13, color: "var(--text)" }}>3D Simulation Paused</strong>
             <span style={{ fontSize: 11 }}>Hardware acceleration or WebGL is disabled in this environment.</span>
+          </div>
+        )}
+
+        {/* Dynamic Hover Tooltip */}
+        {hoveredItem && (
+          <div
+            className="packing-3d-tooltip"
+            style={{
+              left: Math.max(12, Math.min(hoveredItem.clientX + 14, (mountRef.current?.clientWidth || 500) - 270)),
+              top: Math.max(12, Math.min(hoveredItem.clientY - 35, (mountRef.current?.clientHeight || 400) - 130)),
+            }}
+          >
+            <div className="packing-3d-tooltip-head">
+              <span
+                className="packing-3d-tooltip-badge"
+                style={{ backgroundColor: hoveredItem.placement.display_color_hex || "#0071e3" }}
+              >
+                #{hoveredItem.stepNumber}
+              </span>
+              <span className="packing-3d-tooltip-title" title={hoveredItem.placement.display_name}>
+                {hoveredItem.placement.display_name || `Item #${hoveredItem.stepNumber}`}
+              </span>
+            </div>
+            <div className="packing-3d-tooltip-dims">
+              <span>📐</span>
+              <span>
+                {(hoveredItem.placement.nominal_dimensions_mm || hoveredItem.placement.placed_dimensions_mm).dx} ×{" "}
+                {(hoveredItem.placement.nominal_dimensions_mm || hoveredItem.placement.placed_dimensions_mm).dy} ×{" "}
+                {(hoveredItem.placement.nominal_dimensions_mm || hoveredItem.placement.placed_dimensions_mm).dz} mm
+              </span>
+            </div>
+            <div className="packing-3d-tooltip-meta">
+              <span className="packing-3d-tooltip-tag">
+                {hoveredItem.placement.rotation_code || "Flat"}
+              </span>
+              <span className="packing-3d-tooltip-tag">
+                Z: {hoveredItem.placement.position_mm.z} mm
+              </span>
+              <span className="packing-3d-tooltip-hint">Click to inspect</span>
+            </div>
           </div>
         )}
       </div>
@@ -504,7 +572,7 @@ export const PackingViewer3D: React.FC<PackingViewer3DProps> = ({
       {activeItem && (
         <p className="player-caption">
           <span className="dot" style={{ backgroundColor: activeItem.display_color_hex }} />
-          {activeItem.display_name}
+          <strong>#{activeItem.step_number}</strong> {activeItem.display_name}
           <span className="muted"> · {activeItem.rotation_code}</span>
         </p>
       )}
