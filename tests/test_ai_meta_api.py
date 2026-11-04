@@ -16,6 +16,7 @@ import httpx
 from backend.app.ai.meta_client import (
     analyze_items_with_muse_spark,
     extract_item_semantics_muse,
+    extract_json_from_llm_text,
     parse_sam31_response,
     MUSE_ITEM_SEMANTIC_SCHEMA,
     MUSE_BATCH_SEMANTIC_SCHEMA,
@@ -216,7 +217,7 @@ async def test_batch_muse_disk_cache_fast_path():
 @pytest.mark.asyncio
 async def test_batch_muse_demo_item_fallback():
     """Verify perceptual demo item fallback returns rich domain semantics offline."""
-    with patch.dict(os.environ, {"MODEL_API_KEY": ""}):
+    with patch.dict(os.environ, {"MODEL_API_KEY": "", "BASETEN_API_KEY": "", "BaseTen_API": "", "BASETEN_API": ""}):
         res = await analyze_items_with_muse_spark(
             overview_image_bytes=b"overview_bytes",
             item_crops=[
@@ -288,7 +289,7 @@ async def test_batch_muse_partial_caching():
             return cached_payload
         return None
 
-    with patch.dict(os.environ, {"MODEL_API_KEY": "test_key"}):
+    with patch.dict(os.environ, {"MODEL_API_KEY": "test_key", "BASETEN_API_KEY": "", "BaseTen_API": "", "BASETEN_API": ""}):
         with patch("backend.app.ai.meta_client.compute_image_sha256", side_effect=lambda b: "hash_cached" if b == b"bytes_cached" else "hash_uncached"):
             with patch("backend.app.ai.meta_client.get_cached_response", side_effect=fake_get_cache):
                 with patch("backend.app.ai.meta_client.store_cached_response"):
@@ -306,3 +307,116 @@ async def test_batch_muse_partial_caching():
                         assert "uncached_item_2" in res["items"]
                         assert res["items"]["cached_item_1"]["fragility_class"] == "medium"
                         assert res["items"]["uncached_item_2"]["fragility_class"] == "low"
+
+
+def test_extract_json_from_llm_text():
+    """Verify robust JSON extraction from pure JSON, markdown fences, and mixed text."""
+    p1 = '{"item_id": "box_1", "display_name": "Test Box"}'
+    assert extract_json_from_llm_text(p1) == {"item_id": "box_1", "display_name": "Test Box"}
+
+    p2 = '```json\n{"item_id": "box_2", "category": "electronics_boxed"}\n```'
+    assert extract_json_from_llm_text(p2) == {"item_id": "box_2", "category": "electronics_boxed"}
+
+    p3 = 'Here is the packaging inspection result:\n{"item_id": "box_3", "keep_upright": true}\nHope this helps!'
+    assert extract_json_from_llm_text(p3) == {"item_id": "box_3", "keep_upright": True}
+
+    assert extract_json_from_llm_text("Not valid json at all") is None
+    assert extract_json_from_llm_text("") is None
+
+
+@pytest.mark.asyncio
+async def test_batch_muse_baseten_parallel_success():
+    """Verify Baseten primary path executes crops in parallel and caches responses."""
+    mock_baseten_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": (
+                        '{"item_id": "crop_01", "display_name": "GoChek Mic", "category": "electronics_boxed", '
+                        '"visible_labels": ["GoChek"], "fragility_class": "medium", "keep_upright": false, '
+                        '"stackable": true, "reasoning_note": "electronics mic"}'
+                    ),
+                }
+            }
+        ]
+    }
+
+    async def async_post(*args, **kwargs):
+        return mock_resp
+
+    mock_baseten_client.post = async_post
+
+    with patch.dict(os.environ, {"BASETEN_API_KEY": "b10_mock_test_key", "MODEL_API_KEY": ""}):
+        with patch("backend.app.ai.meta_client.get_cached_response", return_value=None):
+            with patch("backend.app.ai.meta_client.store_cached_response") as mock_store_cache:
+                with patch("backend.app.ai.meta_client.get_baseten_async_client", return_value=mock_baseten_client):
+                    res = await analyze_items_with_muse_spark(
+                        overview_image_bytes=b"overview",
+                        item_crops=[{"item_id": "crop_01", "crop_bytes": b"real_bytes_for_crop"}],
+                    )
+
+                    assert res["status"] == "success"
+                    assert res["fallback_activated"] is False
+                    assert "crop_01" in res["items"]
+                    assert res["items"]["crop_01"]["display_name"] == "GoChek Mic"
+                    assert res["items"]["crop_01"]["category"] == "electronics_boxed"
+                    assert mock_store_cache.called
+
+
+@pytest.mark.asyncio
+async def test_batch_muse_baseten_error_fallback_to_meta():
+    """Verify that when Baseten throws or fails, it falls back to Meta Model API."""
+    mock_baseten_client = MagicMock()
+
+    async def bad_post(*args, **kwargs):
+        raise httpx.ConnectError("Baseten endpoint unreachable")
+
+    mock_baseten_client.post = bad_post
+
+    mock_meta_client = MagicMock()
+    mock_meta_resp = MagicMock()
+    mock_meta_resp.status_code = 200
+    mock_meta_resp.json.return_value = {
+        "output": [
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "output_text",
+                        "text": (
+                            '{"items":[{"item_id":"crop_fb","display_name":"Sennheiser Box",'
+                            '"category":"electronics_boxed","visible_labels":["Sennheiser"],'
+                            '"printed_weight_g":null,"fragility_class":"medium","fragility_source":"default_safe",'
+                            '"keep_upright":false,"orientation_source":"default_unconstrained","stackable":true,'
+                            '"reasoning_note":"meta fallback"}]}'
+                        ),
+                    }
+                ],
+            }
+        ]
+    }
+
+    async def meta_post(*args, **kwargs):
+        return mock_meta_resp
+
+    mock_meta_client.post = meta_post
+
+    with patch.dict(os.environ, {"BASETEN_API_KEY": "b10_mock_key", "MODEL_API_KEY": "meta_key"}):
+        with patch("backend.app.ai.meta_client.get_cached_response", return_value=None):
+            with patch("backend.app.ai.meta_client.store_cached_response"):
+                with patch("backend.app.ai.meta_client.get_baseten_async_client", return_value=mock_baseten_client):
+                    with patch("backend.app.ai.meta_client.get_async_http_client", return_value=mock_meta_client):
+                        res = await analyze_items_with_muse_spark(
+                            overview_image_bytes=b"overview",
+                            item_crops=[{"item_id": "crop_fb", "crop_bytes": b"crop_fb_bytes"}],
+                        )
+
+                        assert res["status"] == "success"
+                        assert "crop_fb" in res["items"]
+                        assert res["items"]["crop_fb"]["display_name"] == "Sennheiser Box"
+                        assert res["model"] == "muse-spark-1.3"

@@ -1,0 +1,10 @@
+{
+  "baseten": {
+    "status": "exception",
+    "error": "Illegal header value b'Bearer '"
+  },
+  "meta": {
+    "status": "exception",
+    "error": "Illegal header value b'Bearer '"
+  }
+}

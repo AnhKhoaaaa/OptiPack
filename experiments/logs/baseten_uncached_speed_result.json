@@ -1,0 +1,81 @@
+{
+  "timestamp": "2026-11-04T09:31:33Z",
+  "total_wall_clock_sec": 5.93,
+  "item_count": 5,
+  "model": "meta-models/muse-spark-open-1026",
+  "status": "success",
+  "fallback_activated": false,
+  "items": {
+    "item_01_paper": {
+      "weight_g": null,
+      "weight_source": "unknown",
+      "fragility_class": "low",
+      "fragility_source": "ai_inferred_packaging",
+      "keep_upright": false,
+      "orientation_source": "default_unconstrained",
+      "stackable": true,
+      "max_top_load_g": 8000,
+      "visible_labels": [
+        "TOP GIA"
+      ],
+      "display_name": "TOP GIA",
+      "category": "generic_carton"
+    },
+    "item_02_wood": {
+      "weight_g": null,
+      "weight_source": "unknown",
+      "fragility_class": "low",
+      "fragility_source": "ai_inferred_packaging",
+      "keep_upright": false,
+      "orientation_source": "default_unconstrained",
+      "stackable": true,
+      "max_top_load_g": 8000,
+      "visible_labels": [
+        "SENNHEISER"
+      ],
+      "display_name": "SENNHEISER",
+      "category": "electronics_boxed"
+    },
+    "item_03_gocheck": {
+      "weight_g": null,
+      "weight_source": "unknown",
+      "fragility_class": "medium",
+      "fragility_source": "ai_inferred_packaging",
+      "keep_upright": false,
+      "orientation_source": "default_unconstrained",
+      "stackable": true,
+      "max_top_load_g": 2000,
+      "visible_labels": [
+        "GoChek"
+      ],
+      "display_name": "GoChek",
+      "category": "electronics_boxed"
+    },
+    "item_04_white": {
+      "weight_g": null,
+      "weight_source": "unknown",
+      "fragility_class": "medium",
+      "fragility_source": "ai_inferred_packaging",
+      "keep_upright": false,
+      "orientation_source": "default_unconstrained",
+      "stackable": false,
+      "max_top_load_g": 0,
+      "visible_labels": [],
+      "display_name": "White Portable Bluetooth Speaker",
+      "category": "electronics_boxed"
+    },
+    "item_05_black": {
+      "weight_g": null,
+      "weight_source": "unknown",
+      "fragility_class": "low",
+      "fragility_source": "ai_inferred_packaging",
+      "keep_upright": false,
+      "orientation_source": "default_unconstrained",
+      "stackable": true,
+      "max_top_load_g": 8000,
+      "visible_labels": [],
+      "display_name": "Black Box",
+      "category": "electronics_boxed"
+    }
+  }
+}
