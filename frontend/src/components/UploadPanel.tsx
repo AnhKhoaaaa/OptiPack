@@ -21,96 +21,9 @@ const SAMPLE_TOP = "/samples/topdown_sample.jpg";
 const SAMPLE_OBLIQUE = "/samples/oblique_sample.jpg";
 
 
-// Helper to auto-orient portrait photos (H > W) into landscape (W > H)
-// matching the A4 calibration sheet coordinate system
-const normalizeToLandscape = (fileOrBlob: File | Blob): Promise<{ blob: Blob; url: string }> => {
-  return new Promise((resolve) => {
-    const tempUrl = URL.createObjectURL(fileOrBlob);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(tempUrl);
-      if (img.naturalHeight > img.naturalWidth) {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.naturalHeight;
-        canvas.height = img.naturalWidth;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.translate(canvas.width, 0);
-          ctx.rotate((90 * Math.PI) / 180);
-          ctx.drawImage(img, 0, 0);
-          canvas.toBlob(
-            (rotatedBlob) => {
-              if (rotatedBlob) {
-                resolve({ blob: rotatedBlob, url: URL.createObjectURL(rotatedBlob) });
-                return;
-              }
-              resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
-            },
-            "image/jpeg",
-            0.95
-          );
-          return;
-        }
-      }
-      resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(tempUrl);
-      resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
-    };
-    img.src = tempUrl;
-  });
-};
-
-// Helper to match oblique image dimensions with zenith top image
-// to ensure identical width & height for stereo calibration pipeline
-const matchImageDimensions = (
-  referenceBlob: File | Blob,
-  targetBlob: File | Blob
-): Promise<Blob> => {
-  return new Promise((resolve) => {
-    const refUrl = URL.createObjectURL(referenceBlob);
-    const targetUrl = URL.createObjectURL(targetBlob);
-    const refImg = new Image();
-    refImg.onload = () => {
-      const targetW = refImg.naturalWidth;
-      const targetH = refImg.naturalHeight;
-      URL.revokeObjectURL(refUrl);
-
-      const targetImg = new Image();
-      targetImg.onload = () => {
-        URL.revokeObjectURL(targetUrl);
-        if (targetImg.naturalWidth === targetW && targetImg.naturalHeight === targetH) {
-          resolve(targetBlob);
-          return;
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = targetW;
-        canvas.height = targetH;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(targetImg, 0, 0, targetW, targetH);
-          canvas.toBlob(
-            (b) => resolve(b || targetBlob),
-            "image/jpeg",
-            0.95
-          );
-        } else {
-          resolve(targetBlob);
-        }
-      };
-      targetImg.onerror = () => {
-        URL.revokeObjectURL(targetUrl);
-        resolve(targetBlob);
-      };
-      targetImg.src = targetUrl;
-    };
-    refImg.onerror = () => {
-      URL.revokeObjectURL(refUrl);
-      resolve(targetBlob);
-    };
-    refImg.src = refUrl;
-  });
+// Helper to preserve image blob and URL cleanly
+const preserveBlob = (fileOrBlob: File | Blob): Promise<{ blob: Blob; url: string }> => {
+  return Promise.resolve({ blob: fileOrBlob, url: URL.createObjectURL(fileOrBlob) });
 };
 
 export const UploadPanel: React.FC<UploadPanelProps> = ({
@@ -227,7 +140,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const handleNativeCameraTop = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const topRes = await normalizeToLandscape(file);
+    const topRes = await preserveBlob(file);
     topFileRef.current = topRes.blob;
     setTopFile(topRes.blob);
     setTopPreview(topRes.url);
@@ -243,7 +156,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const handleNativeCameraOblique = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const oblRes = await normalizeToLandscape(file);
+    const oblRes = await preserveBlob(file);
     setObliqueFile(oblRes.blob);
     setObliquePreview(oblRes.url);
     e.target.value = "";
@@ -315,21 +228,12 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     setCameraError(null);
     onReset?.();
 
-    let finalOblique = oblique;
-    if (top && oblique) {
-      try {
-        finalOblique = await matchImageDimensions(top, oblique);
-      } catch (err) {
-        console.warn("[UploadPanel] Error matching dimensions:", err);
-      }
-    }
-
     const formData = new FormData();
     formData.append("top_image", top, "zenith_top.jpg");
-    if (finalOblique) {
-      formData.append("oblique_image", finalOblique, "oblique.jpg");
+    if (oblique) {
+      formData.append("oblique_image", oblique, "oblique.jpg");
     }
-    formData.append("capture_mode", finalOblique ? "dual_photo" : "zenith_only");
+    formData.append("capture_mode", oblique ? "dual_photo" : "zenith_only");
 
     try {
       const data = await OptiPackClient.analyzeOrder(formData);
@@ -352,12 +256,12 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     // Allow re-selecting the same photos after New capture or a failed analysis.
     e.target.value = "";
 
-    const topRes = await normalizeToLandscape(file1);
+    const topRes = await preserveBlob(file1);
     setTopFile(topRes.blob);
     setTopPreview(topRes.url);
 
     if (file2) {
-      const oblRes = await normalizeToLandscape(file2);
+      const oblRes = await preserveBlob(file2);
       setObliqueFile(oblRes.blob);
       setObliquePreview(oblRes.url);
       triggerAnalysis(topRes.blob, oblRes.blob);
@@ -369,7 +273,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const handleSingleTopChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const topRes = await normalizeToLandscape(file);
+    const topRes = await preserveBlob(file);
     topFileRef.current = topRes.blob;
     setTopFile(topRes.blob);
     setTopPreview(topRes.url);
@@ -382,7 +286,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const handleSingleObliqueChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const oblRes = await normalizeToLandscape(file);
+    const oblRes = await preserveBlob(file);
     setObliqueFile(oblRes.blob);
     setObliquePreview(oblRes.url);
     e.target.value = "";
@@ -505,7 +409,11 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       </header>
 
       {/* Main Viewport / Stage */}
-      <div className={`stage ${!analysis && mode !== "camera" ? "is-initial" : ""}`} ref={stageRef}>
+      <div
+        className={`stage ${!analysis && mode !== "camera" ? "is-initial" : ""}`}
+        ref={stageRef}
+        style={{ aspectRatio: imgNaturalSize ? `${imgNaturalSize.w} / ${imgNaturalSize.h}` : undefined }}
+      >
         {/* Mode 1: Live Webcam Viewfinder */}
         {mode === "camera" && (
           <div className="camera-viewfinder">
@@ -665,10 +573,16 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   <line x1="12" y1="9" x2="12" y2="13"/>
                   <line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
-                <strong>Calibration Board Not Detected</strong>
-                <p className="muted text-xs" style={{ maxWidth: 320, textAlign: "center", lineHeight: 1.4 }}>
-                  {analysis.global_warnings?.[0] ||
-                    "OptiPack requires an A4 4-corner ArUco sheet to calculate exact physical millimeters from live photos."}
+                <strong>
+                  {analysis.calibration?.status === "calibrated"
+                    ? "No Packable Items Detected"
+                    : "Calibration Board Not Detected"}
+                </strong>
+                <p className="muted text-xs" style={{ maxWidth: 340, textAlign: "center", lineHeight: 1.4 }}>
+                  {analysis.calibration?.status === "calibrated"
+                    ? "A4 calibration sheet was calibrated successfully, but no items were found outside it. Place items around the sheet (not on it), or enter dimensions directly."
+                    : (analysis.global_warnings?.[0] ||
+                       "OptiPack requires an A4 4-corner ArUco sheet to calculate exact physical millimeters from live photos.")}
                 </p>
                 <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
                   <button
