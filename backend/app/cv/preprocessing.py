@@ -10,7 +10,40 @@ import numpy as np
 
 
 def normalize_image_orientation(image: np.ndarray) -> np.ndarray:
-    """Auto-orient portrait photos (H > W) to landscape workspace calibration (W > H)."""
+    """Auto-orient image so that the ArUco calibration board is horizontal (+X rightward).
+
+    If ArUco markers are detected, smartly orient based on the board's physical coordinate frame.
+    Falls back to clockwise rotation if no markers found and H > W.
+    """
+    if image is None or image.size == 0:
+        return image
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    parameters = cv2.aruco.DetectorParameters()
+    corners, ids, _ = cv2.aruco.ArucoDetector(dictionary, parameters).detectMarkers(gray)
+    if ids is not None and len(ids) >= 2:
+        centers = {int(mid): c.reshape(4, 2).mean(axis=0) for c, mid in zip(corners, ids.ravel())}
+        vec_x = None
+        if 0 in centers and 1 in centers:
+            vec_x = centers[1] - centers[0]
+        elif 3 in centers and 2 in centers:
+            vec_x = centers[2] - centers[3]
+        elif 0 in centers and 3 in centers:
+            vec_y = centers[3] - centers[0]
+            vec_x = np.array([-vec_y[1], vec_y[0]])
+
+        if vec_x is not None:
+            angle = np.rad2deg(np.arctan2(vec_x[1], vec_x[0]))
+            if -45.0 <= angle <= 45.0:
+                return image
+            elif 45.0 < angle <= 135.0:
+                return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            elif -135.0 <= angle < -45.0:
+                return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+            else:
+                return cv2.rotate(image, cv2.ROTATE_180)
+
     if image.shape[0] > image.shape[1]:
         return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
     return image

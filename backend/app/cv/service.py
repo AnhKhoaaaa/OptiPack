@@ -113,13 +113,14 @@ class CVMetrologyService:
         ref_w = self.K[0, 2] * 2.0
         ref_h = self.K[1, 2] * 2.0
         if ref_w > 0 and ref_h > 0 and (abs(w - ref_w) > 5 or abs(h - ref_h) > 5):
-            sx = w / ref_w
-            sy = h / ref_h
+            ref_long = max(ref_w, ref_h)
+            img_long = max(w, h)
+            s = img_long / ref_long
             K_scaled = self.K.copy()
-            K_scaled[0, 0] *= sx
-            K_scaled[0, 2] *= sx
-            K_scaled[1, 1] *= sy
-            K_scaled[1, 2] *= sy
+            K_scaled[0, 0] *= s
+            K_scaled[1, 1] *= s
+            K_scaled[0, 2] = w / 2.0
+            K_scaled[1, 2] = h / 2.0
             return K_scaled
         return self.K.copy()
 

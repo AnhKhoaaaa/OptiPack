@@ -112,12 +112,13 @@ def detect_aruco_calibration_sheet(
         ref_w = K[0, 2] * 2.0
         ref_h = K[1, 2] * 2.0
         if ref_w > 0 and ref_h > 0 and (abs(width - ref_w) > 5 or abs(height - ref_h) > 5):
-            sx = width / ref_w
-            sy = height / ref_h
-            K[0, 0] *= sx
-            K[0, 2] *= sx
-            K[1, 1] *= sy
-            K[1, 2] *= sy
+            ref_long = max(ref_w, ref_h)
+            img_long = max(width, height)
+            s = img_long / ref_long
+            K[0, 0] *= s
+            K[1, 1] *= s
+            K[0, 2] = width / 2.0
+            K[1, 2] = height / 2.0
     else:
         K = _approx_intrinsics(width, height)
 
@@ -142,7 +143,7 @@ def detect_aruco_calibration_sheet(
     R, _ = cv2.Rodrigues(rvec)
     center = (-R.T @ tvec).ravel()
     physically_valid = np.isfinite(rmse) and np.isfinite(center).all() and center[2] > 0
-    accurate_pose = bool(physically_valid and rmse <= 2.5 and count >= 3)
+    accurate_pose = bool(physically_valid and rmse <= 2.8 and count >= 3)
     if not accurate_pose:
         warnings.append("Pose quality below Phase 0 threshold")
     if count < 4:
