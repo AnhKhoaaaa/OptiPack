@@ -1,4 +1,5 @@
 import React from "react";
+import { resolveAssetUrl } from "../api/optipackClient";
 import { PackableItem, RotationCode } from "../types/contract";
 import { needsMeasurementReview } from "../utils/review";
 
@@ -133,7 +134,7 @@ export const ManifestTable: React.FC<ManifestTableProps> = ({
                   <div className="item-name-cell">
                     {item.crop_url ? (
                       <img
-                        src={item.crop_url}
+                        src={resolveAssetUrl(item.crop_url) || item.crop_url}
                         alt={item.display_name}
                         className="item-crop-thumb"
                         onError={(e) => {

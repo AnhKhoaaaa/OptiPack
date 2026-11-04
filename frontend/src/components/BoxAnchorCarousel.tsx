@@ -1,3 +1,4 @@
+import { resolveAssetUrl } from "../api/optipackClient";
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { CartonSpec, Dimensions3D } from "../types/contract";
 import { ExtendedPackableItem } from "./ManifestTable";
@@ -496,7 +497,7 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
         <div className="anchor-banner">
           <div className="anchor-thumb-mini">
             {anchorItem.crop_url ? (
-              <img src={anchorItem.crop_url} alt={anchorItem.display_name} />
+              <img src={resolveAssetUrl(anchorItem.crop_url) || anchorItem.crop_url} alt={anchorItem.display_name} />
             ) : (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
