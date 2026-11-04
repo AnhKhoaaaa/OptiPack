@@ -8,7 +8,29 @@ import type {
   PackingSolutionResponse,
 } from "../types/contract";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+/**
+ * Safely computes the backend API base URL:
+ * 1. Sanitizes user-provided import.meta.env.VITE_API_BASE_URL (trims, removes trailing slashes).
+ * 2. Ensures `/api/v1` path is always present.
+ * 3. In local dev (localhost), falls back to `/api/v1` (using Vite dev proxy).
+ * 4. In production (e.g. deployed on Vercel), if env variable was omitted, defaults to deployed Render backend.
+ */
+export function getApiBaseUrl(): string {
+  const envVal = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envVal) {
+    const clean = envVal.replace(/\/+$/, "");
+    return clean.endsWith("/api/v1") ? clean : `${clean}/api/v1`;
+  }
+  if (
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ) {
+    return "/api/v1";
+  }
+  return "https://optipack-backend.onrender.com/api/v1";
+}
+
+const API_BASE = getApiBaseUrl();
 
 /**
  * Resolves an asset or crop URL returned by the backend into an accessible URL
@@ -24,8 +46,8 @@ export function resolveAssetUrl(url: string | null | undefined): string | null {
   ) {
     return url;
   }
-  const base = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/api\/v1\/?$/, "");
-  if (base) {
+  const base = getApiBaseUrl().replace(/\/api\/v1\/?$/, "");
+  if (base && !base.startsWith("/")) {
     return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
   }
   return url;
