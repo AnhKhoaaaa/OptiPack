@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 
 from backend.app.ai.cache import compute_image_sha256, get_cached_response, store_cached_response
 from backend.app.ai.sanitizer import sanitize_physical_attributes
-from backend.app.schemas.contracts import AITelemetry, PhysicalAttributes
+from backend.app.schemas.contracts import AITelemetry, PhysicalAttributes, PackableItem, PackingScenarioCard
 
 # Ensure .env is loaded
 dotenv.load_dotenv()
@@ -121,6 +121,14 @@ MUSE_ITEM_SEMANTIC_SCHEMA: Dict[str, Any] = {
                     "other_rigid",
                 ],
             },
+            "material_type": {
+                "type": "string",
+                "enum": ["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"],
+            },
+            "weight_tier": {
+                "type": "string",
+                "enum": ["light", "medium", "heavy"],
+            },
             "visible_labels": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -187,6 +195,8 @@ class MuseItemSemanticOutput(BaseModel):
     item_id: str
     display_name: Optional[str] = "Generic Package"
     category: str = "generic_carton"
+    material_type: str = "rigid_box"
+    weight_tier: str = "medium"
     visible_labels: List[str] = Field(default_factory=list)
     printed_weight_g: Optional[int] = None
     fragility_class: str = "medium"
@@ -306,6 +316,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "gocheck": {
         "display_name": "GoChek Wireless Mic Case",
         "category": "electronics_boxed",
+        "material_type": "rigid_box",
+        "weight_tier": "light",
         "visible_labels": ["GoChek"],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -319,6 +331,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "wood": {
         "display_name": "Sennheiser Wooden Box",
         "category": "electronics_boxed",
+        "material_type": "metal_wood",
+        "weight_tier": "medium",
         "visible_labels": ["Sennheiser"],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -332,6 +346,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "paper": {
         "display_name": "Top Gia Premium Paper Tissue",
         "category": "cosmetics_personal_care",
+        "material_type": "soft_fabric",
+        "weight_tier": "light",
         "visible_labels": ["Top Gia"],
         "printed_weight_g": None,
         "fragility_class": "low",
@@ -345,6 +361,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "white": {
         "display_name": "White Electronic Device",
         "category": "electronics_boxed",
+        "material_type": "rigid_box",
+        "weight_tier": "light",
         "visible_labels": [],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -358,6 +376,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "black": {
         "display_name": "Black Rectangular Box",
         "category": "generic_carton",
+        "material_type": "rigid_box",
+        "weight_tier": "medium",
         "visible_labels": [],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -371,6 +391,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "fragile": {
         "display_name": "Brown Carton with Fragile Label",
         "category": "generic_carton",
+        "material_type": "glass_ceramic",
+        "weight_tier": "medium",
         "visible_labels": ["FRAGILE"],
         "printed_weight_g": None,
         "fragility_class": "high",
@@ -384,6 +406,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "upright": {
         "display_name": "Teal Carton with THIS SIDE UP",
         "category": "generic_carton",
+        "material_type": "rigid_box",
+        "weight_tier": "medium",
         "visible_labels": ["THIS SIDE UP"],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -397,6 +421,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "printed_wt": {
         "display_name": "Lavender Carton with Net Weight",
         "category": "cosmetics_personal_care",
+        "material_type": "rigid_box",
+        "weight_tier": "medium",
         "visible_labels": ["NET WT 500g"],
         "printed_weight_g": 500,
         "fragility_class": "medium",
@@ -657,8 +683,10 @@ async def _inspect_single_crop_baseten(
 Keep reasoning extremely brief under 20 words.
 Output a strict JSON object with these EXACT keys:
 - "item_id": "{item_id}"
-- "display_name": exact printed brand or product title legible on packaging (e.g. "Top Gia Khăn Giấy Cao Cấp", "Sennheiser Wooden Box", "GoChek Wireless Mic Case").
+- "display_name": exact printed brand or product title legible on packaging (e.g. "Top Gia Premium Tissues", "Sennheiser Wooden Box", "GoChek Wireless Mic Case").
 - "category": one of ["electronics_boxed", "cosmetics_personal_care", "food_beverage_rigid", "book_media_flat", "apparel_boxed", "glass_ceramic_fragile", "generic_carton", "other_rigid"]
+- "material_type": one of ["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"]
+- "weight_tier": one of ["light", "medium", "heavy"]
 - "visible_labels": list of visible text/labels printed on package
 - "printed_weight_g": integer net weight in grams if explicitly printed, else null
 - "fragility_class": one of ["low", "medium", "high", "unknown"]
@@ -702,6 +730,10 @@ Output ONLY the JSON object."""
     parsed["item_id"] = item_id
     if not parsed.get("display_name"):
         parsed["display_name"] = crop.get("name") or "Generic Package"
+    if not parsed.get("material_type"):
+        parsed["material_type"] = "rigid_box"
+    if not parsed.get("weight_tier"):
+        parsed["weight_tier"] = "medium"
     return parsed
 
 
@@ -1017,3 +1049,133 @@ def segment_with_sam31(
             "detections": [],
             "error": str(exc),
         }
+
+
+def parse_scenario_advisor_response(text: str) -> List[Dict[str, str]]:
+    """Parse the advisor JSON array independently of object-only semantic parsing."""
+    if not isinstance(text, str) or not text.strip():
+        return []
+    cleaned = text.strip()
+    fence = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", cleaned, re.DOTALL | re.IGNORECASE)
+    if fence:
+        cleaned = fence.group(1).strip()
+    try:
+        parsed = json.loads(cleaned)
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    result: List[Dict[str, str]] = []
+    seen = set()
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        scenario_id = item.get("scenario_id")
+        title = item.get("advisor_title")
+        explanation = item.get("advisor_explanation")
+        if not all(isinstance(v, str) and v.strip() for v in (scenario_id, title, explanation)):
+            continue
+        if scenario_id in seen or len(title) > 120 or len(explanation) > 400:
+            continue
+        seen.add(scenario_id)
+        result.append({
+            "scenario_id": scenario_id.strip(),
+            "advisor_title": title.strip(),
+            "advisor_explanation": explanation.strip(),
+        })
+    return result
+
+
+async def synthesize_scenario_advisor_notes(
+    scenarios: List[PackingScenarioCard],
+    items: List[PackableItem],
+    timeout_sec: float = 4.0,
+) -> List[PackingScenarioCard]:
+    """Enhance deterministic English scenario notes, retaining safe fallback."""
+    if not scenarios:
+        return scenarios
+
+    api_key = (
+        os.getenv("BASETEN_API_KEY")
+        or os.getenv("BaseTen_API")
+        or os.getenv("BASETEN_API", "")
+        or os.getenv("MODEL_API_KEY", "")
+    ).strip()
+    if not api_key:
+        return scenarios
+
+    item_names = [it.display_name for it in items]
+    scenario_summaries = []
+    for s in scenarios:
+        scenario_summaries.append({
+            "scenario_id": s.scenario_id,
+            "badge_status": s.badge_status,
+            "carton_name": s.carton.display_name,
+            "volume_utilization_pct": round(s.volume_utilization_pct, 1),
+            "overflow_height_mm": s.overflow_height_mm,
+            "ejected_count": len(s.ejected_item_ids),
+        })
+
+    prompt = f"""You are an expert e-commerce packaging AI assistant (OptiPack Packaging Copilot).
+Items to pack: {', '.join(item_names[:5])}.
+Calculated packaging scenarios:
+{json.dumps(scenario_summaries, ensure_ascii=False)}
+
+Write concise, practical advice in simple, natural English (under 25 words per scenario) for each scenario_id:
+- For GREEN: confirm perfect fit, advise standard tape closure.
+- For YELLOW: explicitly say lid flex is only simulated and requires physical compression and closure verification; never claim a safe fit.
+- For RED: clearly explain that certain items need to be split into a separate mailer or second box.
+- For BEST_FIT: highlight optimal standard carrier dimensions and space efficiency.
+
+Return ONLY a JSON array with this exact structure:
+[
+  {{"scenario_id": "...", "advisor_title": "short title", "advisor_explanation": "practical advice under 25 words"}}
+]
+"""
+
+    payload = {
+        "model": BASETEN_MODEL_NAME,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        "max_tokens": 1024,
+        "temperature": 0.2,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    endpoint_url = f"{BASETEN_BASE_URL}/chat/completions"
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout_sec) as client:
+            resp = await client.post(endpoint_url, headers=headers, json=payload)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                choices = res_json.get("choices", [])
+                if choices:
+                    raw_content = choices[0].get("message", {}).get("content", "")
+                    advice_map = {
+                        item["scenario_id"]: item
+                        for item in parse_scenario_advisor_response(raw_content)
+                    }
+                    for sc in scenarios:
+                        advice = advice_map.get(sc.scenario_id)
+                        if advice is None:
+                            continue
+                        explanation = advice["advisor_explanation"]
+                        if sc.requires_physical_verification:
+                            # AI text cannot silently upgrade a conditional
+                            # simulation to a verified physical packing plan.
+                            continue
+                        sc.advisor_title = advice["advisor_title"]
+                        sc.advisor_explanation = explanation
+                        sc.ai_advisor_note = explanation
+    except Exception:
+        # Gracefully keep deterministic template fallback
+        pass
+
+    return scenarios

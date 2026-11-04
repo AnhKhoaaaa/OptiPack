@@ -162,6 +162,16 @@ class OrderAnalysisResponse(BaseModel):
 # Solver Schemas (Endpoint 2: POST /api/v1/orders/pack)
 # -----------------------------------------------------------------------------
 
+class CartonSpec(BaseModel):
+    """Standard carton definition from catalog."""
+    carton_id: str = Field(..., description="Carton SKU code (e.g. BOX-M)")
+    display_name: str = Field(..., description="Human-readable carton name")
+    internal_dimensions_mm: Dimensions3D = Field(..., description="Usable internal dimensions")
+    tare_weight_g: int = Field(..., ge=0, description="Empty box tare weight in grams")
+    max_payload_g: int = Field(..., gt=0, description="Maximum payload capacity in grams")
+    box_cost_usd: float = Field(..., ge=0.0, description="Unit cost of corrugated packaging box")
+
+
 class SolverConfig(BaseModel):
     """Configuration passed to the 3D Bin Packing and Cartonization solver."""
     mode: Literal["cpsat_with_heuristic_fallback", "extreme_point_only", "cpsat_exact_only"] = "cpsat_with_heuristic_fallback"
@@ -171,7 +181,10 @@ class SolverConfig(BaseModel):
     allow_multi_carton_split: bool = Field(True, description="Allow splitting order if single box cannot fit")
     target_carton_id: Optional[str] = Field(None, description="Optional target standard carton SKU (e.g. BOX-S, BOX-M)")
     custom_carton_dimensions: Optional[Dimensions3D] = Field(None, description="Optional custom user-specified carton dimensions in mm")
-    user_selected_boxes: List[CartonSpec] = Field(default_factory=list, description="User-selected boxes from anchor carousel")
+    user_selected_boxes: List[CartonSpec] = Field(
+        default_factory=list,
+        description="User-selected boxes to evaluate via What-If engine from anchor carousel"
+    )
 
 
 class PackableItem(BaseModel):
@@ -187,6 +200,8 @@ class PackableItem(BaseModel):
     keep_upright: bool = Field(False, description="If true, restricts orientations to LWH and WLH")
     stackable: bool = Field(True, description="If false, no other item can be stacked on top")
     max_top_load_g: Optional[int] = Field(None, ge=0, description="Maximum downward load tolerated")
+    material_type: Literal["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "plastic", "other"] = "rigid_box"
+    weight_tier: Literal["light", "medium", "heavy"] = "medium"
     allowed_rotations: List[RotationCode] = Field(
         default_factory=lambda: [r for r in RotationCode]
     )
@@ -206,16 +221,6 @@ class PackingRequest(BaseModel):
 # -----------------------------------------------------------------------------
 # Packing Solution & Validation Schemas
 # -----------------------------------------------------------------------------
-
-class CartonSpec(BaseModel):
-    """Standard carton definition from catalog."""
-    carton_id: str = Field(..., description="Carton SKU code (e.g. BOX-M)")
-    display_name: str = Field(..., description="Human-readable carton name")
-    internal_dimensions_mm: Dimensions3D = Field(..., description="Usable internal dimensions")
-    tare_weight_g: int = Field(..., ge=0, description="Empty box tare weight in grams")
-    max_payload_g: int = Field(..., gt=0, description="Maximum payload capacity in grams")
-    box_cost_usd: float = Field(..., ge=0.0, description="Unit cost of corrugated packaging box")
-
 
 class PlacedItem(BaseModel):
     """A single placed item inside the carton coordinate system."""
@@ -278,17 +283,25 @@ class CandidateCartonEvaluation(BaseModel):
 
 
 class PackingScenarioCard(BaseModel):
-    """What-If Packing scenario comparison card (Green, Yellow, Red, Best-Fit)."""
-    scenario_id: str = Field(..., description="Unique scenario ID")
-    title: str = Field(..., description="Scenario display title")
-    badge_status: Literal["GREEN", "YELLOW", "RED", "BEST_FIT"]
-    badge_label: str = Field(..., description="Status badge text")
-    overflow_height_mm: int = Field(0, description="Bulge height beyond original box in mm")
+    """A What-If packing scenario presented to the user with actionable AI guidance."""
+    scenario_id: str = Field(..., description="Unique scenario ID, e.g. scenario_user_box_1")
+    title: str = Field(..., description="Short title e.g. 'Your Box (Box M)'")
+    badge_status: Literal["GREEN", "YELLOW", "RED", "BEST_FIT"] = Field(..., description="Classification badge")
+    carton: Optional[CartonSpec] = Field(None, description="Carton specification evaluated")
+    is_user_box: bool = Field(False, description="True if box was selected by user")
+    is_selected_default: bool = Field(False, description="True if this scenario is the primary recommended one")
+    volume_utilization_pct: float = Field(0.0, ge=0.0, le=100.0, description="Volume utilization percentage")
+    feasible: bool = Field(True, description="True only when all items fit a geometry-validated nominal carton")
+    requires_physical_verification: bool = Field(False, description="Conditional simulation requiring real-world compression and closure verification")
+    overflow_height_mm: int = Field(0, ge=0, description="Height overflow in mm if elastic lid compression applied")
+    ejected_item_ids: List[str] = Field(default_factory=list, description="Item IDs ejected in RED scenario")
+    advisor_title: str = Field("", description="AI Copilot short recommendation title")
+    advisor_explanation: str = Field("", description="AI Copilot natural language advice")
+    badge_label: str = Field("", description="Status badge label e.g. Snug Fit, Lid Flex")
     original_box_height_mm: Optional[int] = Field(None, description="Original carton height")
-    top_item_name: Optional[str] = Field(None, description="Name of the overhanging top item")
-    ejected_item_ids: List[str] = Field(default_factory=list, description="IDs of items excluded for separate packing")
-    ai_advisor_note: str = Field("", description="AI Copilot natural language advice")
-    plan: Optional[PackingPlan] = Field(None, description="Primary packing plan for this scenario")
+    top_item_name: Optional[str] = Field(None, description="Name of top overflowing or ejected item")
+    ai_advisor_note: str = Field("", description="Alias for advisor_explanation for UI components")
+    plan: Optional[PackingPlan] = None
     overflow_plans: List[PackingPlan] = Field(default_factory=list, description="Split carton plans if needed")
 
 
