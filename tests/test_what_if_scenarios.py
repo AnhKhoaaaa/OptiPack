@@ -1,7 +1,7 @@
 """Unit and Integration Tests for What-If Multi-Scenario Packaging Engine (V2.0).
 
 Verifies the 4 scenario classification tiers:
-1. GREEN: Feasible at nominal box dimensions.
+1. GREEN: Feasible at nominal box dimensions (Perfect Fit).
 2. YELLOW: Elastic lid compression (Delta H <= min(10% H, 25mm)) for soft/resilient items.
 3. RED: Fragile overflow rejection or oversized ejection to fit remainder.
 4. BEST_FIT: Standard catalog benchmark generation.
@@ -28,7 +28,7 @@ from backend.app.solver.what_if_engine import evaluate_what_if_scenarios
 def user_box_m() -> CartonSpec:
     return CartonSpec(
         carton_id="USER-BOX-M",
-        display_name="Thùng Carton M của bạn",
+        display_name="Your Medium Box",
         internal_dimensions_mm=Dimensions3D(length_mm=300, width_mm=220, height_mm=150),
         tare_weight_g=160,
         max_payload_g=8000,
@@ -40,7 +40,7 @@ def user_box_m() -> CartonSpec:
 def small_shallow_box() -> CartonSpec:
     return CartonSpec(
         carton_id="USER-SHALLOW",
-        display_name="Thùng dẹt của bạn",
+        display_name="Your Shallow Box",
         internal_dimensions_mm=Dimensions3D(length_mm=200, width_mm=150, height_mm=80),
         tare_weight_g=100,
         max_payload_g=5000,
@@ -53,7 +53,7 @@ def test_what_if_green_scenario(user_box_m):
     items = [
         PackableItem(
             item_id="item_01",
-            display_name="GoChek Wireless Mic Case",
+            display_name="Wireless Microphone Case",
             dimensions_mm=Dimensions3D(length_mm=80, width_mm=80, height_mm=40),
             safety_margin_mm=0,
             weight_g=200,
@@ -63,7 +63,7 @@ def test_what_if_green_scenario(user_box_m):
         ),
         PackableItem(
             item_id="item_02",
-            display_name="White Electronic Device",
+            display_name="Portable Power Bank",
             dimensions_mm=Dimensions3D(length_mm=130, width_mm=50, height_mm=60),
             safety_margin_mm=0,
             weight_g=350,
@@ -86,8 +86,8 @@ def test_what_if_green_scenario(user_box_m):
     assert len(user_card.ejected_item_ids) == 0
     assert user_card.is_selected_default is True
     assert user_card.plan is not None
-    assert "Vừa vặn" in user_card.title
-    assert "Vừa vặn hoàn hảo" in user_card.advisor_title
+    assert "Perfect Fit" in user_card.title
+    assert "Perfect Fit" in user_card.advisor_title
     assert len(user_card.advisor_explanation) > 10
 
 
@@ -98,7 +98,7 @@ def test_what_if_yellow_scenario_soft_compressible(small_shallow_box):
     items = [
         PackableItem(
             item_id="item_tissue",
-            display_name="Top Gia Khăn Giấy",
+            display_name="Cotton Facial Tissues",
             dimensions_mm=Dimensions3D(length_mm=150, width_mm=100, height_mm=86),
             safety_margin_mm=0,
             weight_g=150,
@@ -119,8 +119,8 @@ def test_what_if_yellow_scenario_soft_compressible(small_shallow_box):
     assert user_card.overflow_height_mm == 6
     assert len(user_card.ejected_item_ids) == 0
     assert user_card.is_selected_default is True
-    assert "Cấn nắp nhẹ" in user_card.title
-    assert "băng keo" in user_card.advisor_explanation.lower()
+    assert "Slight Bulge" in user_card.title
+    assert "tape" in user_card.advisor_explanation.lower()
 
 
 def test_what_if_yellow_rejected_when_fragile(small_shallow_box):
@@ -129,7 +129,7 @@ def test_what_if_yellow_rejected_when_fragile(small_shallow_box):
     items = [
         PackableItem(
             item_id="item_glass_cup",
-            display_name="Ly Thủy Tinh Cao Cấp",
+            display_name="Ceramic Coffee Mug",
             dimensions_mm=Dimensions3D(length_mm=150, width_mm=100, height_mm=86),
             safety_margin_mm=0,
             weight_g=300,
@@ -157,7 +157,7 @@ def test_what_if_red_scenario_ejection(small_shallow_box):
     items = [
         PackableItem(
             item_id="item_fits",
-            display_name="Món vừa vặn",
+            display_name="Small Box Item",
             dimensions_mm=Dimensions3D(length_mm=140, width_mm=90, height_mm=50),
             safety_margin_mm=0,
             weight_g=200,
@@ -166,7 +166,7 @@ def test_what_if_red_scenario_ejection(small_shallow_box):
         ),
         PackableItem(
             item_id="item_oversized",
-            display_name="Món quá khổ",
+            display_name="Oversized Desktop Speaker",
             dimensions_mm=Dimensions3D(length_mm=250, width_mm=180, height_mm=120),  # exceeds 200x150x80
             safety_margin_mm=0,
             weight_g=1000,
@@ -185,7 +185,7 @@ def test_what_if_red_scenario_ejection(small_shallow_box):
     assert "item_fits" not in user_card.ejected_item_ids
     assert user_card.plan is not None
     assert len(user_card.plan.placements) == 1
-    assert "Cần tách kiện" in user_card.title
+    assert "Split Shipment" in user_card.title
 
 
 def test_what_if_best_fit_benchmark(user_box_m):
@@ -193,7 +193,7 @@ def test_what_if_best_fit_benchmark(user_box_m):
     items = [
         PackableItem(
             item_id="item_01",
-            display_name="Laptop Box",
+            display_name="Laptop Computer Box",
             dimensions_mm=Dimensions3D(length_mm=350, width_mm=250, height_mm=60),
             safety_margin_mm=0,
             weight_g=1500,
@@ -209,7 +209,7 @@ def test_what_if_best_fit_benchmark(user_box_m):
     assert bf_card.feasible is True
     assert bf_card.plan is not None
     assert bf_card.volume_utilization_pct > 0.0
-    assert "Đề xuất chuẩn" in bf_card.title
+    assert "Recommended" in bf_card.title
 
 
 def test_solve_packing_with_user_boxes_request(user_box_m):
@@ -217,7 +217,7 @@ def test_solve_packing_with_user_boxes_request(user_box_m):
     items = [
         PackableItem(
             item_id="item_01",
-            display_name="GoChek Mic",
+            display_name="Microphone Package",
             dimensions_mm=Dimensions3D(length_mm=80, width_mm=80, height_mm=40),
             safety_margin_mm=0,
             weight_g=200,
@@ -258,7 +258,7 @@ def test_pack_api_endpoint_integration(user_box_m):
         "items": [
             {
                 "item_id": "item_top_gia",
-                "display_name": "Top Gia Tissue",
+                "display_name": "Premium Tissues",
                 "quantity": 1,
                 "dimensions_mm": {"length_mm": 140, "width_mm": 80, "height_mm": 50},
                 "safety_margin_mm": 0,

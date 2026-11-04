@@ -283,7 +283,7 @@ class CandidateCartonEvaluation(BaseModel):
 class PackingScenarioCard(BaseModel):
     """A What-If packing scenario presented to the user with actionable AI guidance."""
     scenario_id: str = Field(..., description="Unique scenario ID, e.g. scenario_user_box_1")
-    title: str = Field(..., description="Short title e.g. 'Thùng của bạn (Box M)'")
+    title: str = Field(..., description="Short title e.g. 'Your Box (Box M)'")
     badge_status: Literal["GREEN", "YELLOW", "RED", "BEST_FIT"] = Field(..., description="Classification badge")
     carton: CartonSpec = Field(..., description="Carton specification evaluated")
     is_user_box: bool = Field(False, description="True if box was selected by user")

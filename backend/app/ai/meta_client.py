@@ -683,7 +683,7 @@ async def _inspect_single_crop_baseten(
 Keep reasoning extremely brief under 20 words.
 Output a strict JSON object with these EXACT keys:
 - "item_id": "{item_id}"
-- "display_name": exact printed brand or product title legible on packaging (e.g. "Top Gia Khăn Giấy Cao Cấp", "Sennheiser Wooden Box", "GoChek Wireless Mic Case").
+- "display_name": exact printed brand or product title legible on packaging (e.g. "Top Gia Premium Tissues", "Sennheiser Wooden Box", "GoChek Wireless Mic Case").
 - "category": one of ["electronics_boxed", "cosmetics_personal_care", "food_beverage_rigid", "book_media_flat", "apparel_boxed", "glass_ceramic_fragile", "generic_carton", "other_rigid"]
 - "material_type": one of ["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"]
 - "weight_tier": one of ["light", "medium", "heavy"]
@@ -1081,20 +1081,20 @@ async def synthesize_scenario_advisor_notes(
             "ejected_count": len(s.ejected_item_ids),
         })
 
-    prompt = f"""Bạn là AI Chuyên gia Đóng gói E-commerce (OptiPack Packaging Copilot).
-Danh sách món hàng cần đóng gói: {', '.join(item_names[:5])}.
-Dưới đây là các phương án đóng gói (Scenarios) được tính toán:
+    prompt = f"""You are an expert e-commerce packaging AI assistant (OptiPack Packaging Copilot).
+Items to pack: {', '.join(item_names[:5])}.
+Calculated packaging scenarios:
 {json.dumps(scenario_summaries, ensure_ascii=False)}
 
-Hãy viết lời khuyên thực tế ngắn gọn (tiếng Việt tự nhiên, dưới 30 từ mỗi phương án) cho từng scenario_id:
-- Với GREEN: xác nhận vừa vặn, hướng dẫn dán băng keo / chèn xốp khí.
-- Với YELLOW: giải thích cấn nhẹ chiều cao, khuyên ấn nhẹ nắp và dán băng keo gia cố chữ H.
-- Với RED: chỉ rõ cần tách món chưa vừa sang thùng phụ / túi bọc chống sốc.
-- Với BEST_FIT: khen ngợi kích thước chuẩn tối ưu nhất từ hệ thống.
+Write concise, practical advice in simple, natural English (under 25 words per scenario) for each scenario_id:
+- For GREEN: confirm perfect fit, advise standard tape closure.
+- For YELLOW: explain slight lid bulge, advise gentle lid compression and H-pattern tape seal.
+- For RED: clearly explain that certain items need to be split into a separate mailer or second box.
+- For BEST_FIT: highlight optimal standard carrier dimensions and space efficiency.
 
-Trả về DUY NHẤT một mảng JSON theo định dạng:
+Return ONLY a JSON array with this exact structure:
 [
-  {{"scenario_id": "...", "advisor_title": "tiêu đề ngắn", "advisor_explanation": "lời khuyên dưới 30 từ"}}
+  {{"scenario_id": "...", "advisor_title": "short title", "advisor_explanation": "practical advice under 25 words"}}
 ]
 """
 

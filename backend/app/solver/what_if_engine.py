@@ -33,38 +33,37 @@ from backend.app.solver.heuristic_ep import (
 )
 
 
-def _format_material_vietnamese(material_type: str) -> str:
-    """Map canonical material type code to natural Vietnamese description."""
+def _format_material_label(material_type: str) -> str:
+    """Map canonical material type code to clear English label."""
     mapping = {
-        "soft_fabric": "mềm / vải sợi",
-        "rigid_box": "hộp carton / bao bì tiêu chuẩn",
-        "glass_ceramic": "thủy tinh / gốm sứ dễ vỡ",
-        "metal_wood": "kim loại / gỗ cứng",
-        "other": "đồ gia dụng thông thường",
+        "soft_fabric": "soft fabric / apparel",
+        "rigid_box": "standard cardboard box",
+        "glass_ceramic": "fragile glass / ceramic",
+        "metal_wood": "solid metal / wood",
+        "other": "general household item",
     }
-    return mapping.get(material_type, "đồ dùng thông thường")
+    return mapping.get(material_type, "general package")
 
 
-def format_vietnamese_advice(card: PackingScenarioCard, items: List[PackableItem]) -> Tuple[str, str]:
-    """Generate deterministic Vietnamese packaging advice for a scenario card."""
+def format_scenario_advice(card: PackingScenarioCard, items: List[PackableItem]) -> Tuple[str, str]:
+    """Generate clear, professional English packaging advice for a scenario card."""
     item_dict = {it.item_id: it for it in items}
     total_items = len(items)
 
     if card.badge_status == "GREEN":
-        title = "Vừa vặn hoàn hảo"
+        title = "Perfect Fit"
         explanation = (
-            f"Tất cả {total_items} món đồ nằm gọn gàng trong thùng {card.carton.display_name} "
-            f"với tỷ lệ lấp đầy {round(card.volume_utilization_pct)}%. Bạn có thể dán nắp thùng "
-            f"tiêu chuẩn và chèn thêm đệm lót túi khí vào các khoảng trống còn lại."
+            f"All {total_items} items fit comfortably inside {card.carton.display_name} "
+            f"with {round(card.volume_utilization_pct)}% volume efficiency. Standard top-flap tape sealing recommended."
         )
         return title, explanation
 
     elif card.badge_status == "YELLOW":
-        title = f"Cấn nắp nhẹ (+{card.overflow_height_mm} mm) - Có thể đóng thùng"
+        title = f"Slight Lid Bulge (+{card.overflow_height_mm} mm) - Packable"
         explanation = (
-            f"Kiện hàng vượt quá chiều cao thùng {card.overflow_height_mm} mm. "
-            f"Do đồ vật phía trên có bao bì đàn hồi, bạn có thể ấn nhẹ nắp thùng "
-            f"và gia cố dán băng keo chữ H để đóng gói an toàn mà không cần đổi thùng lớn hơn."
+            f"Order height exceeds box depth by {card.overflow_height_mm} mm. "
+            f"Since top items are soft and resilient, you can apply gentle lid pressure "
+            f"and seal with H-pattern tape without needing a larger box."
         )
         return title, explanation
 
@@ -77,22 +76,20 @@ def format_vietnamese_advice(card: PackingScenarioCard, items: List[PackableItem
         ]
         ejected_str = ", ".join(ejected_names[:3])
         if len(ejected_names) > 3:
-            ejected_str += f" và {len(ejected_names) - 3} món khác"
+            ejected_str += f" and {len(ejected_names) - 3} other item(s)"
 
-        title = "Cần tách kiện hoặc nâng size thùng"
+        title = "Split Shipment Recommended"
         explanation = (
-            f"Thùng này chỉ chứa được {packed_count}/{total_items} món (lấp đầy {round(card.volume_utilization_pct)}%). "
-            f"Đề xuất tách {len(card.ejected_item_ids)} món ({ejected_str}) sang gói chống sốc/thùng phụ thứ 2 "
-            f"để đóng hàng vừa vặn."
+            f"This box holds {packed_count}/{total_items} items ({round(card.volume_utilization_pct)}% capacity). "
+            f"We recommend packing the remaining {len(card.ejected_item_ids)} item(s) ({ejected_str}) into a separate mailer or second box."
         )
         return title, explanation
 
     else:  # BEST_FIT
-        title = f"Đề xuất chuẩn: Thùng {card.carton.display_name}"
+        title = f"Recommended: {card.carton.display_name}"
         explanation = (
-            f"Đây là kích thước thùng chuẩn tối ưu nhất từ hệ thống với tỷ lệ không gian "
-            f"{round(card.volume_utilization_pct)}%, đảm bảo 100% các món đồ vừa vặn "
-            f"và đáp ứng trọn vẹn quy chuẩn vận chuyển."
+            f"Optimal standard packaging size with {round(card.volume_utilization_pct)}% space efficiency. "
+            f"Fits 100% of order items safely according to shipping standards."
         )
         return title, explanation
 
@@ -277,7 +274,7 @@ def evaluate_what_if_scenarios(
                 )
                 card = PackingScenarioCard(
                     scenario_id=scenario_id,
-                    title=f"Thùng {u_box.display_name} (Vừa vặn)",
+                    title=f"{u_box.display_name} (Perfect Fit)",
                     badge_status="GREEN",
                     carton=u_box,
                     is_user_box=True,
@@ -288,7 +285,7 @@ def evaluate_what_if_scenarios(
                     ejected_item_ids=[],
                     plan=plan,
                 )
-                title, explanation = format_vietnamese_advice(card, items)
+                title, explanation = format_scenario_advice(card, items)
                 card.advisor_title = title
                 card.advisor_explanation = explanation
                 scenarios.append(card)
@@ -301,7 +298,7 @@ def evaluate_what_if_scenarios(
         if el_ok and el_plan is not None:
             card = PackingScenarioCard(
                 scenario_id=scenario_id,
-                title=f"Thùng {u_box.display_name} (Cấn nắp nhẹ +{overflow_h}mm)",
+                title=f"{u_box.display_name} (Slight Bulge +{overflow_h}mm)",
                 badge_status="YELLOW",
                 carton=u_box,
                 is_user_box=True,
@@ -312,7 +309,7 @@ def evaluate_what_if_scenarios(
                 ejected_item_ids=[],
                 plan=el_plan,
             )
-            title, explanation = format_vietnamese_advice(card, items)
+            title, explanation = format_scenario_advice(card, items)
             card.advisor_title = title
             card.advisor_explanation = explanation
             scenarios.append(card)
@@ -324,7 +321,7 @@ def evaluate_what_if_scenarios(
         )
         card = PackingScenarioCard(
             scenario_id=scenario_id,
-            title=f"Thùng {u_box.display_name} (Cần tách kiện)",
+            title=f"{u_box.display_name} (Split Shipment Needed)",
             badge_status="RED",
             carton=u_box,
             is_user_box=True,
@@ -335,7 +332,7 @@ def evaluate_what_if_scenarios(
             ejected_item_ids=ejected_ids,
             plan=red_plan,
         )
-        title, explanation = format_vietnamese_advice(card, items)
+        title, explanation = format_scenario_advice(card, items)
         card.advisor_title = title
         card.advisor_explanation = explanation
         scenarios.append(card)
@@ -346,7 +343,7 @@ def evaluate_what_if_scenarios(
         c_box, c_plan = best_catalog
         bf_card = PackingScenarioCard(
             scenario_id="scenario_best_fit",
-            title=f"Đề xuất chuẩn: Thùng {c_box.display_name}",
+            title=f"Recommended: {c_box.display_name}",
             badge_status="BEST_FIT",
             carton=c_box,
             is_user_box=False,
@@ -357,7 +354,7 @@ def evaluate_what_if_scenarios(
             ejected_item_ids=[],
             plan=c_plan,
         )
-        title, explanation = format_vietnamese_advice(bf_card, items)
+        title, explanation = format_scenario_advice(bf_card, items)
         bf_card.advisor_title = title
         bf_card.advisor_explanation = explanation
         scenarios.append(bf_card)
