@@ -7,6 +7,7 @@ interface BoxAnchorCarouselProps {
   items: ExtendedPackableItem[];
   selectedBoxes: CartonSpec[];
   onToggleBoxSelection: (carton: CartonSpec) => void;
+  onUpdateBox?: (oldCartonId: string, updated: CartonSpec) => void;
   onProceedToPacking: (selectedCartons: CartonSpec[]) => void;
   onBack: () => void;
 }
@@ -24,10 +25,12 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
   items,
   selectedBoxes,
   onToggleBoxSelection,
+  onUpdateBox,
   onProceedToPacking,
   onBack,
 }) => {
   const [activeTab, setActiveTab] = useState<"carousel" | "custom">("carousel");
+  const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
   const [customCm, setCustomCm] = useState<{ l: string; w: string; h: string }>({
     l: "30",
     w: "22",
@@ -137,11 +140,11 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
     ];
   }, [anchorItem]);
 
-  // Handle custom box in cm -> convert to mm
-  const handleAddCustomBox = () => {
-    const l_cm = parseFloat(customCm.l) || 30;
-    const w_cm = parseFloat(customCm.w) || 20;
-    const h_cm = parseFloat(customCm.h) || 15;
+  // Handle save custom box in cm -> convert to mm (add new or update existing)
+  const handleSaveCustomBox = () => {
+    const l_cm = Math.max(5, parseFloat(customCm.l) || 30);
+    const w_cm = Math.max(5, parseFloat(customCm.w) || 20);
+    const h_cm = Math.max(5, parseFloat(customCm.h) || 15);
 
     const customCarton: CartonSpec = {
       carton_id: `CUSTOM_${Math.round(l_cm)}x${Math.round(w_cm)}x${Math.round(h_cm)}`,
@@ -156,7 +159,38 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
       box_cost_usd: 1.1,
     };
 
-    onToggleBoxSelection(customCarton);
+    if (editingBoxId) {
+      if (onUpdateBox) {
+        onUpdateBox(editingBoxId, customCarton);
+      } else {
+        const oldBox = selectedBoxes.find((b) => b.carton_id === editingBoxId);
+        if (oldBox) onToggleBoxSelection(oldBox);
+        onToggleBoxSelection(customCarton);
+      }
+      setEditingBoxId(null);
+    } else {
+      onToggleBoxSelection(customCarton);
+    }
+
+    setCustomCm({ l: "30", w: "22", h: "15" });
+  };
+
+  const handleStartEdit = (cb: CartonSpec) => {
+    setEditingBoxId(cb.carton_id);
+    setCustomCm({
+      l: String(cb.internal_dimensions_mm.length_mm / 10),
+      w: String(cb.internal_dimensions_mm.width_mm / 10),
+      h: String(cb.internal_dimensions_mm.height_mm / 10),
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBoxId(null);
+    setCustomCm({ l: "30", w: "22", h: "15" });
+  };
+
+  const handleApplyTemplate = (l: number, w: number, h: number) => {
+    setCustomCm({ l: String(l), w: String(w), h: String(h) });
   };
 
   const isBoxSelected = (cartonId: string) => {
@@ -325,74 +359,176 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
       {/* Tab 2: Custom Box in CM */}
       {activeTab === "custom" && (
         <div className="custom-box-tab-content">
-          <p className="text-xs muted" style={{ marginBottom: 12 }}>
-            Enter inner carton dimensions in <strong>Centimeters (cm)</strong>. System automatically
-            converts to millimeters for exact CP-SAT packing.
-          </p>
-
-          <div className="custom-cm-inputs">
-            <div className="cm-field">
-              <label>Length (cm)</label>
-              <input
-                type="number"
-                min="5"
-                max="150"
-                value={customCm.l}
-                onChange={(e) => setCustomCm({ ...customCm, l: e.target.value })}
-              />
-            </div>
-            <span className="cm-sep">×</span>
-            <div className="cm-field">
-              <label>Width (cm)</label>
-              <input
-                type="number"
-                min="5"
-                max="150"
-                value={customCm.w}
-                onChange={(e) => setCustomCm({ ...customCm, w: e.target.value })}
-              />
-            </div>
-            <span className="cm-sep">×</span>
-            <div className="cm-field">
-              <label>Height (cm)</label>
-              <input
-                type="number"
-                min="5"
-                max="150"
-                value={customCm.h}
-                onChange={(e) => setCustomCm({ ...customCm, h: e.target.value })}
-              />
+          {/* Custom Box Input Form Card */}
+          <div className="custom-box-editor-card">
+            <div className="custom-editor-header">
+              <span className="custom-editor-title">
+                {editingBoxId ? "Edit Custom Carton" : "Create Custom Carton"}
+              </span>
+              <span className="text-xs muted">Inner dimensions in Centimeters (cm)</span>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={handleAddCustomBox}
-              style={{ alignSelf: "flex-end" }}
-            >
-              + Add Custom Carton
-            </button>
+            <div className="custom-box-inputs-row">
+              <div className="mac-num-field">
+                <span className="mac-num-label">Length</span>
+                <div className="mac-input-wrapper">
+                  <input
+                    type="number"
+                    min="5"
+                    max="200"
+                    className="mac-num-input"
+                    value={customCm.l}
+                    onChange={(e) => setCustomCm({ ...customCm, l: e.target.value })}
+                    aria-label="Length (cm)"
+                  />
+                  <span className="mac-unit-suffix">cm</span>
+                </div>
+              </div>
+
+              <span className="mac-dims-mul">×</span>
+
+              <div className="mac-num-field">
+                <span className="mac-num-label">Width</span>
+                <div className="mac-input-wrapper">
+                  <input
+                    type="number"
+                    min="5"
+                    max="200"
+                    className="mac-num-input"
+                    value={customCm.w}
+                    onChange={(e) => setCustomCm({ ...customCm, w: e.target.value })}
+                    aria-label="Width (cm)"
+                  />
+                  <span className="mac-unit-suffix">cm</span>
+                </div>
+              </div>
+
+              <span className="mac-dims-mul">×</span>
+
+              <div className="mac-num-field">
+                <span className="mac-num-label">Height</span>
+                <div className="mac-input-wrapper">
+                  <input
+                    type="number"
+                    min="5"
+                    max="200"
+                    className="mac-num-input"
+                    value={customCm.h}
+                    onChange={(e) => setCustomCm({ ...customCm, h: e.target.value })}
+                    aria-label="Height (cm)"
+                  />
+                  <span className="mac-unit-suffix">cm</span>
+                </div>
+              </div>
+
+              <div className="custom-box-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveCustomBox}
+                >
+                  {editingBoxId ? "✓ Update Box" : "+ Add Box"}
+                </button>
+                {editingBoxId && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Templates */}
+            <div className="quick-templates-bar">
+              <span className="text-xs muted">Quick Presets:</span>
+              <div className="quick-templates-chips">
+                <button
+                  type="button"
+                  className="quick-template-chip"
+                  onClick={() => handleApplyTemplate(20, 15, 10)}
+                >
+                  Mailer (20×15×10)
+                </button>
+                <button
+                  type="button"
+                  className="quick-template-chip"
+                  onClick={() => handleApplyTemplate(30, 22, 15)}
+                >
+                  Medium (30×22×15)
+                </button>
+                <button
+                  type="button"
+                  className="quick-template-chip"
+                  onClick={() => handleApplyTemplate(40, 30, 20)}
+                >
+                  Large (40×30×20)
+                </button>
+                <button
+                  type="button"
+                  className="quick-template-chip"
+                  onClick={() => handleApplyTemplate(50, 35, 25)}
+                >
+                  XL (50×35×25)
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* List of custom cartons added */}
+          {/* List of custom cartons added / editable */}
           {selectedBoxes.filter((b) => b.carton_id.startsWith("CUSTOM_")).length > 0 && (
-            <div className="custom-selected-list" style={{ marginTop: 14 }}>
-              <span className="text-xs muted">Added Custom Cartons:</span>
-              <div className="custom-chips-row" style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <div className="custom-cartons-section">
+              <span className="custom-section-title">
+                Active Custom Cartons ({selectedBoxes.filter((b) => b.carton_id.startsWith("CUSTOM_")).length})
+              </span>
+              <div className="custom-cartons-grid">
                 {selectedBoxes
                   .filter((b) => b.carton_id.startsWith("CUSTOM_"))
-                  .map((cb) => (
-                    <div key={cb.carton_id} className="pill-chip is-active">
-                      <span>{cb.display_name}</span>
-                      <button
-                        type="button"
-                        onClick={() => onToggleBoxSelection(cb)}
-                        className="chip-remove"
+                  .map((cb) => {
+                    const isEditing = editingBoxId === cb.carton_id;
+                    const dimsMm = cb.internal_dimensions_mm;
+                    const l_cm = (dimsMm.length_mm / 10).toFixed(0);
+                    const w_cm = (dimsMm.width_mm / 10).toFixed(0);
+                    const h_cm = (dimsMm.height_mm / 10).toFixed(0);
+
+                    return (
+                      <div
+                        key={cb.carton_id}
+                        className={`custom-carton-card ${isEditing ? "is-editing" : ""}`}
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                        <div className="custom-carton-left">
+                          <span className="custom-box-icon">📦</span>
+                          <div>
+                            <strong>{l_cm} × {w_cm} × {h_cm} cm</strong>
+                            <span className="custom-carton-sub">
+                              ({dimsMm.length_mm} × {dimsMm.width_mm} × {dimsMm.height_mm} mm)
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="custom-carton-actions">
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-xs"
+                            onClick={() => handleStartEdit(cb)}
+                            title="Edit carton dimensions"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="item-card-delete"
+                            onClick={() => onToggleBoxSelection(cb)}
+                            title="Remove custom box"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}

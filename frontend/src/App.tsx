@@ -358,6 +358,12 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleUpdateBoxSelection = (oldCartonId: string, updated: CartonSpec) => {
+    setSelectedBoxes((prev) =>
+      prev.map((c) => (c.carton_id === oldCartonId ? updated : c))
+    );
+  };
+
   const handleConfirmVerification = () => {
     setPackingError(null);
     setPackableItems((prev) =>
@@ -528,6 +534,7 @@ export const App: React.FC = () => {
               items={packableItems}
               selectedBoxes={selectedBoxes}
               onToggleBoxSelection={handleToggleBoxSelection}
+              onUpdateBox={handleUpdateBoxSelection}
               onProceedToPacking={handleProceedToPacking}
               onBack={() => setCurrentStep(2)}
             />
