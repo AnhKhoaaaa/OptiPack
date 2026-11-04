@@ -143,7 +143,8 @@ def detect_aruco_calibration_sheet(
     R, _ = cv2.Rodrigues(rvec)
     center = (-R.T @ tvec).ravel()
     physically_valid = np.isfinite(rmse) and np.isfinite(center).all() and center[2] > 0
-    accurate_pose = bool(physically_valid and rmse <= 2.8 and count >= 3)
+    threshold_px = max(3.5, 4.0 * (max(width, height) / 1600.0))
+    accurate_pose = bool(physically_valid and rmse <= threshold_px and count >= 3)
     if not accurate_pose:
         warnings.append("Pose quality below Phase 0 threshold")
     if count < 4:

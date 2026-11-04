@@ -83,13 +83,15 @@ def assess_image_quality(image: np.ndarray) -> Dict[str, Any]:
 def preprocess_image_for_cv(
     image: np.ndarray,
     auto_enhance: bool = True,
+    max_edge: int = 1600,
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
     """Preprocess uploaded/captured frame for optimal CV accuracy without geometric distortion.
 
     Steps:
-    1. Standardize aspect orientation (portrait -> landscape).
-    2. Assess optical quality (sharpness, lighting, exposure).
-    3. Apply gentle adaptive illumination lifting if low-light, without altering edge positions.
+    1. Standardize aspect orientation based on physical ArUco board angle.
+    2. Normalize high-resolution mobile frames (e.g. 12MP/48MP) to max_edge for fast, sub-pixel accuracy.
+    3. Assess optical quality (sharpness, lighting, exposure).
+    4. Apply gentle adaptive illumination lifting if low-light, without altering edge positions.
     """
     if image is None or image.size == 0:
         raise ValueError("Cannot preprocess empty image")
@@ -97,10 +99,18 @@ def preprocess_image_for_cv(
     # 1. Orientation normalization
     processed = normalize_image_orientation(image)
 
-    # 2. Quality assessment
+    # 2. Resolution normalization for high-res mobile uploads
+    h, w = processed.shape[:2]
+    long_dim = max(w, h)
+    if max_edge > 0 and long_dim > max_edge:
+        scale = max_edge / float(long_dim)
+        new_w, new_h = int(round(w * scale)), int(round(h * scale))
+        processed = cv2.resize(processed, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
+    # 3. Quality assessment
     quality = assess_image_quality(processed)
 
-    # 3. Adaptive lighting enhancement (only if underexposed)
+    # 4. Adaptive lighting enhancement (only if underexposed)
     if auto_enhance and quality["is_low_light"]:
         # Gentle gamma curve (gamma=1.3) to lift dark shadows without shifting geometry
         inv_gamma = 1.0 / 1.3
