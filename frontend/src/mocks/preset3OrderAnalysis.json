@@ -22,7 +22,7 @@
       "measurement_provenance": { "xy_method": "aruco_plane_raycast", "z_method": "dual_view_pnp_triangulation", "confidence_score": 0.95, "requires_user_review": false },
       "physical_attributes": { "weight_g": 2400, "weight_source": "scale_verified", "fragility_class": "low", "fragility_source": "ai_inferred_packaging", "keep_upright": false, "orientation_source": "default_unconstrained", "stackable": true, "max_top_load_g": 8000, "visible_labels": [] },
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
-      "visual_evidence": { "bbox_2d_px": [150, 100, 750, 520], "crop_url": "/api/v1/assets/crops/ord_003_item_01.jpg", "mask_rle": null, "display_color_hex": "#3B82F6" }
+      "visual_evidence": { "bbox_2d_px": [150, 100, 750, 520], "crop_url": null, "mask_rle": null, "display_color_hex": "#3B82F6" }
     },
     {
       "item_id": "split_item_02",
@@ -34,7 +34,7 @@
       "measurement_provenance": { "xy_method": "aruco_plane_raycast", "z_method": "dual_view_pnp_triangulation", "confidence_score": 0.96, "requires_user_review": false },
       "physical_attributes": { "weight_g": 1150, "weight_source": "scale_verified", "fragility_class": "medium", "fragility_source": "ai_inferred_packaging", "keep_upright": false, "orientation_source": "default_unconstrained", "stackable": true, "max_top_load_g": 3500, "visible_labels": ["CE"] },
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
-      "visual_evidence": { "bbox_2d_px": [780, 120, 1200, 420], "crop_url": "/api/v1/assets/crops/ord_003_item_02.jpg", "mask_rle": null, "display_color_hex": "#10B981" }
+      "visual_evidence": { "bbox_2d_px": [780, 120, 1200, 420], "crop_url": null, "mask_rle": null, "display_color_hex": "#10B981" }
     },
     {
       "item_id": "split_item_03",
@@ -46,7 +46,7 @@
       "measurement_provenance": { "xy_method": "aruco_plane_raycast", "z_method": "dual_view_pnp_triangulation", "confidence_score": 0.93, "requires_user_review": false },
       "physical_attributes": { "weight_g": 850, "weight_source": "scale_verified", "fragility_class": "medium", "fragility_source": "ai_inferred_packaging", "keep_upright": false, "orientation_source": "default_unconstrained", "stackable": true, "max_top_load_g": 3000, "visible_labels": ["CE", "FCC"] },
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
-      "visual_evidence": { "bbox_2d_px": [200, 560, 580, 840], "crop_url": "/api/v1/assets/crops/ord_003_item_03.jpg", "mask_rle": null, "display_color_hex": "#F59E0B" }
+      "visual_evidence": { "bbox_2d_px": [200, 560, 580, 840], "crop_url": null, "mask_rle": null, "display_color_hex": "#F59E0B" }
     },
     {
       "item_id": "split_item_04",
@@ -58,7 +58,7 @@
       "measurement_provenance": { "xy_method": "aruco_plane_raycast", "z_method": "dual_view_pnp_triangulation", "confidence_score": 0.94, "requires_user_review": false },
       "physical_attributes": { "weight_g": 700, "weight_source": "scale_verified", "fragility_class": "medium", "fragility_source": "ai_inferred_packaging", "keep_upright": false, "orientation_source": "default_unconstrained", "stackable": true, "max_top_load_g": 2500, "visible_labels": ["CE"] },
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
-      "visual_evidence": { "bbox_2d_px": [620, 540, 980, 880], "crop_url": "/api/v1/assets/crops/ord_003_item_04.jpg", "mask_rle": null, "display_color_hex": "#8B5CF6" }
+      "visual_evidence": { "bbox_2d_px": [620, 540, 980, 880], "crop_url": null, "mask_rle": null, "display_color_hex": "#8B5CF6" }
     },
     {
       "item_id": "split_item_05",
@@ -70,7 +70,7 @@
       "measurement_provenance": { "xy_method": "aruco_plane_raycast", "z_method": "dual_view_pnp_triangulation", "confidence_score": 0.92, "requires_user_review": false },
       "physical_attributes": { "weight_g": 550, "weight_source": "scale_verified", "fragility_class": "low", "fragility_source": "ai_inferred_packaging", "keep_upright": false, "orientation_source": "default_unconstrained", "stackable": true, "max_top_load_g": 4000, "visible_labels": [] },
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
-      "visual_evidence": { "bbox_2d_px": [1020, 520, 1340, 780], "crop_url": "/api/v1/assets/crops/ord_003_item_05.jpg", "mask_rle": null, "display_color_hex": "#06B6D4" }
+      "visual_evidence": { "bbox_2d_px": [1020, 520, 1340, 780], "crop_url": null, "mask_rle": null, "display_color_hex": "#06B6D4" }
     },
     {
       "item_id": "split_item_06",
@@ -82,7 +82,7 @@
       "measurement_provenance": { "xy_method": "aruco_plane_raycast", "z_method": "dual_view_pnp_triangulation", "confidence_score": 0.95, "requires_user_review": false },
       "physical_attributes": { "weight_g": 420, "weight_source": "scale_verified", "fragility_class": "medium", "fragility_source": "ai_inferred_packaging", "keep_upright": false, "orientation_source": "default_unconstrained", "stackable": true, "max_top_load_g": 3000, "visible_labels": ["CE", "Glass Lens"] },
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
-      "visual_evidence": { "bbox_2d_px": [1050, 800, 1300, 980], "crop_url": "/api/v1/assets/crops/ord_003_item_06.jpg", "mask_rle": null, "display_color_hex": "#E11D48" }
+      "visual_evidence": { "bbox_2d_px": [1050, 800, 1300, 980], "crop_url": null, "mask_rle": null, "display_color_hex": "#E11D48" }
     }
   ],
   "ai_telemetry": {

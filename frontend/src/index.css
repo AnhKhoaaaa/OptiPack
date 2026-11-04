@@ -1196,3 +1196,18 @@ select {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.03); }
 }
+
+/* Explicit solver failure and measurement-review states. */
+.packing-error, .packing-review {
+  padding: 16px 20px;
+  border-left: 4px solid var(--warn);
+}
+.packing-error p, .packing-review p {
+  color: var(--muted);
+  margin: 8px 0;
+}
+.confirm-measurement {
+  display: inline-block;
+  margin: 5px 0 0;
+  font-size: 11px;
+}

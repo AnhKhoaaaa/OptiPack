@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   DetectedItemMeasurement,
   Dimensions3D,
@@ -13,7 +13,7 @@ import { PackingViewer3D } from "./components/PackingViewer3D";
 import { CostScorecard } from "./components/CostScorecard";
 import { CartonControlBar } from "./components/CartonControlBar";
 import { OptiPackClient } from "./api/optipackClient";
-import packingSolutionSample from "./mocks/packingSolutionSample.json";
+import { needsMeasurementReview } from "./utils/review";
 
 export const convertItem = (item: DetectedItemMeasurement): ExtendedPackableItem => {
   const hasRealAiName = Boolean(
@@ -75,6 +75,16 @@ export const App: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(false);
   const [packingLoading, setPackingLoading] = useState<boolean>(false);
+  const [packingError, setPackingError] = useState<string | null>(null);
+  // Ignore late solver responses after the order, item measurements or carton selection changes.
+  const packingRequestId = useRef(0);
+
+  const invalidatePacking = () => {
+    packingRequestId.current += 1;
+    setSolution(null);
+    setPackingLoading(false);
+    setPackingError(null);
+  };
 
   const executePacking = async (
     itemsToPack: ExtendedPackableItem[],
@@ -83,7 +93,15 @@ export const App: React.FC = () => {
     overrideConfig?: Partial<PackingRequest["solver_config"]>
   ) => {
     if (itemsToPack.length === 0) return;
+    if (itemsToPack.some(needsMeasurementReview)) {
+      invalidatePacking();
+      setPackingError("Confirm all flagged dimensions before requesting a packing plan.");
+      return;
+    }
+    const requestId = ++packingRequestId.current;
     setPackingLoading(true);
+    setPackingError(null);
+    setSolution(null);
     const req: PackingRequest = {
       contract_version: "1.0.0",
       analysis_id: analysisId,
@@ -102,13 +120,18 @@ export const App: React.FC = () => {
 
     try {
       const data = await OptiPackClient.packOrder(req);
-      setSolution(data);
-      setActivePlanIndex(1);
+      if (requestId === packingRequestId.current) {
+        setSolution(data);
+        setActivePlanIndex(1);
+      }
     } catch (err) {
       console.error("[App] Packing optimization failed:", err);
-      setSolution(packingSolutionSample as unknown as PackingSolutionResponse);
+      if (requestId === packingRequestId.current) {
+        setSolution(null);
+        setPackingError(err instanceof Error ? err.message : "Packing failed. Please retry.");
+      }
     } finally {
-      setPackingLoading(false);
+      if (requestId === packingRequestId.current) setPackingLoading(false);
     }
   };
 
@@ -116,6 +139,7 @@ export const App: React.FC = () => {
     data: OrderAnalysisResponse,
     precomputedSolution?: PackingSolutionResponse
   ) => {
+    invalidatePacking();
     setAnalysis(data);
     const convertedItems: ExtendedPackableItem[] = data.items.map(convertItem);
     setPackableItems(convertedItems);
@@ -124,7 +148,9 @@ export const App: React.FC = () => {
     if (precomputedSolution) {
       setSolution(precomputedSolution);
     } else if (convertedItems.length > 0) {
-      executePacking(convertedItems, data.analysis_id);
+      if (!convertedItems.some(needsMeasurementReview)) {
+        executePacking(convertedItems, data.analysis_id);
+      }
     } else {
       setSolution(null);
       const allWarnings = [
@@ -138,6 +164,19 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateItem = (index: number, updated: ExtendedPackableItem) => {
+    const current = packableItems[index];
+    const affectsGeometry =
+      !current ||
+      current.quantity !== updated.quantity ||
+      current.keep_upright !== updated.keep_upright ||
+      current.dimensions_mm.length_mm !== updated.dimensions_mm.length_mm ||
+      current.dimensions_mm.width_mm !== updated.dimensions_mm.width_mm ||
+      current.dimensions_mm.height_mm !== updated.dimensions_mm.height_mm ||
+      JSON.stringify(current.allowed_rotations) !== JSON.stringify(updated.allowed_rotations);
+
+    if (affectsGeometry) {
+      invalidatePacking();
+    }
     setPackableItems((prev) => {
       const copy = [...prev];
       copy[index] = updated;
@@ -146,6 +185,7 @@ export const App: React.FC = () => {
   };
 
   const handleAddItem = () => {
+    invalidatePacking();
     const newItemId = `item_${String(packableItems.length + 1).padStart(2, "0")}`;
     const colors = ["#EC4899", "#14B8A6", "#F97316", "#8B5CF6", "#EAB308"];
     const chosenColor = colors[packableItems.length % colors.length];
@@ -176,7 +216,18 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteItem = (index: number) => {
+    invalidatePacking();
     setPackableItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleConfirmItem = (index: number) => {
+    const item = packableItems[index];
+    if (item) {
+      setPackingError((prev) =>
+        prev === "Confirm all flagged dimensions before requesting a packing plan." ? null : prev
+      );
+      handleUpdateItem(index, { ...item, review_acknowledged: true });
+    }
   };
 
   const handlePackOrder = (overrideConfig?: Partial<PackingRequest["solver_config"]>) => {
@@ -185,6 +236,7 @@ export const App: React.FC = () => {
   };
 
   const handleReset = () => {
+    invalidatePacking();
     setAnalysis(null);
     setPackableItems([]);
     setSolution(null);
@@ -230,6 +282,7 @@ export const App: React.FC = () => {
             <ManifestTable
               items={packableItems}
               onUpdateItem={handleUpdateItem}
+              onConfirmItem={handleConfirmItem}
               onAddItem={handleAddItem}
               onDeleteItem={handleDeleteItem}
               onPackOrder={() => handlePackOrder()}
@@ -272,6 +325,22 @@ export const App: React.FC = () => {
               currentCartonSku={activePlan?.carton.carton_id}
               currentCartonDims={activePlan?.carton.internal_dimensions_mm}
             />
+          )}
+
+          {packingError && (
+            <section className="panel packing-error" role="alert">
+              <strong>Packing failed</strong>
+              <p>{packingError}</p>
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => handlePackOrder()} disabled={packingLoading}>
+                Retry packing
+              </button>
+            </section>
+          )}
+          {packableItems.some(needsMeasurementReview) && (
+            <section className="panel packing-review" role="status">
+              <strong>Measurement review required</strong>
+              <p>Confirm the highlighted dimensions in the manifest before running the Solver.</p>
+            </section>
           )}
 
           {activePlan ? (

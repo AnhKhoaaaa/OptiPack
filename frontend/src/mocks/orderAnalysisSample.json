@@ -48,7 +48,7 @@
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
       "visual_evidence": {
         "bbox_2d_px": [310, 220, 820, 620],
-        "crop_url": "/api/v1/assets/crops/ord_20261027_001_item_01.jpg",
+        "crop_url": null,
         "mask_rle": null,
         "display_color_hex": "#3B82F6"
       }
@@ -89,7 +89,7 @@
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
       "visual_evidence": {
         "bbox_2d_px": [850, 240, 1100, 480],
-        "crop_url": "/api/v1/assets/crops/ord_20261027_001_item_02.jpg",
+        "crop_url": null,
         "mask_rle": null,
         "display_color_hex": "#10B981"
       }
@@ -130,7 +130,7 @@
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
       "visual_evidence": {
         "bbox_2d_px": [350, 640, 520, 800],
-        "crop_url": "/api/v1/assets/crops/ord_20261027_001_item_03.jpg",
+        "crop_url": null,
         "mask_rle": null,
         "display_color_hex": "#F59E0B"
       }
@@ -171,7 +171,7 @@
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
       "visual_evidence": {
         "bbox_2d_px": [550, 640, 720, 800],
-        "crop_url": "/api/v1/assets/crops/ord_20261027_001_item_04.jpg",
+        "crop_url": null,
         "mask_rle": null,
         "display_color_hex": "#8B5CF6"
       }

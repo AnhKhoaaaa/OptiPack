@@ -48,7 +48,7 @@
       "allowed_rotations": ["LWH", "WLH"],
       "visual_evidence": {
         "bbox_2d_px": [220, 180, 520, 580],
-        "crop_url": "/api/v1/assets/crops/ord_002_item_01.jpg",
+        "crop_url": null,
         "mask_rle": null,
         "display_color_hex": "#EF4444"
       }
@@ -89,7 +89,7 @@
       "allowed_rotations": ["LWH", "WLH"],
       "visual_evidence": {
         "bbox_2d_px": [560, 200, 890, 560],
-        "crop_url": "/api/v1/assets/crops/ord_002_item_02.jpg",
+        "crop_url": null,
         "mask_rle": null,
         "display_color_hex": "#F97316"
       }
@@ -130,7 +130,7 @@
       "allowed_rotations": ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
       "visual_evidence": {
         "bbox_2d_px": [300, 600, 750, 920],
-        "crop_url": "/api/v1/assets/crops/ord_002_item_03.jpg",
+        "crop_url": null,
         "mask_rle": null,
         "display_color_hex": "#EC4899"
       }
