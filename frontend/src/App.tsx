@@ -377,16 +377,41 @@ export const App: React.FC = () => {
 
   const handleProceedToPacking = (chosenBoxes: CartonSpec[]) => {
     setSelectedBoxes(chosenBoxes);
-    if (!analysis) return;
+    const analysisId = analysis ? analysis.analysis_id : "analysis_manual_" + Date.now();
     const verifiedItems = packableItems.map((it) => ({
       ...it,
       review_acknowledged: true,
     }));
     setPackableItems(verifiedItems);
-    executePacking(verifiedItems, analysis.analysis_id, applyUncertaintyMargin, {
+    executePacking(verifiedItems, analysisId, applyUncertaintyMargin, {
       user_selected_boxes: chosenBoxes,
     });
     setCurrentStep(4);
+  };
+
+  const handleEnterManually = () => {
+    const defaultItem: ExtendedPackableItem = {
+      item_id: "custom_item_1",
+      display_name: "Item #1",
+      dimensions_mm: { length_mm: 150, width_mm: 100, height_mm: 80 },
+      quantity: 1,
+      safety_margin_mm: 0,
+      weight_g: 500,
+      weight_assumed: false,
+      material_type: "rigid_box",
+      weight_tier: "medium",
+      fragility_class: "low",
+      stackable: true,
+      max_top_load_g: null,
+      keep_upright: false,
+      allowed_rotations: ["LWH", "WLH", "LHW", "HLW", "WHL", "HWL"],
+      display_color_hex: "#0071e3",
+      crop_url: null,
+      provenance_source: "Default-Safe",
+      review_acknowledged: true,
+    };
+    setPackableItems([defaultItem]);
+    setCurrentStep(2);
   };
 
   const handleReset = () => {
@@ -490,6 +515,7 @@ export const App: React.FC = () => {
           <div className="step-page-container">
             <UploadPanel
               onAnalysisLoaded={handleAnalysisLoaded}
+              onEnterManually={handleEnterManually}
               loading={loading}
               setLoading={setLoading}
               analysis={analysis}

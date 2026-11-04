@@ -68,6 +68,18 @@ async def analyze_order(
             warnings=warnings,
         )
 
+    import logging
+    import cv2
+    logger = logging.getLogger("optipack.api")
+    try:
+        from pathlib import Path
+        debug_dir = Path("/tmp/optipack_debug")
+        debug_dir.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(debug_dir / "last_top.jpg"), top)
+        cv2.imwrite(str(debug_dir / "last_oblique.jpg"), oblique)
+    except Exception as e:
+        logger.warning(f"Could not save debug images: {e}")
+
     try:
         batch = await run_in_threadpool(
             cv_service.process_pair,
@@ -76,6 +88,7 @@ async def analyze_order(
             save_crops=True,
         )
     except (CVCalibrationError, ValueError) as exc:
+        logger.error(f"[AnalyzeOrder] ArUco/calibration failed: {exc}")
         return no_measurement_response(
             f"ArUco/camera calibration failed; no metric measurement returned: {exc}",
             warnings=warnings,

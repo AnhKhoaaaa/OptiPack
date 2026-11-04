@@ -8,6 +8,7 @@ interface UploadPanelProps {
     analysis: OrderAnalysisResponse,
     precomputedSolution?: PackingSolutionResponse
   ) => void;
+  onEnterManually?: () => void;
   loading: boolean;
   setLoading: (l: boolean) => void;
   analysis?: OrderAnalysisResponse | null;
@@ -114,6 +115,7 @@ const matchImageDimensions = (
 
 export const UploadPanel: React.FC<UploadPanelProps> = ({
   onAnalysisLoaded,
+  onEnterManually,
   loading,
   setLoading,
   analysis,
@@ -664,19 +666,38 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   <line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
                 <strong>Calibration Board Not Detected</strong>
-                <p className="muted text-xs" style={{ maxWidth: 300, textAlign: "center", lineHeight: 1.4 }}>
+                <p className="muted text-xs" style={{ maxWidth: 320, textAlign: "center", lineHeight: 1.4 }}>
                   {analysis.global_warnings?.[0] ||
                     "OptiPack requires an A4 4-corner ArUco sheet to calculate exact physical millimeters from live photos."}
                 </p>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ marginTop: 8 }}
-                  onClick={handleLoadSamplePhotos}
-                  disabled={loading}
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleLoadSamplePhotos}
+                    disabled={loading}
+                  >
+                    Try sample photos
+                  </button>
+                  {onEnterManually && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={onEnterManually}
+                    >
+                      Enter items manually →
+                    </button>
+                  )}
+                </div>
+                <a
+                  href="/calibration_sheet.png"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs muted"
+                  style={{ marginTop: 8, textDecoration: "underline" }}
                 >
-                  Try with benchmark sample photos
-                </button>
+                  📄 View / Download A4 ArUco Board
+                </a>
               </div>
             )}
           </>
@@ -834,8 +855,29 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   >
                     Try sample order
                   </button>
+                  {onEnterManually && (
+                    <button
+                      type="button"
+                      className="btn-link text-xs"
+                      onClick={onEnterManually}
+                      title="Enter dimensions directly without photos"
+                    >
+                      Enter items manually
+                    </button>
+                  )}
                 </div>
               )}
+            </div>
+            <div style={{ textAlign: "center", marginTop: 4 }}>
+              <a
+                href="/calibration_sheet.png"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs muted"
+                style={{ textDecoration: "underline", fontSize: 11 }}
+              >
+                📄 Download A4 ArUco Board
+              </a>
             </div>
             {cameraError && <p className="camera-err-hint">{cameraError}</p>}
           </div>
