@@ -25,6 +25,38 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
 }) => {
   const [editingNameIndex, setEditingNameIndex] = useState<number | null>(null);
 
+  const handleDimensionChange = (
+    index: number,
+    field: "length_mm" | "width_mm" | "height_mm",
+    val: number
+  ) => {
+    const item = items[index];
+    const newDims = {
+      ...item.dimensions_mm,
+      [field]: Math.max(0, val),
+    };
+    onUpdateItem(index, {
+      ...item,
+      dimensions_mm: newDims,
+    });
+  };
+
+  const handleDimensionBlur = (
+    index: number,
+    field: "length_mm" | "width_mm" | "height_mm"
+  ) => {
+    const item = items[index];
+    if ((item.dimensions_mm[field] || 0) < 5) {
+      onUpdateItem(index, {
+        ...item,
+        dimensions_mm: {
+          ...item.dimensions_mm,
+          [field]: 10,
+        },
+      });
+    }
+  };
+
   const handleMaterialSelect = (
     index: number,
     material: "soft_fabric" | "rigid_box" | "glass_ceramic" | "metal_wood" | "other"
@@ -145,10 +177,60 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
                     </div>
                   )}
 
-                  <div className="item-dims-tag">
-                    <span>
-                      {dims.length_mm} × {dims.width_mm} × {dims.height_mm} mm
-                    </span>
+                  <div className="item-dims-editor">
+                    <div className="dim-inputs-box">
+                      <div className="dim-field">
+                        <span className="dim-field-label">L</span>
+                        <input
+                          type="number"
+                          min={5}
+                          max={2000}
+                          className="dim-num-input"
+                          value={dims.length_mm || ""}
+                          onChange={(e) =>
+                            handleDimensionChange(idx, "length_mm", parseInt(e.target.value, 10) || 0)
+                          }
+                          onBlur={() => handleDimensionBlur(idx, "length_mm")}
+                          aria-label="Length (mm)"
+                          title="Length (mm)"
+                        />
+                      </div>
+                      <span className="dim-sep">×</span>
+                      <div className="dim-field">
+                        <span className="dim-field-label">W</span>
+                        <input
+                          type="number"
+                          min={5}
+                          max={2000}
+                          className="dim-num-input"
+                          value={dims.width_mm || ""}
+                          onChange={(e) =>
+                            handleDimensionChange(idx, "width_mm", parseInt(e.target.value, 10) || 0)
+                          }
+                          onBlur={() => handleDimensionBlur(idx, "width_mm")}
+                          aria-label="Width (mm)"
+                          title="Width (mm)"
+                        />
+                      </div>
+                      <span className="dim-sep">×</span>
+                      <div className="dim-field">
+                        <span className="dim-field-label">H</span>
+                        <input
+                          type="number"
+                          min={5}
+                          max={2000}
+                          className="dim-num-input"
+                          value={dims.height_mm || ""}
+                          onChange={(e) =>
+                            handleDimensionChange(idx, "height_mm", parseInt(e.target.value, 10) || 0)
+                          }
+                          onBlur={() => handleDimensionBlur(idx, "height_mm")}
+                          aria-label="Height (mm)"
+                          title="Height (mm)"
+                        />
+                      </div>
+                      <span className="dim-unit">mm</span>
+                    </div>
                     {applyUncertaintyMargin && (
                       <span className="margin-tag">+{item.safety_margin_mm || 5}mm</span>
                     )}
