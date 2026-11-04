@@ -51,8 +51,14 @@ async def analyze_order(
             status="fallback_zenith_only",
         )
     oblique, _ = await read_image(oblique_image)
+    import cv2
+    if top.shape[:2] != oblique.shape[:2]:
+        oblique = cv2.resize(oblique, (top.shape[1], top.shape[0]), interpolation=cv2.INTER_AREA)
     if top.shape != oblique.shape:
-        raise HTTPException(422, detail="Both images must have identical height, width and color channels")
+        if oblique.ndim == 2 and top.ndim == 3:
+            oblique = cv2.cvtColor(oblique, cv2.COLOR_GRAY2BGR)
+        elif oblique.ndim == 3 and top.ndim == 3 and oblique.shape[2] != top.shape[2]:
+            oblique = cv2.cvtColor(oblique, cv2.COLOR_BGRA2BGR if oblique.shape[2] == 4 else cv2.COLOR_BGR2BGRA)
 
     warnings = []
     from backend.app.cv.preprocessing import assess_image_quality
@@ -83,6 +89,11 @@ async def analyze_order(
         # Missing model weights, inference failures, etc. No fabricated metric dimensions.
         return no_measurement_response(
             f"CV inference unavailable; no metric measurement returned: {exc}",
+            warnings=warnings,
+        )
+    except Exception as exc:
+        return no_measurement_response(
+            f"CV metrology processing error; no metric measurement returned: {exc}",
             warnings=warnings,
         )
 

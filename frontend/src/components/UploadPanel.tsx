@@ -617,13 +617,13 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           </>
         )}
 
-        {/* Mode 4: Initial eKYC-Style Dual-Card Capture (2 ô chụp/chọn ảnh như ID Card) */}
+        {/* Mode 4: Initial eKYC-Style Dual-Card Capture */}
         {mode !== "camera" && !analysis && (
           <div className="dual-capture-wrapper">
             <div className="dual-capture-header">
               <h3>Capture Order on Calibration Board</h3>
               <p className="muted text-xs">
-                Chụp hoặc chọn 2 ảnh (mặt trên & góc nghiêng) để hệ thống đo đạc 3D và gợi ý thùng carton tối ưu.
+                Take or select 2 photos (top-down & oblique) to measure items in 3D and get optimal cartonization.
               </p>
             </div>
 
@@ -635,7 +635,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   onClick={() => topSingleInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  title="Chạm để chụp hoặc chọn ảnh từ trên xuống (Zenith 90°)"
+                  title="Tap to snap or select top-down photo (Zenith 90°)"
                 >
                   {topPreview ? (
                     <div className="slot-preview-wrapper">
@@ -649,7 +649,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                           topSingleInputRef.current?.click();
                         }}
                       >
-                        Đổi ảnh
+                        Change photo
                       </button>
                     </div>
                   ) : (
@@ -658,15 +658,15 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                         <span className="slot-icon">📷</span>
                       </div>
                       <h4 className="slot-title">Top View (Zenith)</h4>
-                      <span className="slot-sub">Chạm để chụp hoặc chọn ảnh</span>
-                      <div className="slot-cue-pill">Mặt trên · 90°</div>
+                      <span className="slot-sub">Tap to capture or choose photo</span>
+                      <div className="slot-cue-pill">Zenith · 90°</div>
                     </div>
                   )}
                 </div>
                 <div className="slot-footer-note">
                   <span className="note-badge">Top view (Zenith 90°):</span>
                   <p className="note-text">
-                    Chụp góc thẳng đứng 90° từ trên xuống, thấy trọn 4 mã ArUco ở 4 góc và các kiện hàng trên bàn.
+                    Position camera directly above at 90°, framing all 4 corner ArUco markers and items on the board.
                   </p>
                 </div>
               </div>
@@ -678,7 +678,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   onClick={() => obliqueSingleInputRef.current?.click()}
                   role="button"
                   tabIndex={0}
-                  title="Chạm để chụp hoặc chọn ảnh góc nghiêng (Oblique 35°–45°)"
+                  title="Tap to snap or select oblique photo (35°–45°)"
                 >
                   {obliquePreview ? (
                     <div className="slot-preview-wrapper">
@@ -692,7 +692,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                           obliqueSingleInputRef.current?.click();
                         }}
                       >
-                        Đổi ảnh
+                        Change photo
                       </button>
                     </div>
                   ) : (
@@ -701,15 +701,15 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                         <span className="slot-icon">📐</span>
                       </div>
                       <h4 className="slot-title">Side / Oblique View</h4>
-                      <span className="slot-sub">Chạm để chụp hoặc chọn ảnh</span>
-                      <div className="slot-cue-pill">Góc nghiêng · 35°–45°</div>
+                      <span className="slot-sub">Tap to capture or choose photo</span>
+                      <div className="slot-cue-pill">Oblique · 35°–45°</div>
                     </div>
                   )}
                 </div>
                 <div className="slot-footer-note">
                   <span className="note-badge">Side view (Oblique 35°–45°):</span>
                   <p className="note-text">
-                    Chụp nghiêng 35°–45° từ một bên để camera nhận diện chiều cao 3D của các khối sản phẩm.
+                    Tilt camera 35°–45° from one side so computer vision can reconstruct 3D heights of products.
                   </p>
                 </div>
               </div>
@@ -724,17 +724,17 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   onClick={() => triggerAnalysis(topFile, obliqueFile)}
                   disabled={loading}
                 >
-                  {loading ? "Analyzing dual photos…" : "🚀 Phân tích kích thước 3D (Analyze Order)"}
+                  {loading ? "Analyzing dual photos…" : "🚀 Analyze 3D Order & Dimensions"}
                 </button>
               ) : topFile && !obliqueFile ? (
                 <div className="cta-status-prompt">
                   <span className="cta-dot is-pending" />
-                  <span>Đã có ảnh mặt trên. Vui lòng chạm vào ô bên phải để chụp tiếp <strong>Ảnh góc nghiêng</strong>.</span>
+                  <span>Top view ready. Tap the right box to capture the <strong>Oblique View</strong>.</span>
                 </div>
               ) : !topFile && obliqueFile ? (
                 <div className="cta-status-prompt">
                   <span className="cta-dot is-pending" />
-                  <span>Đã có ảnh góc nghiêng. Vui lòng chạm vào ô bên trái để chụp <strong>Ảnh mặt trên (Zenith)</strong>.</span>
+                  <span>Oblique view ready. Tap the left box to capture the <strong>Top View (Zenith)</strong>.</span>
                 </div>
               ) : (
                 <div className="cta-empty-actions">
@@ -743,16 +743,16 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                     className="btn btn-secondary btn-sm"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    📁 Chọn cả 2 ảnh cùng lúc
+                    📁 Select both photos together
                   </button>
                   <button
                     type="button"
                     className="btn-link text-xs"
                     onClick={handleLoadSamplePhotos}
                     disabled={loading}
-                    title="Chạy phân tích AI & đo đạc 3D thực tế với bộ ảnh mẫu"
+                    title="Run real end-to-end CV metrology and Meta AI analysis with benchmark sample photos"
                   >
-                    ⚡ Thử với bộ ảnh mẫu
+                    ⚡ Try with sample photos
                   </button>
                 </div>
               )}
