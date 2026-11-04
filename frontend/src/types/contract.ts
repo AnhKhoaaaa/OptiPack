@@ -223,6 +223,7 @@ export interface PackingScenarioCard {
   is_selected_default?: boolean;
   volume_utilization_pct: number;
   feasible: boolean;
+  requires_physical_verification?: boolean;
   overflow_height_mm?: number;
   original_box_height_mm?: number;
   top_item_name?: string;

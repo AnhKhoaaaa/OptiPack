@@ -115,12 +115,17 @@ def test_what_if_yellow_scenario_soft_compressible(small_shallow_box):
 
     user_card = next(s for s in scenarios if s.is_user_box)
     assert user_card.badge_status == "YELLOW"
-    assert user_card.feasible is True
+    assert user_card.feasible is False  # physical closure is not validated
+    assert user_card.requires_physical_verification is True
     assert user_card.overflow_height_mm == 6
     assert len(user_card.ejected_item_ids) == 0
-    assert user_card.is_selected_default is True
-    assert "Slight Bulge" in user_card.title
-    assert "tape" in user_card.advisor_explanation.lower()
+    assert user_card.is_selected_default is False  # prefer nominal BEST_FIT
+    assert user_card.plan is not None
+    assert user_card.plan.carton.internal_dimensions_mm.height_mm == 88
+    assert user_card.carton.internal_dimensions_mm.height_mm == 80
+    assert "Conditional Lid Flex" in user_card.advisor_title
+    assert "not been verified" in user_card.advisor_explanation
+    assert next(s for s in scenarios if s.is_selected_default).badge_status == "BEST_FIT"
 
 
 def test_what_if_yellow_rejected_when_fragile(small_shallow_box):
@@ -233,7 +238,7 @@ def test_solve_packing_with_user_boxes_request(user_box_m):
     )
 
     resp = solve_packing(req)
-    assert resp.status == "OPTIMAL"
+    assert resp.status == "FEASIBLE"  # heuristic is not globally optimal
     assert resp.solver_used == "what_if_multi_scenario_engine"
     assert resp.single_carton_feasible is True
     assert resp.primary_plan is not None
@@ -278,7 +283,7 @@ def test_pack_api_endpoint_integration(user_box_m):
     res = client.post("/api/v1/orders/pack", json=payload)
     assert res.status_code == 200
     data = res.json()
-    assert data["status"] in ("OPTIMAL", "FEASIBLE")
+    assert data["status"] == "FEASIBLE"  # no unproven OPTIMAL claim
     assert "scenarios" in data
     assert len(data["scenarios"]) >= 2
     # Verify first scenario card schema
@@ -331,3 +336,151 @@ def test_empty_user_boxes_backward_compatibility():
     assert "scenarios" in data
     assert len(data["scenarios"]) >= 1
     assert data["scenarios"][0]["badge_status"] == "BEST_FIT"
+
+def test_rigid_carton_cannot_be_treated_as_compressible(small_shallow_box):
+    """Even low-fragility rigid boxes must never qualify for conditional lid flex."""
+    item = PackableItem(
+        item_id="rigid_01",
+        display_name="Rigid Cardboard Product",
+        dimensions_mm=Dimensions3D(length_mm=150, width_mm=100, height_mm=86),
+        safety_margin_mm=0,
+        weight_g=200,
+        fragility_class="low",
+        stackable=True,
+        material_type="rigid_box",
+        allowed_rotations=[RotationCode.LWH],
+    )
+    scenarios = evaluate_what_if_scenarios(
+        [item], [small_shallow_box], SolverConfig()
+    )
+    card = next(sc for sc in scenarios if sc.is_user_box)
+    assert card.badge_status == "RED"
+    assert card.feasible is False
+    assert card.requires_physical_verification is False
+
+
+def test_unverified_yellow_never_returns_success_without_catalog_option():
+    """An expanded-carton preview cannot become a verified primary shipping plan."""
+    oversized_user_box = CartonSpec(
+        carton_id="LARGE-USER",
+        display_name="Large Custom User Carton",
+        internal_dimensions_mm=Dimensions3D(
+            length_mm=1000, width_mm=1000, height_mm=500,
+        ),
+        tare_weight_g=400,
+        max_payload_g=30000,
+        box_cost_usd=5.0,
+    )
+    item = PackableItem(
+        item_id="soft_bulk",
+        display_name="Large Soft Fabric",
+        dimensions_mm=Dimensions3D(
+            length_mm=900, width_mm=900, height_mm=510,
+        ),
+        safety_margin_mm=0,
+        weight_g=1200,
+        material_type="soft_fabric",
+        fragility_class="low",
+        allowed_rotations=[RotationCode.LWH],
+    )
+    response = solve_packing(PackingRequest(
+        analysis_id="conditional_only",
+        items=[item],
+        solver_config=SolverConfig(
+            apply_uncertainty_margin=False,
+            user_selected_boxes=[oversized_user_box],
+        ),
+    ))
+    yellow = next(sc for sc in response.scenarios if sc.badge_status == "YELLOW")
+    assert yellow.requires_physical_verification is True
+    assert yellow.feasible is False
+    assert yellow.plan is not None
+    assert yellow.plan.carton.internal_dimensions_mm.height_mm == 525
+    assert yellow.carton.internal_dimensions_mm.height_mm == 500
+    assert response.status == "INFEASIBLE"
+    assert response.single_carton_feasible is False
+    assert response.primary_plan is None
+    assert response.unpacked_item_ids == ["soft_bulk"]
+    assert response.infeasibility_diagnostics is not None
+
+
+def test_scenario_advisor_parser_handles_arrays_without_touching_semantic_parser():
+    """Semantic object extraction and the advisor's list contract must coexist."""
+    import json
+    from backend.app.ai.meta_client import (
+        extract_json_from_llm_text,
+        parse_scenario_advisor_response,
+    )
+
+    raw = json.dumps([
+        {
+            "scenario_id": "scenario_best_fit",
+            "advisor_title": "Recommended",
+            "advisor_explanation": "Geometry-validated catalog fit.",
+        },
+        {"scenario_id": 42, "advisor_title": "Invalid", "advisor_explanation": "Wrong ID"},
+        {"scenario_id": "bad", "advisor_title": "", "advisor_explanation": "Empty title"},
+    ])
+    parsed = parse_scenario_advisor_response(f"```json\n{raw}\n```")
+    assert len(parsed) == 1
+    assert parsed[0]["scenario_id"] == "scenario_best_fit"
+    assert parse_scenario_advisor_response('{"not":"an array"}') == []
+    assert parse_scenario_advisor_response("invalid JSON") == []
+    assert extract_json_from_llm_text('{"type": "package"}') == {"type": "package"}
+
+
+@pytest.mark.asyncio
+async def test_ai_advisor_uses_json_array_without_upgrading_yellow(
+    small_shallow_box, monkeypatch,
+):
+    """Mock AI response; never allow generated copy to certify conditional packing."""
+    import json
+    from types import SimpleNamespace
+    from backend.app.ai.meta_client import synthesize_scenario_advisor_notes
+
+    item = PackableItem(
+        item_id="soft",
+        display_name="Cotton Fabric",
+        dimensions_mm=Dimensions3D(length_mm=150, width_mm=100, height_mm=86),
+        safety_margin_mm=0,
+        weight_g=150,
+        material_type="soft_fabric",
+        fragility_class="low",
+        allowed_rotations=[RotationCode.LWH],
+    )
+    scenarios = evaluate_what_if_scenarios([item], [small_shallow_box], SolverConfig())
+    yellow = next(sc for sc in scenarios if sc.badge_status == "YELLOW")
+    safe_note_before = yellow.advisor_explanation
+    best_fit = next(sc for sc in scenarios if sc.badge_status == "BEST_FIT")
+    reply = json.dumps([
+        {"scenario_id": yellow.scenario_id,
+         "advisor_title": "Safe to Ship",
+         "advisor_explanation": "Safe and certified to ship."},
+        {"scenario_id": best_fit.scenario_id,
+         "advisor_title": "Better Catalog Option",
+         "advisor_explanation": "Choose this geometry-validated standard carton."},
+    ])
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def post(self, *_args, **_kwargs):
+            return SimpleNamespace(
+                status_code=200,
+                json=lambda: {"choices": [{"message": {"content": reply}}]},
+            )
+
+    monkeypatch.setenv("BASETEN_API_KEY", "mock-key")
+    monkeypatch.setattr(
+        "backend.app.ai.meta_client.httpx.AsyncClient",
+        lambda **_kwargs: FakeClient(),
+    )
+    await synthesize_scenario_advisor_notes(scenarios, [item])
+    assert best_fit.advisor_title == "Better Catalog Option"
+    assert best_fit.ai_advisor_note == "Choose this geometry-validated standard carton."
+    assert yellow.advisor_explanation == safe_note_before
+    assert yellow.requires_physical_verification is True

@@ -1051,12 +1051,47 @@ def segment_with_sam31(
         }
 
 
+def parse_scenario_advisor_response(text: str) -> List[Dict[str, str]]:
+    """Parse the advisor JSON array independently of object-only semantic parsing."""
+    if not isinstance(text, str) or not text.strip():
+        return []
+    cleaned = text.strip()
+    fence = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", cleaned, re.DOTALL | re.IGNORECASE)
+    if fence:
+        cleaned = fence.group(1).strip()
+    try:
+        parsed = json.loads(cleaned)
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(parsed, list):
+        return []
+    result: List[Dict[str, str]] = []
+    seen = set()
+    for item in parsed:
+        if not isinstance(item, dict):
+            continue
+        scenario_id = item.get("scenario_id")
+        title = item.get("advisor_title")
+        explanation = item.get("advisor_explanation")
+        if not all(isinstance(v, str) and v.strip() for v in (scenario_id, title, explanation)):
+            continue
+        if scenario_id in seen or len(title) > 120 or len(explanation) > 400:
+            continue
+        seen.add(scenario_id)
+        result.append({
+            "scenario_id": scenario_id.strip(),
+            "advisor_title": title.strip(),
+            "advisor_explanation": explanation.strip(),
+        })
+    return result
+
+
 async def synthesize_scenario_advisor_notes(
     scenarios: List[PackingScenarioCard],
     items: List[PackableItem],
     timeout_sec: float = 4.0,
 ) -> List[PackingScenarioCard]:
-    """Use Baseten LLM to generate contextual Vietnamese packaging guidance for scenarios with deterministic fallback."""
+    """Enhance deterministic English scenario notes, retaining safe fallback."""
     if not scenarios:
         return scenarios
 
@@ -1088,7 +1123,7 @@ Calculated packaging scenarios:
 
 Write concise, practical advice in simple, natural English (under 25 words per scenario) for each scenario_id:
 - For GREEN: confirm perfect fit, advise standard tape closure.
-- For YELLOW: explain slight lid bulge, advise gentle lid compression and H-pattern tape seal.
+- For YELLOW: explicitly say lid flex is only simulated and requires physical compression and closure verification; never claim a safe fit.
 - For RED: clearly explain that certain items need to be split into a separate mailer or second box.
 - For BEST_FIT: highlight optimal standard carrier dimensions and space efficiency.
 
@@ -1123,18 +1158,22 @@ Return ONLY a JSON array with this exact structure:
                 choices = res_json.get("choices", [])
                 if choices:
                     raw_content = choices[0].get("message", {}).get("content", "")
-                    parsed = extract_json_from_llm_text(raw_content)
-                    if isinstance(parsed, list):
-                        advice_map = {item.get("scenario_id"): item for item in parsed if isinstance(item, dict)}
-                        for sc in scenarios:
-                            if sc.scenario_id in advice_map:
-                                t = advice_map[sc.scenario_id].get("advisor_title")
-                                e = advice_map[sc.scenario_id].get("advisor_explanation")
-                                if t and isinstance(t, str) and t.strip():
-                                    sc.advisor_title = t.strip()
-                                if e and isinstance(e, str) and e.strip():
-                                    sc.advisor_explanation = e.strip()
-                                    sc.ai_advisor_note = e.strip()
+                    advice_map = {
+                        item["scenario_id"]: item
+                        for item in parse_scenario_advisor_response(raw_content)
+                    }
+                    for sc in scenarios:
+                        advice = advice_map.get(sc.scenario_id)
+                        if advice is None:
+                            continue
+                        explanation = advice["advisor_explanation"]
+                        if sc.requires_physical_verification:
+                            # AI text cannot silently upgrade a conditional
+                            # simulation to a verified physical packing plan.
+                            continue
+                        sc.advisor_title = advice["advisor_title"]
+                        sc.advisor_explanation = explanation
+                        sc.ai_advisor_note = explanation
     except Exception:
         # Gracefully keep deterministic template fallback
         pass

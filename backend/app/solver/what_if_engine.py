@@ -2,10 +2,10 @@
 
 Evaluates user-selected packaging boxes against 4 classification tiers:
 1. GREEN (100% Fit): Order packs cleanly within nominal dimensions.
-2. YELLOW (Elastic Lid Compression):
-   Order exceeds nominal height by Delta H <= min(floor(0.10 * H), 25 mm).
-   Allowed ONLY if all overflowing items are resilient/soft (soft_fabric, rigid_box)
-   and not fragile.
+2. YELLOW (Conditional Lid Flex):
+   Simulated clearance up to min(floor(0.10 * H), 25 mm).
+   Only low-fragility soft fabric is eligible for a conditional preview.
+   Physical compressibility and safe carton closure are NOT validated.
 3. RED (Eject Candidates to Fit Remainder):
    Order exceeds elastic bounds or top items are fragile.
    Runs subset heuristic to pack primary subset and eject remainder.
@@ -59,11 +59,11 @@ def format_scenario_advice(card: PackingScenarioCard, items: List[PackableItem])
         return title, explanation
 
     elif card.badge_status == "YELLOW":
-        title = f"Slight Lid Bulge (+{card.overflow_height_mm} mm) - Packable"
+        title = f"Conditional Lid Flex (+{card.overflow_height_mm} mm)"
         explanation = (
-            f"Order height exceeds box depth by {card.overflow_height_mm} mm. "
-            f"Since top items are soft and resilient, you can apply gentle lid pressure "
-            f"and seal with H-pattern tape without needing a larger box."
+            f"Simulated clearance exceeds the nominal carton height by {card.overflow_height_mm} mm. "
+            "Physical compressibility and safe lid closure have not been verified. "
+            "Confirm the item and carton can tolerate compression before use."
         )
         return title, explanation
 
@@ -88,8 +88,8 @@ def format_scenario_advice(card: PackingScenarioCard, items: List[PackableItem])
     else:  # BEST_FIT
         title = f"Recommended: {card.carton.display_name}"
         explanation = (
-            f"Optimal standard packaging size with {round(card.volume_utilization_pct)}% space efficiency. "
-            f"Fits 100% of order items safely according to shipping standards."
+            f"Catalog carton with {round(card.volume_utilization_pct)}% volume utilization and "
+            "a geometry-validated heuristic packing plan. Check handling requirements before shipment."
         )
         return title, explanation
 
@@ -99,10 +99,11 @@ def check_elastic_compression(
     items: List[PackableItem],
     min_support_ratio: float = 0.60,
 ) -> Tuple[bool, int, Optional[PackableItem], Optional[List[PlacedItem]], Optional[PackingPlan]]:
-    """Check if items can fit with elastic lid compression on top.
+    """Produce a conditional height-clearance simulation, not a physical fit proof.
 
-    Elastic allowance: Delta H_max = min(int(carton_h * 0.10), 25) mm.
-    Requires Delta H_max >= 5 mm.
+    Only low-fragility soft fabric can be considered for this preview. The
+    expanded carton is explicitly part of the returned plan so its geometry
+    validator never certifies placements against different carton dimensions.
     """
     carton_h = carton.internal_dimensions_mm.height_mm
     delta_h_max = min(int(carton_h * 0.10), 25)
@@ -154,21 +155,21 @@ def check_elastic_compression(
     if max_overflow > delta_h_max:
         return False, 0, None, None, None
 
-    # Safety check on all overflowing items:
-    # Glass/ceramic or high fragility items CANNOT be compressed
+    # The material label alone is not proof of compressibility: this is only
+    # an eligible-for-review preview, never verified physical carton closure.
     for _, it, _ in overflowing_items:
-        if it.fragility_class == "high" or it.material_type == "glass_ceramic":
+        if it.material_type != "soft_fabric" or it.fragility_class != "low":
             return False, 0, None, None, None
         if not it.stackable:
             return False, 0, None, None, None
 
     # Top item with highest overflow
-    top_p, top_it, _ = max(overflowing_items, key=lambda x: x[2])
+    _, top_it, _ = max(overflowing_items, key=lambda x: x[2])
 
     metrics = compute_packing_metrics(elastic_carton, items, placements)
     plan = PackingPlan(
         plan_index=1,
-        carton=carton,
+        carton=elastic_carton,
         metrics=metrics,
         placements=placements,
         validation=val_report,
@@ -309,7 +310,8 @@ def evaluate_what_if_scenarios(
                 is_user_box=True,
                 is_selected_default=False,
                 volume_utilization_pct=el_plan.metrics.volume_utilization_pct,
-                feasible=True,
+                feasible=False,
+                requires_physical_verification=True,
                 overflow_height_mm=overflow_h,
                 original_box_height_mm=u_box.internal_dimensions_mm.height_mm,
                 top_item_name=top_name,
@@ -384,10 +386,11 @@ def evaluate_what_if_scenarios(
     if green_cards:
         best_green = max(green_cards, key=lambda c: c.volume_utilization_pct)
         best_green.is_selected_default = True
-    elif yellow_cards:
-        yellow_cards[0].is_selected_default = True
     elif bf_cards:
         bf_cards[0].is_selected_default = True
+    elif yellow_cards:
+        # Show a conditional candidate, but do not mark it physically feasible.
+        yellow_cards[0].is_selected_default = True
     elif scenarios:
         scenarios[0].is_selected_default = True
 

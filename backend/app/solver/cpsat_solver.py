@@ -289,33 +289,39 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
     if user_boxes:
         from backend.app.solver.what_if_engine import evaluate_what_if_scenarios
         scenarios = evaluate_what_if_scenarios(items, user_boxes, request.solver_config)
-        selected_scenario = next((s for s in scenarios if s.is_selected_default), scenarios[0])
+        selected_scenario = next((s for s in scenarios if s.is_selected_default), None)
         solve_time_ms = int((time.time() - start_time) * 1000)
 
-        status_str = "OPTIMAL"
-        single_carton_feasible = True
-        unpacked_ids: List[str] = []
-
-        if selected_scenario.badge_status in ("GREEN", "BEST_FIT"):
-            status_str = "OPTIMAL"
-            single_carton_feasible = True
-        elif selected_scenario.badge_status == "YELLOW":
-            status_str = "FEASIBLE"
-            single_carton_feasible = True
-        else:  # RED
-            status_str = "INFEASIBLE"
-            single_carton_feasible = False
+        # EP/heuristic search establishes feasibility, not global optimality.
+        # Conditional YELLOW and partial RED plans cannot be exposed as a
+        # verified complete packing solution for the physical carton.
+        verified_full_fit = bool(
+            selected_scenario is not None
+            and selected_scenario.feasible
+            and selected_scenario.badge_status in ("GREEN", "BEST_FIT")
+            and selected_scenario.plan is not None
+        )
+        status_str = "FEASIBLE" if verified_full_fit else "INFEASIBLE"
+        if verified_full_fit:
+            unpacked_ids: List[str] = []
+        elif selected_scenario and selected_scenario.badge_status == "RED":
             unpacked_ids = selected_scenario.ejected_item_ids
+        else:
+            unpacked_ids = [it.item_id for it in items]
 
+        diagnostics = None if verified_full_fit else {
+            "reason": "No verified complete nominal-carton fit; conditional lid flex is not physical validation",
+        }
         return PackingSolutionResponse(
             contract_version="1.0.0",
             status=status_str,
             solver_used="what_if_multi_scenario_engine",
             solve_time_ms=solve_time_ms,
-            single_carton_feasible=single_carton_feasible,
-            primary_plan=selected_scenario.plan,
+            single_carton_feasible=verified_full_fit,
+            primary_plan=selected_scenario.plan if verified_full_fit else None,
             overflow_plans=[],
             unpacked_item_ids=unpacked_ids,
+            infeasibility_diagnostics=diagnostics,
             candidate_carton_comparison=[],
             scenarios=scenarios,
         )
