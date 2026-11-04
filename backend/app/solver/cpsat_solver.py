@@ -260,6 +260,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
             overflow_plans=[],
             unpacked_item_ids=[],
             candidate_carton_comparison=[],
+            scenarios=[],
         )
 
     # 1. Expand items with quantity > 1 and apply uncertainty margin
@@ -283,6 +284,41 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
                 items.append(it.model_copy(update={"safety_margin_mm": 0}))
             else:
                 items.append(it)
+
+    user_boxes = request.solver_config.user_selected_boxes
+    if user_boxes:
+        from backend.app.solver.what_if_engine import evaluate_what_if_scenarios
+        scenarios = evaluate_what_if_scenarios(items, user_boxes, request.solver_config)
+        selected_scenario = next((s for s in scenarios if s.is_selected_default), scenarios[0])
+        solve_time_ms = int((time.time() - start_time) * 1000)
+
+        status_str = "OPTIMAL"
+        single_carton_feasible = True
+        unpacked_ids: List[str] = []
+
+        if selected_scenario.badge_status in ("GREEN", "BEST_FIT"):
+            status_str = "OPTIMAL"
+            single_carton_feasible = True
+        elif selected_scenario.badge_status == "YELLOW":
+            status_str = "FEASIBLE"
+            single_carton_feasible = True
+        else:  # RED
+            status_str = "INFEASIBLE"
+            single_carton_feasible = False
+            unpacked_ids = selected_scenario.ejected_item_ids
+
+        return PackingSolutionResponse(
+            contract_version="1.0.0",
+            status=status_str,
+            solver_used="what_if_multi_scenario_engine",
+            solve_time_ms=solve_time_ms,
+            single_carton_feasible=single_carton_feasible,
+            primary_plan=selected_scenario.plan,
+            overflow_plans=[],
+            unpacked_item_ids=unpacked_ids,
+            candidate_carton_comparison=[],
+            scenarios=scenarios,
+        )
 
     total_item_vol_mm3 = sum(
         it.dimensions_mm.length_mm * it.dimensions_mm.width_mm * it.dimensions_mm.height_mm
@@ -444,6 +480,8 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
 
     # 4. If feasible single carton plan found, return cost-optimal response
     if best_final_plan is not None:
+        from backend.app.solver.what_if_engine import evaluate_what_if_scenarios
+        scenarios = evaluate_what_if_scenarios(items, [], request.solver_config)
         return PackingSolutionResponse(
             contract_version="1.0.0",
             status="OPTIMAL",
@@ -454,6 +492,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
             overflow_plans=[],
             unpacked_item_ids=[],
             candidate_carton_comparison=candidate_evaluations,
+            scenarios=scenarios,
         )
 
     # 5. Multi-Carton Split handling for oversized orders (disabled if user requested an explicit custom carton)
@@ -518,6 +557,7 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
                     "cartons_required": len(split_plans),
                 },
                 candidate_carton_comparison=candidate_evaluations,
+                scenarios=[],
             )
 
     # 6. Infeasible and split not permitted
@@ -540,4 +580,5 @@ def solve_packing(request: PackingRequest) -> PackingSolutionResponse:
             "total_item_weight_g": total_item_weight_g,
         },
         candidate_carton_comparison=candidate_evaluations,
+        scenarios=[],
     )

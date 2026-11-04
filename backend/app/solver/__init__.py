@@ -5,6 +5,7 @@ from backend.app.solver.cost_evaluator import compute_packing_metrics
 from backend.app.solver.geometry_validator import validate_packing_solution
 from backend.app.solver.heuristic_ep import pack_carton_heuristic_ep
 from backend.app.solver.cpsat_solver import solve_packing
+from backend.app.solver.what_if_engine import evaluate_what_if_scenarios
 
 __all__ = [
     "STANDARD_CARTONS",
@@ -13,4 +14,5 @@ __all__ = [
     "validate_packing_solution",
     "pack_carton_heuristic_ep",
     "solve_packing",
+    "evaluate_what_if_scenarios",
 ]
