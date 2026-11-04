@@ -2,18 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { AITelemetry, OrderAnalysisResponse, PackingSolutionResponse } from "../types/contract";
 import { ExtendedPackableItem } from "./ManifestTable";
 import { OptiPackClient } from "../api/optipackClient";
-import orderAnalysisSample from "../mocks/orderAnalysisSample.json";
-import preset2UncertainReview from "../mocks/preset2UncertainReview.json";
-import preset2PackingSolution from "../mocks/preset2PackingSolution.json";
-import preset3OrderAnalysis from "../mocks/preset3OrderAnalysis.json";
-import preset3MultiCartonSplit from "../mocks/preset3MultiCartonSplit.json";
-import packingSolutionSample from "../mocks/packingSolutionSample.json";
 
 interface UploadPanelProps {
   onAnalysisLoaded: (
     analysis: OrderAnalysisResponse,
-    precomputedSolution?: PackingSolutionResponse,
-    source?: "live" | "demo"
+    precomputedSolution?: PackingSolutionResponse
   ) => void;
   loading: boolean;
   setLoading: (l: boolean) => void;
@@ -21,17 +14,11 @@ interface UploadPanelProps {
   items?: ExtendedPackableItem[];
   onReset?: () => void;
   aiTelemetry?: AITelemetry;
-  isDemoData?: boolean;
 }
 
 const SAMPLE_TOP = "/samples/topdown_sample.jpg";
 const SAMPLE_OBLIQUE = "/samples/oblique_sample.jpg";
 
-const PRESETS = [
-  { id: 1, label: "Preset: Standard" },
-  { id: 2, label: "Preset: Review" },
-  { id: 3, label: "Preset: Multi-box" },
-];
 
 // Helper to auto-orient portrait photos (H > W) into landscape (W > H)
 // matching the A4 calibration sheet coordinate system
@@ -82,7 +69,6 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   items = [],
   onReset,
   aiTelemetry,
-  isDemoData = false,
 }) => {
   const [mode, setMode] = useState<"idle" | "camera" | "upload">("idle");
   const [cameraStep, setCameraStep] = useState<"top" | "oblique">("top");
@@ -95,7 +81,6 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const [imgNaturalSize, setImgNaturalSize] = useState<{ w: number; h: number } | null>(null);
 
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const [stageWidth, setStageWidth] = useState<number>(0);
@@ -275,7 +260,6 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   const triggerAnalysis = async (top: File | Blob, oblique?: File | Blob | null) => {
     setLoading(true);
     setCameraError(null);
-    setSelectedPreset(null);
     onReset?.();
     const formData = new FormData();
     formData.append("top_image", top, "zenith_top.jpg");
@@ -345,40 +329,40 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     }
   };
 
-  // Preset loader for instant demo pitch
-  const handleLoadPreset = (presetNumber: number) => {
+  // Load real benchmark sample photos and trigger full end-to-end CV + AI analysis
+  const handleLoadSamplePhotos = async () => {
     setCameraError(null);
-    setSelectedPreset(presetNumber);
     stopCameraStream();
     setMode("idle");
-    setTopFile(null);
-    setObliqueFile(null);
-    setTopPreview(SAMPLE_TOP);
-    setObliquePreview(SAMPLE_OBLIQUE);
     setLoading(true);
 
-    setTimeout(() => {
-      if (presetNumber === 1) {
-        onAnalysisLoaded(
-          orderAnalysisSample as unknown as OrderAnalysisResponse,
-          packingSolutionSample as unknown as PackingSolutionResponse,
-          "demo"
-        );
-      } else if (presetNumber === 2) {
-        onAnalysisLoaded(
-          preset2UncertainReview as unknown as OrderAnalysisResponse,
-          preset2PackingSolution as unknown as PackingSolutionResponse,
-          "demo"
-        );
-      } else {
-        onAnalysisLoaded(
-          preset3OrderAnalysis as unknown as OrderAnalysisResponse,
-          preset3MultiCartonSplit as unknown as PackingSolutionResponse,
-          "demo"
-        );
+    try {
+      const [topRes, oblRes] = await Promise.all([
+        fetch(SAMPLE_TOP),
+        fetch(SAMPLE_OBLIQUE),
+      ]);
+      if (!topRes.ok || !oblRes.ok) {
+        throw new Error("Unable to load benchmark sample photos from server.");
       }
+      const [topBlob, oblBlob] = await Promise.all([
+        topRes.blob(),
+        oblRes.blob(),
+      ]);
+
+      const topFileObj = new File([topBlob], "zenith_top.jpg", { type: "image/jpeg" });
+      const oblFileObj = new File([oblBlob], "oblique_photo.jpg", { type: "image/jpeg" });
+
+      setTopFile(topFileObj);
+      setObliqueFile(oblFileObj);
+      setTopPreview(SAMPLE_TOP);
+      setObliquePreview(SAMPLE_OBLIQUE);
+
+      await triggerAnalysis(topFileObj, oblFileObj);
+    } catch (err) {
+      console.error("[UploadPanel] Loading sample photos failed:", err);
+      setCameraError(err instanceof Error ? err.message : "Failed to load benchmark sample photos");
       setLoading(false);
-    }, 300);
+    }
   };
 
   const handleResetOrder = () => {
@@ -390,7 +374,6 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     setTopPreview(null);
     setObliquePreview(null);
     setImgNaturalSize(null);
-    setSelectedPreset(null);
     if (onReset) onReset();
   };
 
@@ -432,20 +415,18 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       <header className="panel-head">
         <div className="head-actions">
           <h2>Capture</h2>
-          {(telemetry || isDemoData) && (
+          {telemetry && (
             <span
               className={`telemetry-pill ${
-                !isDemoData && (telemetry?.muse_status === "success" || telemetry?.muse_status === "cached")
+                telemetry.muse_status === "success" || telemetry.muse_status === "cached"
                   ? "is-ok"
                   : "is-fallback"
               }`}
-              title={isDemoData ? "Static demo fixture (no live AI call)" : `Model: ${telemetry?.muse_model} · Status: ${telemetry?.muse_status}`}
+              title={`Model: ${telemetry.muse_model} · Status: ${telemetry.muse_status}`}
             >
-              {isDemoData
-                ? "Demo Data"
-                : telemetry?.muse_status === "success"
+              {telemetry.muse_status === "success"
                 ? "Online · Muse 1.3"
-                : telemetry?.muse_status === "cached"
+                : telemetry.muse_status === "cached"
                 ? "Cached · Muse 1.3"
                 : "Offline Local Mode"}
             </span>
@@ -457,19 +438,6 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
               New capture
             </button>
           )}
-          <div className="segmented">
-            {PRESETS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={selectedPreset === p.id ? "is-active" : ""}
-                onClick={() => handleLoadPreset(p.id)}
-                disabled={loading}
-              >
-                {p.label.replace("Preset: ", "")}
-              </button>
-            ))}
-          </div>
         </div>
       </header>
 
@@ -639,9 +607,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   type="button"
                   className="btn btn-secondary btn-sm"
                   style={{ marginTop: 8 }}
-                  onClick={() => handleLoadPreset(1)}
+                  onClick={handleLoadSamplePhotos}
+                  disabled={loading}
                 >
-                  Load Pre-calibrated Demo Preset
+                  Try with benchmark sample photos
                 </button>
               </div>
             )}
@@ -684,6 +653,16 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   onClick={() => obliqueSingleInputRef.current?.click()}
                 >
                   Pick Oblique photo…
+                </button>
+                <span className="muted text-xs">·</span>
+                <button
+                  type="button"
+                  className="btn-link text-xs"
+                  onClick={handleLoadSamplePhotos}
+                  disabled={loading}
+                  title="Run real end-to-end CV metrology and Meta AI analysis with benchmark sample photos"
+                >
+                  Try with sample photos
                 </button>
               </div>
 

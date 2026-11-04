@@ -76,7 +76,6 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [packingLoading, setPackingLoading] = useState<boolean>(false);
   const [packingError, setPackingError] = useState<string | null>(null);
-  const [analysisSource, setAnalysisSource] = useState<"live" | "demo">("live");
   // Ignore late solver responses after the order, item measurements or carton selection changes.
   const packingRequestId = useRef(0);
 
@@ -138,11 +137,9 @@ export const App: React.FC = () => {
 
   const handleAnalysisLoaded = (
     data: OrderAnalysisResponse,
-    precomputedSolution?: PackingSolutionResponse,
-    source: "live" | "demo" = "live"
+    precomputedSolution?: PackingSolutionResponse
   ) => {
     invalidatePacking();
-    setAnalysisSource(source);
     setAnalysis(data);
     const convertedItems: ExtendedPackableItem[] = data.items.map(convertItem);
     setPackableItems(convertedItems);
@@ -240,7 +237,6 @@ export const App: React.FC = () => {
 
   const handleReset = () => {
     invalidatePacking();
-    setAnalysisSource("live");
     setAnalysis(null);
     setPackableItems([]);
     setSolution(null);
@@ -281,7 +277,6 @@ export const App: React.FC = () => {
             items={packableItems}
             onReset={handleReset}
             aiTelemetry={analysis?.ai_telemetry}
-            isDemoData={analysisSource === "demo"}
           />
           {packableItems.length > 0 && (
             <ManifestTable
@@ -341,7 +336,7 @@ export const App: React.FC = () => {
               </button>
             </section>
           )}
-          {packableItems.some(needsMeasurementReview) && analysisSource === "live" && (
+          {packableItems.some(needsMeasurementReview) && (
             <section className="panel packing-review" role="status">
               <strong>Measurement review required</strong>
               <p>Confirm the highlighted dimensions in the manifest before running the Solver.</p>
