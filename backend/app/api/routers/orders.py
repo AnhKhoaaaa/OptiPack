@@ -51,6 +51,9 @@ async def analyze_order(
             status="fallback_zenith_only",
         )
     oblique, _ = await read_image(oblique_image)
+    from backend.app.cv.preprocessing import harmonize_pair_geometry
+    top, oblique = harmonize_pair_geometry(top, oblique)
+
     if top.shape != oblique.shape:
         raise HTTPException(422, detail="Both images must have identical height, width and color channels")
 

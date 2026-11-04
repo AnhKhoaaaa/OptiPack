@@ -153,6 +153,37 @@ def test_mismatched_image_shapes_rejected(client):
     assert response.status_code == 422
 
 
+def test_cross_orientation_images_with_aruco_harmonized_and_accepted(client):
+    """Test that a pair shot in mixed orientations (e.g. Portrait Top, Landscape Oblique)
+    is harmonized so that analysis succeeds without 422 mismatch error."""
+    cv = FakeCV()
+    app.dependency_overrides[get_cv_service] = lambda: cv
+
+    sample_top_path = Path("frontend/public/samples/topdown_sample.jpg")
+    sample_ob_path = Path("frontend/public/samples/oblique_sample.jpg")
+    if not (sample_top_path.is_file() and sample_ob_path.is_file()):
+        pytest.skip("Sample images not available for cross-orientation test")
+
+    top_bytes = sample_top_path.read_bytes()
+    ob_img = cv2.imread(str(sample_ob_path))
+    ob_rot = cv2.rotate(ob_img, cv2.ROTATE_90_CLOCKWISE)
+    ok, ob_buf = cv2.imencode(".jpg", ob_rot)
+    assert ok
+    ob_bytes = ob_buf.tobytes()
+
+    response = client.post(
+        "/api/v1/orders/analyze",
+        files={
+            "top_image": ("top.jpg", top_bytes, "image/jpeg"),
+            "oblique_image": ("oblique.jpg", ob_bytes, "image/jpeg"),
+        },
+    )
+    assert response.status_code == 200
+    assert len(cv.calls) == 1
+    top_shape, ob_shape, _ = cv.calls[0]
+    assert top_shape == ob_shape
+
+
 @pytest.mark.parametrize("error", [
     CVCalibrationError("missing fiducials"),
     RuntimeError("model unavailable"),
