@@ -167,7 +167,19 @@ export const App: React.FC = () => {
   };
 
   const handleUpdateItem = (index: number, updated: ExtendedPackableItem) => {
-    invalidatePacking();
+    const current = packableItems[index];
+    const affectsGeometry =
+      !current ||
+      current.quantity !== updated.quantity ||
+      current.keep_upright !== updated.keep_upright ||
+      current.dimensions_mm.length_mm !== updated.dimensions_mm.length_mm ||
+      current.dimensions_mm.width_mm !== updated.dimensions_mm.width_mm ||
+      current.dimensions_mm.height_mm !== updated.dimensions_mm.height_mm ||
+      JSON.stringify(current.allowed_rotations) !== JSON.stringify(updated.allowed_rotations);
+
+    if (affectsGeometry) {
+      invalidatePacking();
+    }
     setPackableItems((prev) => {
       const copy = [...prev];
       copy[index] = updated;
@@ -213,7 +225,12 @@ export const App: React.FC = () => {
 
   const handleConfirmItem = (index: number) => {
     const item = packableItems[index];
-    if (item) handleUpdateItem(index, { ...item, review_acknowledged: true });
+    if (item) {
+      setPackingError((prev) =>
+        prev === "Confirm all flagged dimensions before requesting a packing plan." ? null : prev
+      );
+      handleUpdateItem(index, { ...item, review_acknowledged: true });
+    }
   };
 
   const handlePackOrder = (overrideConfig?: Partial<PackingRequest["solver_config"]>) => {

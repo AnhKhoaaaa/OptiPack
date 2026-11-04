@@ -37,7 +37,20 @@ describe("Live API failures never become a fake packing result", () => {
 
   it("keeps 500 HTTP errors as API errors (not mock fallback)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 500 })));
-    await expect(OptiPackClient.packOrder(sampleRequest)).rejects.toBeInstanceOf(ApiError);
+    await expect(OptiPackClient.packOrder(sampleRequest)).rejects.toMatchObject({
+      name: "ApiError",
+      status: 500,
+      message: "Backend Error (500): Request failed",
+    });
+  });
+
+  it("formats API error message with fallback reason when statusText is empty", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status: 502, statusText: "" })));
+    await expect(OptiPackClient.packOrder(sampleRequest)).rejects.toMatchObject({
+      name: "ApiError",
+      status: 502,
+      message: "Backend Error (502): Request failed",
+    });
   });
 });
 

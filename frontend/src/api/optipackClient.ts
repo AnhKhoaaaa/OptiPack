@@ -31,13 +31,21 @@ async function parseResponse<T>(response: Response): Promise<T> {
   } catch {
     // An empty/invalid error response is still an HTTP failure.
   }
-  const reason =
+  const extractedReason =
     detail && typeof detail === "object" && "detail" in detail
       ? (detail as { detail: unknown }).detail
-      : response.statusText;
+      : null;
+  const reason =
+    (typeof extractedReason === "string" && extractedReason.trim()
+      ? extractedReason.trim()
+      : typeof extractedReason === "object" && extractedReason !== null
+      ? JSON.stringify(extractedReason)
+      : null) ||
+    response.statusText?.trim() ||
+    "Request failed";
   throw new ApiError(
     response.status,
-    `Backend Error (${response.status}): ${typeof reason === "string" ? reason : JSON.stringify(reason)}`,
+    `Backend Error (${response.status}): ${reason}`,
     detail
   );
 }
