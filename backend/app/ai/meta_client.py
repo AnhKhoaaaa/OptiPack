@@ -121,6 +121,14 @@ MUSE_ITEM_SEMANTIC_SCHEMA: Dict[str, Any] = {
                     "other_rigid",
                 ],
             },
+            "material_type": {
+                "type": "string",
+                "enum": ["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"],
+            },
+            "weight_tier": {
+                "type": "string",
+                "enum": ["light", "medium", "heavy"],
+            },
             "visible_labels": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -187,6 +195,8 @@ class MuseItemSemanticOutput(BaseModel):
     item_id: str
     display_name: Optional[str] = "Generic Package"
     category: str = "generic_carton"
+    material_type: str = "rigid_box"
+    weight_tier: str = "medium"
     visible_labels: List[str] = Field(default_factory=list)
     printed_weight_g: Optional[int] = None
     fragility_class: str = "medium"
@@ -306,6 +316,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "gocheck": {
         "display_name": "GoChek Wireless Mic Case",
         "category": "electronics_boxed",
+        "material_type": "rigid_box",
+        "weight_tier": "light",
         "visible_labels": ["GoChek"],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -319,6 +331,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "wood": {
         "display_name": "Sennheiser Wooden Box",
         "category": "electronics_boxed",
+        "material_type": "metal_wood",
+        "weight_tier": "medium",
         "visible_labels": ["Sennheiser"],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -332,6 +346,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "paper": {
         "display_name": "Top Gia Premium Paper Tissue",
         "category": "cosmetics_personal_care",
+        "material_type": "soft_fabric",
+        "weight_tier": "light",
         "visible_labels": ["Top Gia"],
         "printed_weight_g": None,
         "fragility_class": "low",
@@ -345,6 +361,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "white": {
         "display_name": "White Electronic Device",
         "category": "electronics_boxed",
+        "material_type": "rigid_box",
+        "weight_tier": "light",
         "visible_labels": [],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -358,6 +376,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "black": {
         "display_name": "Black Rectangular Box",
         "category": "generic_carton",
+        "material_type": "rigid_box",
+        "weight_tier": "medium",
         "visible_labels": [],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -371,6 +391,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "fragile": {
         "display_name": "Brown Carton with Fragile Label",
         "category": "generic_carton",
+        "material_type": "glass_ceramic",
+        "weight_tier": "medium",
         "visible_labels": ["FRAGILE"],
         "printed_weight_g": None,
         "fragility_class": "high",
@@ -384,6 +406,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "upright": {
         "display_name": "Teal Carton with THIS SIDE UP",
         "category": "generic_carton",
+        "material_type": "rigid_box",
+        "weight_tier": "medium",
         "visible_labels": ["THIS SIDE UP"],
         "printed_weight_g": None,
         "fragility_class": "medium",
@@ -397,6 +421,8 @@ DEMO_SEMANTIC_CATALOG: Dict[str, Dict[str, Any]] = {
     "printed_wt": {
         "display_name": "Lavender Carton with Net Weight",
         "category": "cosmetics_personal_care",
+        "material_type": "rigid_box",
+        "weight_tier": "medium",
         "visible_labels": ["NET WT 500g"],
         "printed_weight_g": 500,
         "fragility_class": "medium",
@@ -659,6 +685,8 @@ Output a strict JSON object with these EXACT keys:
 - "item_id": "{item_id}"
 - "display_name": exact printed brand or product title legible on packaging (e.g. "Top Gia Khăn Giấy Cao Cấp", "Sennheiser Wooden Box", "GoChek Wireless Mic Case").
 - "category": one of ["electronics_boxed", "cosmetics_personal_care", "food_beverage_rigid", "book_media_flat", "apparel_boxed", "glass_ceramic_fragile", "generic_carton", "other_rigid"]
+- "material_type": one of ["soft_fabric", "rigid_box", "glass_ceramic", "metal_wood", "other"]
+- "weight_tier": one of ["light", "medium", "heavy"]
 - "visible_labels": list of visible text/labels printed on package
 - "printed_weight_g": integer net weight in grams if explicitly printed, else null
 - "fragility_class": one of ["low", "medium", "high", "unknown"]
@@ -702,6 +730,10 @@ Output ONLY the JSON object."""
     parsed["item_id"] = item_id
     if not parsed.get("display_name"):
         parsed["display_name"] = crop.get("name") or "Generic Package"
+    if not parsed.get("material_type"):
+        parsed["material_type"] = "rigid_box"
+    if not parsed.get("weight_tier"):
+        parsed["weight_tier"] = "medium"
     return parsed
 
 

@@ -29,7 +29,13 @@ def compute_item_effective_weight_g(item: PackableItem) -> Tuple[int, bool]:
 
     # Volume in cm^3
     vol_cm3 = (item.dimensions_mm.length_mm * item.dimensions_mm.width_mm * item.dimensions_mm.height_mm) / 1000.0
-    assumed_weight = int(round(vol_cm3 * DEFAULT_ASSUMED_DENSITY_G_PER_CM3))
+    density = DEFAULT_ASSUMED_DENSITY_G_PER_CM3
+    tier = getattr(item, "weight_tier", "medium")
+    if tier == "light":
+        density = 0.08
+    elif tier == "heavy":
+        density = 0.40
+    assumed_weight = int(round(vol_cm3 * density))
     return max(1, assumed_weight), True
 
 
