@@ -442,7 +442,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       </header>
 
       {/* Main Viewport / Stage */}
-      <div className="stage" ref={stageRef}>
+      <div className={`stage ${!analysis && mode !== "camera" ? "is-initial" : ""}`} ref={stageRef}>
         {/* Mode 1: Live Webcam Viewfinder */}
         {mode === "camera" && (
           <div className="camera-viewfinder">
@@ -483,8 +483,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           </div>
         )}
 
-        {/* Mode 3: Captured Photo with AI Bounding Boxes */}
-        {mode !== "camera" && topPreview && (
+        {/* Mode 3: Captured Photo with AI Bounding Boxes (When Analysis is Loaded) */}
+        {mode !== "camera" && analysis && topPreview && (
           <>
             <img
               src={topPreview}
@@ -617,56 +617,147 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
           </>
         )}
 
-        {/* Mode 4: Empty Initial State */}
-        {mode !== "camera" && !topPreview && (
-          <div className="stage-empty-clean">
-            <div className="empty-prompt">
-              <span className="empty-icon">📷</span>
+        {/* Mode 4: Initial eKYC-Style Dual-Card Capture (2 ô chụp/chọn ảnh như ID Card) */}
+        {mode !== "camera" && !analysis && (
+          <div className="dual-capture-wrapper">
+            <div className="dual-capture-header">
               <h3>Capture Order on Calibration Board</h3>
-              <p className="muted text-sm">
-                Take or upload 2 photos (Top-down & Oblique) to measure items and pack.
+              <p className="muted text-xs">
+                Chụp hoặc chọn 2 ảnh (mặt trên & góc nghiêng) để hệ thống đo đạc 3D và gợi ý thùng carton tối ưu.
               </p>
-              <div className="empty-actions">
-                <button type="button" className="btn btn-primary" onClick={startCamera}>
-                  Open Camera
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  Upload 2 Photos
-                </button>
-              </div>
-              <div className="empty-actions" style={{ marginTop: 8 }}>
-                <button
-                  type="button"
-                  className="btn-link text-xs"
+            </div>
+
+            <div className="dual-capture-grid">
+              {/* Box 1: Top-down View (Zenith) */}
+              <div className="slot-col">
+                <div
+                  className={`capture-slot-card ${topPreview ? "has-image" : ""}`}
                   onClick={() => topSingleInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  title="Chạm để chụp hoặc chọn ảnh từ trên xuống (Zenith 90°)"
                 >
-                  Pick Top photo…
-                </button>
-                <span className="muted text-xs">·</span>
-                <button
-                  type="button"
-                  className="btn-link text-xs"
-                  onClick={() => obliqueSingleInputRef.current?.click()}
-                >
-                  Pick Oblique photo…
-                </button>
-                <span className="muted text-xs">·</span>
-                <button
-                  type="button"
-                  className="btn-link text-xs"
-                  onClick={handleLoadSamplePhotos}
-                  disabled={loading}
-                  title="Run real end-to-end CV metrology and Meta AI analysis with benchmark sample photos"
-                >
-                  Try with sample photos
-                </button>
+                  {topPreview ? (
+                    <div className="slot-preview-wrapper">
+                      <img src={topPreview} alt="Top-down view" className="slot-preview-img" />
+                      <div className="slot-badge is-ready">✓ Top View Ready</div>
+                      <button
+                        type="button"
+                        className="slot-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          topSingleInputRef.current?.click();
+                        }}
+                      >
+                        Đổi ảnh
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="slot-empty-content">
+                      <div className="slot-icon-circle">
+                        <span className="slot-icon">📷</span>
+                      </div>
+                      <h4 className="slot-title">Top View (Zenith)</h4>
+                      <span className="slot-sub">Chạm để chụp hoặc chọn ảnh</span>
+                      <div className="slot-cue-pill">Mặt trên · 90°</div>
+                    </div>
+                  )}
+                </div>
+                <div className="slot-footer-note">
+                  <span className="note-badge">Top view (Zenith 90°):</span>
+                  <p className="note-text">
+                    Chụp góc thẳng đứng 90° từ trên xuống, thấy trọn 4 mã ArUco ở 4 góc và các kiện hàng trên bàn.
+                  </p>
+                </div>
               </div>
 
+              {/* Box 2: Oblique View (Side tilt) */}
+              <div className="slot-col">
+                <div
+                  className={`capture-slot-card ${obliquePreview ? "has-image" : ""}`}
+                  onClick={() => obliqueSingleInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  title="Chạm để chụp hoặc chọn ảnh góc nghiêng (Oblique 35°–45°)"
+                >
+                  {obliquePreview ? (
+                    <div className="slot-preview-wrapper">
+                      <img src={obliquePreview} alt="Oblique view" className="slot-preview-img" />
+                      <div className="slot-badge is-ready">✓ Side View Ready</div>
+                      <button
+                        type="button"
+                        className="slot-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          obliqueSingleInputRef.current?.click();
+                        }}
+                      >
+                        Đổi ảnh
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="slot-empty-content">
+                      <div className="slot-icon-circle">
+                        <span className="slot-icon">📐</span>
+                      </div>
+                      <h4 className="slot-title">Side / Oblique View</h4>
+                      <span className="slot-sub">Chạm để chụp hoặc chọn ảnh</span>
+                      <div className="slot-cue-pill">Góc nghiêng · 35°–45°</div>
+                    </div>
+                  )}
+                </div>
+                <div className="slot-footer-note">
+                  <span className="note-badge">Side view (Oblique 35°–45°):</span>
+                  <p className="note-text">
+                    Chụp nghiêng 35°–45° từ một bên để camera nhận diện chiều cao 3D của các khối sản phẩm.
+                  </p>
+                </div>
+              </div>
             </div>
+
+            {/* Bottom Actions / CTA */}
+            <div className="dual-capture-cta">
+              {topFile && obliqueFile ? (
+                <button
+                  type="button"
+                  className="btn btn-primary btn-lg pulse-cta"
+                  onClick={() => triggerAnalysis(topFile, obliqueFile)}
+                  disabled={loading}
+                >
+                  {loading ? "Analyzing dual photos…" : "🚀 Phân tích kích thước 3D (Analyze Order)"}
+                </button>
+              ) : topFile && !obliqueFile ? (
+                <div className="cta-status-prompt">
+                  <span className="cta-dot is-pending" />
+                  <span>Đã có ảnh mặt trên. Vui lòng chạm vào ô bên phải để chụp tiếp <strong>Ảnh góc nghiêng</strong>.</span>
+                </div>
+              ) : !topFile && obliqueFile ? (
+                <div className="cta-status-prompt">
+                  <span className="cta-dot is-pending" />
+                  <span>Đã có ảnh góc nghiêng. Vui lòng chạm vào ô bên trái để chụp <strong>Ảnh mặt trên (Zenith)</strong>.</span>
+                </div>
+              ) : (
+                <div className="cta-empty-actions">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    📁 Chọn cả 2 ảnh cùng lúc
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-link text-xs"
+                    onClick={handleLoadSamplePhotos}
+                    disabled={loading}
+                    title="Chạy phân tích AI & đo đạc 3D thực tế với bộ ảnh mẫu"
+                  >
+                    ⚡ Thử với bộ ảnh mẫu
+                  </button>
+                </div>
+              )}
+            </div>
+            {cameraError && <p className="camera-err-hint">{cameraError}</p>}
           </div>
         )}
       </div>
@@ -715,7 +806,7 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
       />
 
       {/* Bottom Bar when an image is active */}
-      {mode !== "camera" && hasCapturedContent && (
+      {mode !== "camera" && analysis && hasCapturedContent && (
         <div className="capture-row">
           <button type="button" className="btn btn-secondary btn-sm" onClick={startCamera}>
             📷 Camera

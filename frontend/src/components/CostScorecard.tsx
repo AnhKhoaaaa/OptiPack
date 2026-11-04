@@ -136,76 +136,90 @@ export const CostScorecard: React.FC<CostScorecardProps> = ({
         aria-expanded={showDetails}
       >
         <span className={`chevron ${showDetails ? "open" : ""}`}>›</span>
-        Details & Catalog Comparison
+        Carton Evaluation & Details
         <span className="muted">
-          {metrics.total_items_packed} items packed · {passedCount}/6 checks passed
+          {metrics.total_items_packed} items · {passedCount}/6 verified
         </span>
       </button>
 
       {showDetails && (
         <div className="details">
-          <dl className="kv">
-            <dt>Gross vs. DIM weight</dt>
-            <dd>
-              {metrics.actual_gross_weight_kg.toFixed(2)} kg actual / {metrics.dim_weight_kg.toFixed(2)} kg DIM
-            </dd>
-            <dt>Center of mass (X, Y, Z)</dt>
-            <dd>
-              ({metrics.center_of_mass_mm.x.toFixed(0)}, {metrics.center_of_mass_mm.y.toFixed(0)},{" "}
-              {metrics.center_of_mass_mm.z.toFixed(0)}) mm
-            </dd>
-            <dt>Reference cost breakdown</dt>
-            <dd>
-              Box {usd(metrics.box_cost_usd)} · Void fill {usd(metrics.void_fill_cost_usd)} · Shipping{" "}
-              {usd(metrics.shipping_cost_usd)}
-            </dd>
-          </dl>
+          {/* Streamlined metrics strip */}
+          <div className="compact-metrics-grid">
+            <div className="compact-metric-item">
+              <span className="muted text-xs">Weight (Gross / DIM)</span>
+              <strong>{metrics.actual_gross_weight_kg.toFixed(2)} kg / {metrics.dim_weight_kg.toFixed(2)} kg</strong>
+            </div>
+            <div className="compact-metric-item">
+              <span className="muted text-xs">Cost Breakdown</span>
+              <strong>Box {usd(metrics.box_cost_usd)} + Void {usd(metrics.void_fill_cost_usd)}</strong>
+            </div>
+            <div className="compact-metric-item">
+              <span className="muted text-xs">Est. Total Cost</span>
+              <strong style={{ color: "var(--accent)" }}>{usd(metrics.total_estimated_cost_usd)}</strong>
+            </div>
+          </div>
 
+          {/* Minimalist Catalog Table */}
           {candidateComparison.length > 0 && (
-            <table className="compare">
-              <thead>
-                <tr>
-                  <th>Carton</th>
-                  <th>Dimensions</th>
-                  <th className="right">Used</th>
-                  <th>Selection Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {candidateComparison.map((c) => {
-                  const meta = STANDARD_CARTON_SPECS[c.carton_id];
-                  return (
-                    <tr
-                      key={c.carton_id}
-                      className={c.selected ? "is-selected" : !c.feasible ? "is-dim" : ""}
-                    >
-                      <td>{c.carton_id}</td>
-                      <td className="muted">{meta ? `${meta.dimensions} (${meta.volumeL}L)` : "Custom"}</td>
-                      <td className="right">
-                        {c.volume_utilization_pct != null ? `${c.volume_utilization_pct.toFixed(1)}%` : "—"}
-                      </td>
-                      <td className="muted truncate">
-                        {c.selected
-                          ? "✓ Selected (smallest feasible volume)"
-                          : c.rejection_reason || (c.feasible ? "Larger carton volume tier" : "Doesn't fit")}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="table-scroll-container" style={{ margin: "12px 0" }}>
+              <table className="compare-minimal">
+                <thead>
+                  <tr>
+                    <th>Carton SKU</th>
+                    <th>Dimensions & Volume</th>
+                    <th className="right">Space</th>
+                    <th className="right">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {candidateComparison.map((c) => {
+                    const meta = STANDARD_CARTON_SPECS[c.carton_id];
+                    return (
+                      <tr
+                        key={c.carton_id}
+                        className={c.selected ? "is-selected" : !c.feasible ? "is-dim" : ""}
+                      >
+                        <td>
+                          <strong>{c.carton_id}</strong>
+                          {c.selected && <span className="optimal-badge">Optimal</span>}
+                        </td>
+                        <td className="muted">
+                          {meta ? `${meta.dimensions} (${meta.volumeL}L)` : "Custom"}
+                        </td>
+                        <td className="right">
+                          {c.volume_utilization_pct != null
+                            ? `${c.volume_utilization_pct.toFixed(0)}%`
+                            : "—"}
+                        </td>
+                        <td className="right">
+                          {c.selected ? (
+                            <span className="status-tag is-selected">Selected</span>
+                          ) : c.feasible ? (
+                            <span className="status-tag is-feasible">Feasible</span>
+                          ) : (
+                            <span className="status-tag is-infeasible">Too small</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
 
-          <ul className="checks">
+          {/* Compact physics verification summary */}
+          <div className="physics-checks-compact">
             {checks.map(([label, ok]) => (
-              <li key={label} className={ok ? "ok" : "fail"}>
+              <span key={label} className={`check-chip ${ok ? "is-ok" : "is-fail"}`}>
                 {ok ? "✓" : "✕"} {label}
-              </li>
+              </span>
             ))}
-          </ul>
+          </div>
 
           {validation.violations.length > 0 && (
-            <ul className="violations">
+            <ul className="violations" style={{ marginTop: 10 }}>
               {validation.violations.map((v, i) => (
                 <li key={i}>{v}</li>
               ))}
