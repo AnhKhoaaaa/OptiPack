@@ -131,7 +131,10 @@ class ParallaxVerifier:
         parallax_score = 1.0 - aligned_ratio
 
         # Reject if strongly aligned to floor plane (i.e. shadow or floor texture)
-        is_3d = parallax_score >= min_parallax_score and mean_cos < 0.30
+        # 3D objects with physical height display significant Census Hamming disparity (>1.2)
+        is_3d = (parallax_score >= min_parallax_score and mean_cos < 0.30) or (
+            mean_hamming > 1.2 and mean_cos < 0.40
+        )
 
         details = {
             "edge_count": edge_count,
