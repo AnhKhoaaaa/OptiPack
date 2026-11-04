@@ -1,0 +1,8 @@
+{
+  "name": "optipack",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "test": "npm --prefix frontend test"
+  }
+}

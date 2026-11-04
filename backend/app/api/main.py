@@ -50,6 +50,20 @@ async def root():
     }
 
 
+@app.get("/api/v1", tags=["System"])
+async def api_v1_status():
+    """API v1 base discovery endpoint."""
+    return {
+        "status": "ok",
+        "app": "OptiPack API v1",
+        "docs": "/docs",
+        "endpoints": {
+            "orders": "/api/v1/orders",
+            "catalog": "/api/v1/catalog",
+        },
+    }
+
+
 @app.get("/health", tags=["System"])
 async def health_check():
     """Health check endpoint confirming API status."""
