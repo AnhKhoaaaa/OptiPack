@@ -217,16 +217,21 @@ export interface PackingScenarioCard {
   scenario_id: string;
   title: string;
   badge_status: "GREEN" | "YELLOW" | "RED" | "BEST_FIT";
-  carton: CartonSpec;
+  badge_label?: string;
+  carton?: CartonSpec;
   is_user_box?: boolean;
   is_selected_default?: boolean;
   volume_utilization_pct: number;
   feasible: boolean;
   overflow_height_mm?: number;
+  original_box_height_mm?: number;
+  top_item_name?: string;
   ejected_item_ids?: string[];
   advisor_title?: string;
   advisor_explanation?: string;
+  ai_advisor_note?: string;
   plan?: PackingPlan | null;
+  overflow_plans?: PackingPlan[];
 }
 
 export interface PackingSolutionResponse {

@@ -294,7 +294,12 @@ class PackingScenarioCard(BaseModel):
     ejected_item_ids: List[str] = Field(default_factory=list, description="Item IDs ejected in RED scenario")
     advisor_title: str = Field("", description="AI Copilot short recommendation title")
     advisor_explanation: str = Field("", description="AI Copilot natural language advice")
+    badge_label: str = Field("", description="Status badge label e.g. Snug Fit, Lid Flex")
+    original_box_height_mm: Optional[int] = Field(None, description="Original carton height")
+    top_item_name: Optional[str] = Field(None, description="Name of top overflowing or ejected item")
+    ai_advisor_note: str = Field("", description="Alias for advisor_explanation for UI components")
     plan: Optional[PackingPlan] = None
+    overflow_plans: List[PackingPlan] = Field(default_factory=list, description="Split carton plans if needed")
 
 
 class PackingSolutionResponse(BaseModel):

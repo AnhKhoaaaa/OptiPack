@@ -276,18 +276,21 @@ def evaluate_what_if_scenarios(
                     scenario_id=scenario_id,
                     title=f"{u_box.display_name} (Perfect Fit)",
                     badge_status="GREEN",
+                    badge_label="Snug Fit",
                     carton=u_box,
                     is_user_box=True,
                     is_selected_default=False,
                     volume_utilization_pct=metrics.volume_utilization_pct,
                     feasible=True,
                     overflow_height_mm=0,
+                    original_box_height_mm=u_box.internal_dimensions_mm.height_mm,
                     ejected_item_ids=[],
                     plan=plan,
                 )
                 title, explanation = format_scenario_advice(card, items)
                 card.advisor_title = title
                 card.advisor_explanation = explanation
+                card.ai_advisor_note = explanation
                 scenarios.append(card)
                 continue
 
@@ -296,22 +299,27 @@ def evaluate_what_if_scenarios(
             u_box, items, min_support_ratio=min_support_ratio
         )
         if el_ok and el_plan is not None:
+            top_name = top_it.display_name if top_it else "top item"
             card = PackingScenarioCard(
                 scenario_id=scenario_id,
                 title=f"{u_box.display_name} (Slight Bulge +{overflow_h}mm)",
                 badge_status="YELLOW",
+                badge_label=f"Lid Flex (+{overflow_h}mm)",
                 carton=u_box,
                 is_user_box=True,
                 is_selected_default=False,
                 volume_utilization_pct=el_plan.metrics.volume_utilization_pct,
                 feasible=True,
                 overflow_height_mm=overflow_h,
+                original_box_height_mm=u_box.internal_dimensions_mm.height_mm,
+                top_item_name=top_name,
                 ejected_item_ids=[],
                 plan=el_plan,
             )
             title, explanation = format_scenario_advice(card, items)
             card.advisor_title = title
             card.advisor_explanation = explanation
+            card.ai_advisor_note = explanation
             scenarios.append(card)
             continue
 
@@ -319,22 +327,28 @@ def evaluate_what_if_scenarios(
         ejected_ids, red_plan, util_pct = solve_red_subset(
             u_box, items, min_support_ratio=min_support_ratio
         )
+        item_map = {it.item_id: it for it in items}
+        first_ejected = item_map[ejected_ids[0]].display_name if ejected_ids and ejected_ids[0] in item_map else "item"
         card = PackingScenarioCard(
             scenario_id=scenario_id,
             title=f"{u_box.display_name} (Split Shipment Needed)",
             badge_status="RED",
+            badge_label="Split Item",
             carton=u_box,
             is_user_box=True,
             is_selected_default=False,
             volume_utilization_pct=util_pct,
             feasible=False,
             overflow_height_mm=0,
+            original_box_height_mm=u_box.internal_dimensions_mm.height_mm,
+            top_item_name=first_ejected,
             ejected_item_ids=ejected_ids,
             plan=red_plan,
         )
         title, explanation = format_scenario_advice(card, items)
         card.advisor_title = title
         card.advisor_explanation = explanation
+        card.ai_advisor_note = explanation
         scenarios.append(card)
 
     # 2. Add BEST_FIT catalog benchmark
@@ -345,18 +359,21 @@ def evaluate_what_if_scenarios(
             scenario_id="scenario_best_fit",
             title=f"Recommended: {c_box.display_name}",
             badge_status="BEST_FIT",
+            badge_label="Best Fit",
             carton=c_box,
             is_user_box=False,
             is_selected_default=False,
             volume_utilization_pct=c_plan.metrics.volume_utilization_pct,
             feasible=True,
             overflow_height_mm=0,
+            original_box_height_mm=c_box.internal_dimensions_mm.height_mm,
             ejected_item_ids=[],
             plan=c_plan,
         )
         title, explanation = format_scenario_advice(bf_card, items)
         bf_card.advisor_title = title
         bf_card.advisor_explanation = explanation
+        bf_card.ai_advisor_note = explanation
         scenarios.append(bf_card)
 
     # 3. Mark default selection

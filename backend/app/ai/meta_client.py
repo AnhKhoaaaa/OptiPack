@@ -1134,6 +1134,7 @@ Return ONLY a JSON array with this exact structure:
                                     sc.advisor_title = t.strip()
                                 if e and isinstance(e, str) and e.strip():
                                     sc.advisor_explanation = e.strip()
+                                    sc.ai_advisor_note = e.strip()
     except Exception:
         # Gracefully keep deterministic template fallback
         pass
