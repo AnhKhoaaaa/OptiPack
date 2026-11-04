@@ -61,6 +61,57 @@ const normalizeToLandscape = (fileOrBlob: File | Blob): Promise<{ blob: Blob; ur
   });
 };
 
+// Helper to match oblique image dimensions with zenith top image
+// to ensure identical width & height for stereo calibration pipeline
+const matchImageDimensions = (
+  referenceBlob: File | Blob,
+  targetBlob: File | Blob
+): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const refUrl = URL.createObjectURL(referenceBlob);
+    const targetUrl = URL.createObjectURL(targetBlob);
+    const refImg = new Image();
+    refImg.onload = () => {
+      const targetW = refImg.naturalWidth;
+      const targetH = refImg.naturalHeight;
+      URL.revokeObjectURL(refUrl);
+
+      const targetImg = new Image();
+      targetImg.onload = () => {
+        URL.revokeObjectURL(targetUrl);
+        if (targetImg.naturalWidth === targetW && targetImg.naturalHeight === targetH) {
+          resolve(targetBlob);
+          return;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(targetImg, 0, 0, targetW, targetH);
+          canvas.toBlob(
+            (b) => resolve(b || targetBlob),
+            "image/jpeg",
+            0.95
+          );
+        } else {
+          resolve(targetBlob);
+        }
+      };
+      targetImg.onerror = () => {
+        URL.revokeObjectURL(targetUrl);
+        resolve(targetBlob);
+      };
+      targetImg.src = targetUrl;
+    };
+    refImg.onerror = () => {
+      URL.revokeObjectURL(refUrl);
+      resolve(targetBlob);
+    };
+    refImg.src = refUrl;
+  });
+};
+
 export const UploadPanel: React.FC<UploadPanelProps> = ({
   onAnalysisLoaded,
   loading,
@@ -261,12 +312,22 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
     setLoading(true);
     setCameraError(null);
     onReset?.();
+
+    let finalOblique = oblique;
+    if (top && oblique) {
+      try {
+        finalOblique = await matchImageDimensions(top, oblique);
+      } catch (err) {
+        console.warn("[UploadPanel] Error matching dimensions:", err);
+      }
+    }
+
     const formData = new FormData();
     formData.append("top_image", top, "zenith_top.jpg");
-    if (oblique) {
-      formData.append("oblique_image", oblique, "oblique.jpg");
+    if (finalOblique) {
+      formData.append("oblique_image", finalOblique, "oblique.jpg");
     }
-    formData.append("capture_mode", oblique ? "dual_photo" : "zenith_only");
+    formData.append("capture_mode", finalOblique ? "dual_photo" : "zenith_only");
 
     try {
       const data = await OptiPackClient.analyzeOrder(formData);
