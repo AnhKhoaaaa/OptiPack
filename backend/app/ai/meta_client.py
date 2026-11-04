@@ -22,7 +22,7 @@ from pydantic import BaseModel, Field
 
 from backend.app.ai.cache import compute_image_sha256, get_cached_response, store_cached_response
 from backend.app.ai.sanitizer import sanitize_physical_attributes
-from backend.app.schemas.contracts import AITelemetry, PhysicalAttributes
+from backend.app.schemas.contracts import AITelemetry, PhysicalAttributes, PackableItem, PackingScenarioCard
 
 # Ensure .env is loaded
 dotenv.load_dotenv()
@@ -1049,3 +1049,93 @@ def segment_with_sam31(
             "detections": [],
             "error": str(exc),
         }
+
+
+async def synthesize_scenario_advisor_notes(
+    scenarios: List[PackingScenarioCard],
+    items: List[PackableItem],
+    timeout_sec: float = 4.0,
+) -> List[PackingScenarioCard]:
+    """Use Baseten LLM to generate contextual Vietnamese packaging guidance for scenarios with deterministic fallback."""
+    if not scenarios:
+        return scenarios
+
+    api_key = (
+        os.getenv("BASETEN_API_KEY")
+        or os.getenv("BaseTen_API")
+        or os.getenv("BASETEN_API", "")
+        or os.getenv("MODEL_API_KEY", "")
+    ).strip()
+    if not api_key:
+        return scenarios
+
+    item_names = [it.display_name for it in items]
+    scenario_summaries = []
+    for s in scenarios:
+        scenario_summaries.append({
+            "scenario_id": s.scenario_id,
+            "badge_status": s.badge_status,
+            "carton_name": s.carton.display_name,
+            "volume_utilization_pct": round(s.volume_utilization_pct, 1),
+            "overflow_height_mm": s.overflow_height_mm,
+            "ejected_count": len(s.ejected_item_ids),
+        })
+
+    prompt = f"""Bạn là AI Chuyên gia Đóng gói E-commerce (OptiPack Packaging Copilot).
+Danh sách món hàng cần đóng gói: {', '.join(item_names[:5])}.
+Dưới đây là các phương án đóng gói (Scenarios) được tính toán:
+{json.dumps(scenario_summaries, ensure_ascii=False)}
+
+Hãy viết lời khuyên thực tế ngắn gọn (tiếng Việt tự nhiên, dưới 30 từ mỗi phương án) cho từng scenario_id:
+- Với GREEN: xác nhận vừa vặn, hướng dẫn dán băng keo / chèn xốp khí.
+- Với YELLOW: giải thích cấn nhẹ chiều cao, khuyên ấn nhẹ nắp và dán băng keo gia cố chữ H.
+- Với RED: chỉ rõ cần tách món chưa vừa sang thùng phụ / túi bọc chống sốc.
+- Với BEST_FIT: khen ngợi kích thước chuẩn tối ưu nhất từ hệ thống.
+
+Trả về DUY NHẤT một mảng JSON theo định dạng:
+[
+  {{"scenario_id": "...", "advisor_title": "tiêu đề ngắn", "advisor_explanation": "lời khuyên dưới 30 từ"}}
+]
+"""
+
+    payload = {
+        "model": BASETEN_MODEL_NAME,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        "max_tokens": 1024,
+        "temperature": 0.2,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    endpoint_url = f"{BASETEN_BASE_URL}/chat/completions"
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout_sec) as client:
+            resp = await client.post(endpoint_url, headers=headers, json=payload)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                choices = res_json.get("choices", [])
+                if choices:
+                    raw_content = choices[0].get("message", {}).get("content", "")
+                    parsed = extract_json_from_llm_text(raw_content)
+                    if isinstance(parsed, list):
+                        advice_map = {item.get("scenario_id"): item for item in parsed if isinstance(item, dict)}
+                        for sc in scenarios:
+                            if sc.scenario_id in advice_map:
+                                t = advice_map[sc.scenario_id].get("advisor_title")
+                                e = advice_map[sc.scenario_id].get("advisor_explanation")
+                                if t and isinstance(t, str) and t.strip():
+                                    sc.advisor_title = t.strip()
+                                if e and isinstance(e, str) and e.strip():
+                                    sc.advisor_explanation = e.strip()
+    except Exception:
+        # Gracefully keep deterministic template fallback
+        pass
+
+    return scenarios

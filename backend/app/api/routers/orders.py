@@ -180,5 +180,14 @@ async def analyze_order(
 
 @router.post("/pack", response_model=PackingSolutionResponse)
 async def pack_order(request: PackingRequest) -> PackingSolutionResponse:
-    """Run the existing 3D cartonization solver, unchanged."""
-    return solve_packing(request)
+    """Run the 3D cartonization solver and synthesize AI scenario advice if applicable."""
+    response = solve_packing(request)
+    if response.scenarios:
+        try:
+            from backend.app.ai.meta_client import synthesize_scenario_advisor_notes
+            response.scenarios = await synthesize_scenario_advisor_notes(
+                response.scenarios, request.items, timeout_sec=3.0
+            )
+        except Exception:
+            pass
+    return response
