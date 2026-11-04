@@ -146,7 +146,13 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
                   {item.crop_url ? (
                     <img src={item.crop_url} alt={item.display_name} className="item-crop-thumb" />
                   ) : (
-                    <div className="item-thumb-placeholder">📦</div>
+                    <div className="item-thumb-placeholder">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="cube-placeholder-svg">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                      </svg>
+                    </div>
                   )}
                   <span className="item-index-badge">#{idx + 1}</span>
                 </div>
@@ -173,7 +179,9 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
                       title="Click to rename"
                     >
                       <strong>{item.display_name}</strong>
-                      <span className="edit-icon">✏️</span>
+                      <span className="edit-icon">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                      </span>
                     </div>
                   )}
 
@@ -242,8 +250,9 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
                   className="btn-icon-danger"
                   onClick={() => onDeleteItem(idx)}
                   title="Remove item"
+                  aria-label="Remove item"
                 >
-                  ✕
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
 
@@ -286,18 +295,27 @@ export const ItemVerificationPanel: React.FC<ItemVerificationPanelProps> = ({
 
                 {/* 2. Stackability */}
                 <div className="chip-group-row">
-                  <span className="chip-group-label">Stacking</span>
+                  <span className="chip-group-label">
+                    Stacking
+                    {material === "glass_ceramic" && (
+                      <span className="fragile-clamp-hint" title="Fragile items cannot bear top load">
+                        Locked (Fragile)
+                      </span>
+                    )}
+                  </span>
                   <div className="chips-row">
                     <button
                       type="button"
-                      className={`pill-chip ${item.stackable && (item.max_top_load_g === null || item.max_top_load_g >= 2000) ? "is-active" : ""}`}
+                      disabled={material === "glass_ceramic"}
+                      className={`pill-chip ${item.stackable && (item.max_top_load_g === null || item.max_top_load_g >= 2000) ? "is-active" : ""} ${material === "glass_ceramic" ? "is-disabled" : ""}`}
                       onClick={() => handleStackingSelect(idx, true, 3000)}
                     >
                       Stackable
                     </button>
                     <button
                       type="button"
-                      className={`pill-chip ${item.stackable && item.max_top_load_g !== null && item.max_top_load_g < 2000 && item.max_top_load_g > 0 ? "is-active" : ""}`}
+                      disabled={material === "glass_ceramic"}
+                      className={`pill-chip ${item.stackable && item.max_top_load_g !== null && item.max_top_load_g < 2000 && item.max_top_load_g > 0 ? "is-active" : ""} ${material === "glass_ceramic" ? "is-disabled" : ""}`}
                       onClick={() => handleStackingSelect(idx, true, 1000)}
                     >
                       Light load

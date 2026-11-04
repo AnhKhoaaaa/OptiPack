@@ -233,15 +233,19 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
             {anchorItem.crop_url ? (
               <img src={anchorItem.crop_url} alt={anchorItem.display_name} />
             ) : (
-              <span>📦</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
             )}
           </div>
           <div className="anchor-text">
-            <span>Reference: </span>
+            <span>Largest item reference: </span>
             <strong>{anchorItem.display_name}</strong>
             <span className="muted">
               {" "}
-              ({anchorItem.dimensions_mm.length_mm}×{anchorItem.dimensions_mm.width_mm}×{anchorItem.dimensions_mm.height_mm} mm)
+              ({anchorItem.dimensions_mm.length_mm} × {anchorItem.dimensions_mm.width_mm} × {anchorItem.dimensions_mm.height_mm} mm)
             </span>
           </div>
         </div>
@@ -259,14 +263,22 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
               const svgW = 200;
               const svgH = 140;
               // Scale box relative to SVG viewport
-              const boxPixelW = Math.min(180, Math.max(90, (dims.length_mm / 450) * 160));
-              const boxPixelH = Math.min(110, Math.max(60, (dims.width_mm / 350) * 90));
+              const boxPixelW = Math.min(176, Math.max(96, (dims.length_mm / 450) * 156));
+              const boxPixelH = Math.min(108, Math.max(64, (dims.width_mm / 350) * 88));
               const boxX = (svgW - boxPixelW) / 2;
-              const boxY = (svgH - boxPixelH) / 2;
+              const boxY = (svgH - boxPixelH) / 2 + 4;
 
               // Anchor item inside box (fixed bottom-left proportional footprint)
-              const aW = Math.min(boxPixelW * 0.75, Math.max(30, (boxPixelW / box.scaleFactor)));
-              const aH = Math.min(boxPixelH * 0.75, Math.max(25, (boxPixelH / (box.scaleFactor * 0.8))));
+              const aW = Math.min(boxPixelW * 0.78, Math.max(34, (boxPixelW / box.scaleFactor)));
+              const aH = Math.min(boxPixelH * 0.78, Math.max(26, (boxPixelH / (box.scaleFactor * 0.8))));
+              const ratioPct = anchorItem
+                ? Math.min(99, Math.round((anchorItem.dimensions_mm.length_mm / dims.length_mm) * 100))
+                : 50;
+              const anchorName = anchorItem
+                ? (anchorItem.display_name.length > 11
+                    ? anchorItem.display_name.slice(0, 10) + "…"
+                    : anchorItem.display_name)
+                : "Anchor";
 
               return (
                 <div
@@ -281,55 +293,79 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
                     </span>
                   </div>
 
-                  {/* 2.5D SVG Projection Diagram */}
+                  {/* 2.5D Spatial Drafting Canvas */}
                   <div className="box-svg-canvas">
                     <svg viewBox={`0 0 ${svgW} ${svgH}`} className="anchor-svg">
-                      {/* Box outline */}
+                      {/* Subtle background reference grid */}
+                      <line x1={boxX} y1={boxY} x2={boxX + boxPixelW} y2={boxY} stroke="rgba(148, 163, 184, 0.2)" strokeWidth={1} strokeDasharray="2 3" />
+                      <line x1={boxX} y1={boxY + boxPixelH} x2={boxX + boxPixelW} y2={boxY + boxPixelH} stroke="rgba(148, 163, 184, 0.2)" strokeWidth={1} strokeDasharray="2 3" />
+                      
+                      {/* Box outline with subtle drafting style */}
                       <rect
                         x={boxX}
                         y={boxY}
                         width={boxPixelW}
                         height={boxPixelH}
                         rx={6}
-                        fill="#f8fafc"
+                        fill="rgba(248, 250, 252, 0.6)"
                         stroke="#94a3b8"
-                        strokeWidth={1.5}
+                        strokeWidth={1.2}
                         strokeDasharray="4 3"
                       />
-                      {/* Box fold flap accents */}
+
+                      {/* Box flap fold crease */}
                       <line
                         x1={boxX}
-                        y1={boxY + boxPixelH / 2}
+                        y1={boxY + boxPixelH * 0.45}
                         x2={boxX + boxPixelW}
-                        y2={boxY + boxPixelH / 2}
+                        y2={boxY + boxPixelH * 0.45}
                         stroke="#cbd5e1"
                         strokeWidth={1}
                         strokeDasharray="2 2"
                       />
-                      {/* Anchor item footprint inside bottom-left */}
+
+                      {/* Anchor Item 2.5D Isometric Top Bevel */}
+                      <polygon
+                        points={`${boxX + 5},${boxY + boxPixelH - aH - 3} ${boxX + 9},${boxY + boxPixelH - aH - 7} ${boxX + aW + 9},${boxY + boxPixelH - aH - 7} ${boxX + aW + 5},${boxY + boxPixelH - aH - 3}`}
+                        fill="rgba(0, 113, 227, 0.35)"
+                        stroke="#0071e3"
+                        strokeWidth={1}
+                      />
+                      {/* Anchor item 2.5D Isometric Right Bevel */}
+                      <polygon
+                        points={`${boxX + aW + 5},${boxY + boxPixelH - aH - 3} ${boxX + aW + 9},${boxY + boxPixelH - aH - 7} ${boxX + aW + 9},${boxY + boxPixelH - 7} ${boxX + aW + 5},${boxY + boxPixelH - 3}`}
+                        fill="rgba(0, 113, 227, 0.25)"
+                        stroke="#0071e3"
+                        strokeWidth={1}
+                      />
+                      {/* Anchor item footprint front face */}
                       <rect
-                        x={boxX + 4}
-                        y={boxY + boxPixelH - aH - 4}
+                        x={boxX + 5}
+                        y={boxY + boxPixelH - aH - 3}
                         width={aW}
                         height={aH}
-                        rx={4}
-                        fill="#0071e3"
-                        fillOpacity={0.85}
-                        stroke="#005bb5"
-                        strokeWidth={1}
+                        rx={3}
+                        fill="rgba(0, 113, 227, 0.18)"
+                        stroke="#0071e3"
+                        strokeWidth={1.2}
                       />
                       {/* Label inside anchor item */}
                       <text
-                        x={boxX + 8}
-                        y={boxY + boxPixelH - 8}
-                        fill="#ffffff"
-                        fontSize={10}
+                        x={boxX + 9}
+                        y={boxY + boxPixelH - 7}
+                        fill="#0071e3"
+                        fontSize={9.5}
                         fontWeight="600"
-                        fontFamily="sans-serif"
+                        fontFamily="var(--mono, monospace)"
                       >
-                        Anchor
+                        {anchorName}
                       </text>
                     </svg>
+
+                    {/* Proportional Ratio Capsule */}
+                    <div className="anchor-ratio-tag">
+                      <span>Item occupies <strong>{ratioPct}%</strong> of box length</span>
+                    </div>
                   </div>
 
                   <div className="card-body">
@@ -346,7 +382,14 @@ export const BoxAnchorCarousel: React.FC<BoxAnchorCarouselProps> = ({
                         onToggleBoxSelection(box.cartonSpec);
                       }}
                     >
-                      {selected ? "✓ Selected" : "+ Select Box"}
+                      {selected ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          <span>Selected</span>
+                        </span>
+                      ) : (
+                        <span>Select Box</span>
+                      )}
                     </button>
                   </div>
                 </div>

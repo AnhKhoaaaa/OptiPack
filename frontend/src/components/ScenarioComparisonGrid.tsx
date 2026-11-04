@@ -42,14 +42,22 @@ export const ScenarioComparisonGrid: React.FC<ScenarioComparisonGridProps> = ({
             >
               {/* Card Header & Badge */}
               <div className="sc-card-head">
-                <span className={`sc-status-pill is-${status.toLowerCase()}`}>
-                  {status === "GREEN" && "🟢 Snug Fit"}
-                  {status === "YELLOW" && `🟡 Lid Flex (+${sc.overflow_height_mm}mm)`}
-                  {status === "RED" && "🔴 Split Item"}
-                  {status === "BEST_FIT" && "⭐ Best Fit"}
-                </span>
+                <div className={`sc-status-pill is-${status.toLowerCase()}`}>
+                  <span className={`sc-status-dot is-${status.toLowerCase()}`} />
+                  <span className="sc-status-text">
+                    {status === "GREEN" && "Snug Fit"}
+                    {status === "YELLOW" && `Lid Flex (+${sc.overflow_height_mm}mm)`}
+                    {status === "RED" && "2-Box Split"}
+                    {status === "BEST_FIT" && "Optimal Catalog"}
+                  </span>
+                </div>
 
-                {isSelected && <span className="sc-active-indicator">✓ Active</span>}
+                {isSelected && (
+                  <span className="sc-active-indicator">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Active</span>
+                  </span>
+                )}
               </div>
 
               {/* Title & Carton Dimensions */}
