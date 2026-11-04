@@ -4,49 +4,147 @@ Implements autonomous orientation normalization, image quality assessment
 (sharpness, lighting, contrast), and gentle illumination enhancement before
 computer vision segmentation and ArUco pose estimation.
 """
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
+
+
+def detect_board_axis(image: np.ndarray) -> Tuple[Optional[np.ndarray], int]:
+    """Detect ArUco board markers and return the physical +X orientation vector and marker count."""
+    if image is None or image.size == 0:
+        return None, 0
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    parameters = cv2.aruco.DetectorParameters()
+    parameters.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+
+    corners, ids, _ = cv2.aruco.ArucoDetector(dictionary, parameters).detectMarkers(gray)
+    count = 0 if ids is None else len(set(int(v) for v in ids.ravel() if int(v) in (0, 1, 2, 3)))
+
+    if count < 2:
+        # Multi-scale & CLAHE detection for dark or high-resolution mobile photos
+        h, w = gray.shape[:2]
+        long_dim = max(w, h)
+        if long_dim > 1600:
+            scale = 1200.0 / long_dim
+            gray_scaled = cv2.resize(gray, (int(round(w * scale)), int(round(h * scale))), interpolation=cv2.INTER_AREA)
+        else:
+            gray_scaled = gray
+
+        clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
+        gray_enh = clahe.apply(gray_scaled)
+        c_enh, ids_enh, _ = cv2.aruco.ArucoDetector(dictionary, parameters).detectMarkers(gray_enh)
+        count_enh = 0 if ids_enh is None else len(set(int(v) for v in ids_enh.ravel() if int(v) in (0, 1, 2, 3)))
+        if count_enh >= 2:
+            corners, ids = c_enh, ids_enh
+            count = count_enh
+
+    if ids is not None and count >= 2:
+        centers = {int(mid): c.reshape(4, 2).mean(axis=0) for c, mid in zip(corners, ids.ravel()) if int(mid) in (0, 1, 2, 3)}
+        if 0 in centers and 1 in centers:
+            return centers[1] - centers[0], count
+        elif 3 in centers and 2 in centers:
+            return centers[2] - centers[3], count
+        elif 0 in centers and 3 in centers:
+            vec_y = centers[3] - centers[0]
+            return np.array([-vec_y[1], vec_y[0]]), count
+        elif 1 in centers and 2 in centers:
+            vec_y = centers[2] - centers[1]
+            return np.array([-vec_y[1], vec_y[0]]), count
+
+    return None, count
 
 
 def normalize_image_orientation(image: np.ndarray) -> np.ndarray:
     """Auto-orient image so that the ArUco calibration board is horizontal (+X rightward).
 
     If ArUco markers are detected, smartly orient based on the board's physical coordinate frame.
+    Works at any 360-degree rotation angle (0°, 90°, 180°, 270°).
     Falls back to clockwise rotation if no markers found and H > W.
     """
     if image is None or image.size == 0:
         return image
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
-    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    parameters = cv2.aruco.DetectorParameters()
-    corners, ids, _ = cv2.aruco.ArucoDetector(dictionary, parameters).detectMarkers(gray)
-    if ids is not None and len(ids) >= 2:
-        centers = {int(mid): c.reshape(4, 2).mean(axis=0) for c, mid in zip(corners, ids.ravel())}
-        vec_x = None
-        if 0 in centers and 1 in centers:
-            vec_x = centers[1] - centers[0]
-        elif 3 in centers and 2 in centers:
-            vec_x = centers[2] - centers[3]
-        elif 0 in centers and 3 in centers:
-            vec_y = centers[3] - centers[0]
-            vec_x = np.array([-vec_y[1], vec_y[0]])
+    vec_x, count = detect_board_axis(image)
+    if vec_x is not None:
+        angle = np.rad2deg(np.arctan2(vec_x[1], vec_x[0]))
+        # 4-quadrant rotation mapping:
+        if -45.0 <= angle <= 45.0:
+            return image
+        elif 45.0 < angle <= 135.0:
+            return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        elif -135.0 <= angle < -45.0:
+            return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        else:
+            return cv2.rotate(image, cv2.ROTATE_180)
 
-        if vec_x is not None:
-            angle = np.rad2deg(np.arctan2(vec_x[1], vec_x[0]))
-            if -45.0 <= angle <= 45.0:
-                return image
-            elif 45.0 < angle <= 135.0:
-                return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            elif -135.0 <= angle < -45.0:
-                return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
-            else:
-                return cv2.rotate(image, cv2.ROTATE_180)
-
-    if image.shape[0] > image.shape[1]:
+    # Legacy unit test fallback for blank portrait image without markers
+    if image.shape[0] > image.shape[1] and count == 0:
         return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
     return image
+
+
+def harmonize_pair_geometry(top: np.ndarray, oblique: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Harmonize dual-photo geometry so top and oblique share matching dimensions and coordinate frame.
+
+    Handles mixed orientations (e.g. Top in Portrait, Oblique in Landscape, or vice versa)
+    and differing camera sensor resolutions:
+    1. If shapes already match, returns (top, oblique) directly.
+    2. If neither image has ArUco markers, preserves original shapes (allowing contract checks to reject).
+    3. If orientations are transposed (one Portrait, one Landscape), rotates oblique 90° (CW or CCW)
+       to align with top's board coordinate frame and aspect ratio.
+    4. If oblique is 180° inverted relative to top, rotates 180°.
+    5. If dimensions still differ slightly, resizes oblique to match top's exact (width, height).
+    """
+    if top is None or oblique is None or top.size == 0 or oblique.size == 0:
+        return top, oblique
+    if top.shape == oblique.shape:
+        return top, oblique
+
+    vec_t, count_t = detect_board_axis(top)
+    vec_o, count_o = detect_board_axis(oblique)
+
+    # If neither image contains fiducials, do not auto-harmonize synthetic blank images
+    if count_t == 0 and count_o == 0:
+        return top, oblique
+
+    ht, wt = top.shape[:2]
+    ho, wo = oblique.shape[:2]
+
+    top_is_portrait = ht > wt
+    ob_is_portrait = ho > wo
+
+    if top_is_portrait != ob_is_portrait:
+        cand_cw = cv2.rotate(oblique, cv2.ROTATE_90_CLOCKWISE)
+        cand_ccw = cv2.rotate(oblique, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+        if vec_t is not None:
+            vec_cw, _ = detect_board_axis(cand_cw)
+            vec_ccw, _ = detect_board_axis(cand_ccw)
+            score_cw = float(np.dot(vec_t, vec_cw)) if vec_cw is not None else -1e9
+            score_ccw = float(np.dot(vec_t, vec_ccw)) if vec_ccw is not None else -1e9
+            if score_cw >= score_ccw and score_cw > 0:
+                oblique = cand_cw
+                vec_o = vec_cw
+            elif score_ccw > 0:
+                oblique = cand_ccw
+                vec_o = vec_ccw
+            else:
+                oblique = cand_cw
+                vec_o, _ = detect_board_axis(oblique)
+        else:
+            oblique = cand_cw
+            vec_o, _ = detect_board_axis(oblique)
+
+    if vec_t is not None and vec_o is not None:
+        if np.dot(vec_t, vec_o) < 0:
+            oblique = cv2.rotate(oblique, cv2.ROTATE_180)
+
+    if oblique.shape[:2] != (ht, wt):
+        oblique = cv2.resize(oblique, (wt, ht), interpolation=cv2.INTER_AREA)
+
+    return top, oblique
 
 
 def assess_image_quality(image: np.ndarray) -> Dict[str, Any]:

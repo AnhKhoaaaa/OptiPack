@@ -28,7 +28,7 @@ class YOLOESegmenter:
     def __init__(
         self,
         model_path: str | Path = "yoloe-26n-seg.pt",
-        conf_threshold: float = 0.15,
+        conf_threshold: float = 0.10,
         iou_threshold: float = 0.50,
         grabcut_fallback: bool = True,
         crop_max_dim: int = 150,
