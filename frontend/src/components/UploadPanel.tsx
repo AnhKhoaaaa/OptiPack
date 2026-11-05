@@ -17,8 +17,30 @@ interface UploadPanelProps {
   aiTelemetry?: AITelemetry;
 }
 
-const SAMPLE_TOP = "/samples/topdown_sample.jpg";
-const SAMPLE_OBLIQUE = "/samples/oblique_sample.jpg";
+interface SamplePreset {
+  id: string;
+  name: string;
+  topUrl: string;
+  obliqueUrl: string;
+}
+
+const SAMPLE_PRESETS: SamplePreset[] = [
+  {
+    id: "sample_5items",
+    name: "Sample #1 (5 items)",
+    topUrl: "/samples/topdown_sample.jpg",
+    obliqueUrl: "/samples/oblique_sample.jpg",
+  },
+  {
+    id: "sample_7items",
+    name: "Sample #2 (7 items)",
+    topUrl: "/samples/topdown_demo2.jpg",
+    obliqueUrl: "/samples/oblique_demo2.jpg",
+  },
+];
+
+const SAMPLE_TOP = SAMPLE_PRESETS[0].topUrl;
+const SAMPLE_OBLIQUE = SAMPLE_PRESETS[0].obliqueUrl;
 
 
 // Helper to preserve image blob and URL cleanly
@@ -297,7 +319,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
   };
 
   // Load real benchmark sample photos and trigger full end-to-end CV + AI analysis
-  const handleLoadSamplePhotos = async () => {
+  const handleLoadSamplePhotos = async (presetOrEvent?: SamplePreset | React.MouseEvent) => {
+    const preset = (presetOrEvent && "topUrl" in presetOrEvent) ? presetOrEvent : SAMPLE_PRESETS[0];
     setCameraError(null);
     stopCameraStream();
     setMode("idle");
@@ -305,11 +328,11 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
     try {
       const [topRes, oblRes] = await Promise.all([
-        fetch(SAMPLE_TOP),
-        fetch(SAMPLE_OBLIQUE),
+        fetch(preset.topUrl),
+        fetch(preset.obliqueUrl),
       ]);
       if (!topRes.ok || !oblRes.ok) {
-        throw new Error("Unable to load benchmark sample photos from server.");
+        throw new Error(`Unable to load benchmark sample photos (${preset.name}) from server.`);
       }
       const [topBlob, oblBlob] = await Promise.all([
         topRes.blob(),
@@ -321,8 +344,8 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
 
       setTopFile(topFileObj);
       setObliqueFile(oblFileObj);
-      setTopPreview(SAMPLE_TOP);
-      setObliquePreview(SAMPLE_OBLIQUE);
+      setTopPreview(preset.topUrl);
+      setObliquePreview(preset.obliqueUrl);
 
       await triggerAnalysis(topFileObj, oblFileObj);
     } catch (err) {
@@ -592,10 +615,20 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
-                    onClick={handleLoadSamplePhotos}
+                    onClick={() => handleLoadSamplePhotos(SAMPLE_PRESETS[0])}
                     disabled={loading}
+                    title="Load 5 items benchmark sample"
                   >
-                    Try sample photos
+                    Sample 1 (5 items)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => handleLoadSamplePhotos(SAMPLE_PRESETS[1])}
+                    disabled={loading}
+                    title="Load 7 items demo sample"
+                  >
+                    Sample 2 (7 items)
                   </button>
                   {onEnterManually && (
                     <button
@@ -768,11 +801,21 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                   <button
                     type="button"
                     className="btn-link text-xs"
-                    onClick={handleLoadSamplePhotos}
+                    onClick={() => handleLoadSamplePhotos(SAMPLE_PRESETS[0])}
                     disabled={loading}
-                    title="Run with sample photos"
+                    title="Run with 5-item benchmark photos"
                   >
-                    Try sample order
+                    Sample #1 (5 items)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-link text-xs"
+                    onClick={() => handleLoadSamplePhotos(SAMPLE_PRESETS[1])}
+                    disabled={loading}
+                    title="Run with 7-item demo photos"
+                    style={{ fontWeight: 600, color: "#0071E3" }}
+                  >
+                    Sample #2 (7 items) ★
                   </button>
                   {onEnterManually && (
                     <button
