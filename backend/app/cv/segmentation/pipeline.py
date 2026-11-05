@@ -89,17 +89,21 @@ class SegmentationPipeline:
         fg[:, :margin_x] = 0
         fg[:, -margin_x:] = 0
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
-        closed = cv2.morphologyEx(fg, cv2.MORPH_CLOSE, kernel, iterations=2)
-        opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)), iterations=1)
+        # Gentle morphological filtering that cleans noise without fusing adjacent parcels
+        kernel_small = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        opened = cv2.morphologyEx(fg, cv2.MORPH_OPEN, kernel_small, iterations=1)
+        closed = cv2.morphologyEx(opened, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)), iterations=1)
 
-        contours, _ = cv2.findContours(opened, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         found = []
         for c in contours:
             area = cv2.contourArea(c)
             if area < min_area_px or area > 0.40 * h * w:
                 continue
             x, y, bw, bh = cv2.boundingRect(c)
+            aspect = max(bw, bh) / max(1, min(bw, bh))
+            if aspect > 7.0 and area < 2500:
+                continue
             mask = np.zeros((h, w), dtype=np.uint8)
             cv2.drawContours(mask, [c], -1, 255, -1)
             found.append({
