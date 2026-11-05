@@ -49,6 +49,7 @@ class CVMeasurementBatch:
     unmatched_top_indices: List[int]
     unmatched_oblique_indices: List[int]
     warnings: List[str]
+    sam_status: str = "skipped"
 
 
 class CVMetrologyService:
@@ -321,6 +322,7 @@ class CVMetrologyService:
             unmatched_top_indices=unmatched_top,
             unmatched_oblique_indices=unmatched_oblique,
             warnings=warnings,
+            sam_status=getattr(segmentation, "sam_status", "skipped"),
         )
 
     def analyze_pair(
