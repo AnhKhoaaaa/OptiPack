@@ -127,7 +127,7 @@ async def analyze_order(
             item.allowed_rotations = derive_allowed_rotations(False)
         warnings.append("AI semantics disabled or no measurable items; safe unknown-weight defaults retained")
         telemetry = AITelemetry(
-            sam_status="skipped",
+            sam_status=getattr(batch, "sam_status", "skipped"),
             muse_status="fallback",
             muse_latency_ms=0,
             fallback_activated=True,
@@ -178,7 +178,7 @@ async def analyze_order(
             status = "fallback"
         is_fallback = bool(semantics.get("fallback_activated", status in ("fallback", "failed")))
         telemetry = AITelemetry(
-            sam_status="skipped",
+            sam_status=getattr(batch, "sam_status", "skipped"),
             muse_status=status,
             muse_latency_ms=max(0, int(semantics.get("latency_ms", 0))),
             fallback_activated=is_fallback,

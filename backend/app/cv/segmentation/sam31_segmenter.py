@@ -55,7 +55,7 @@ class SAM31Segmenter:
         self,
         model_name: str = "sam-3.1",
         cache_dir: Optional[Path] = None,
-        timeout_sec: float = 12.0,
+        timeout_sec: float = 25.0,
         min_area_px: int = 800,
         max_edge: int = 1024,
     ):
@@ -113,7 +113,12 @@ class SAM31Segmenter:
             # Missing or corrupt file: consult the model, without inventing a mask.
             pass
 
-        api_key = os.getenv("MODEL_API_KEY", MODEL_API_KEY).strip()
+        api_key = (
+            os.getenv("MODEL_API_KEY")
+            or os.getenv("META_API_KEY")
+            or os.getenv("META_MODEL_API_KEY")
+            or MODEL_API_KEY
+        ).strip()
         if not api_key:
             raise RuntimeError("MODEL_API_KEY is not configured for sam-3.1")
 

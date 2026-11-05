@@ -33,7 +33,11 @@ if META_MODEL_API_ENDPOINT:
     if "/v1" in META_MODEL_API_ENDPOINT:
         META_API_BASE_URL = META_MODEL_API_ENDPOINT.split("/v1")[0] + "/v1"
 META_API_BASE_URL = META_API_BASE_URL.rstrip("/")
-MODEL_API_KEY = os.getenv("MODEL_API_KEY", "")
+MODEL_API_KEY = (
+    os.getenv("MODEL_API_KEY")
+    or os.getenv("META_API_KEY")
+    or os.getenv("META_MODEL_API_KEY", "")
+).strip()
 MUSE_MODEL_NAME = os.getenv("MUSE_MODEL_NAME", "muse-spark-1.3")
 BASETEN_BASE_URL = os.getenv("BASETEN_BASE_URL", "https://inference.baseten.co/v1").rstrip("/")
 BASETEN_API_KEY = (

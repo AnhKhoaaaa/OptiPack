@@ -4,18 +4,32 @@ Main entrypoint for the OptiPack backend server.
 Runs on port 8000 by default and serves REST endpoints under /api/v1.
 """
 
+import asyncio
+from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from backend.app.ai.meta_client import warmup_meta_client
 from backend.app.api.routers import catalog, orders
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Warm up Meta client connection in background to eliminate cold-start latency
+    try:
+        asyncio.create_task(asyncio.to_thread(warmup_meta_client))
+    except Exception:
+        pass
+    yield
 
 
 app = FastAPI(
     title="OptiPack API",
     version="1.0.0",
     description="E-Commerce Multi-Item 3D Cartonization & Packing Assistant API",
+    lifespan=lifespan,
 )
 
 # Enable CORS for local frontend development (Vite default :5173) and production deployments (Vercel)
@@ -68,7 +82,12 @@ async def api_v1_status():
 @app.get("/health", tags=["System"])
 async def health_check():
     """Health check endpoint confirming API status and AI configuration."""
-    has_meta = bool(os.getenv("MODEL_API_KEY", "").strip())
+    has_meta = bool((
+        os.getenv("MODEL_API_KEY")
+        or os.getenv("META_API_KEY")
+        or os.getenv("META_MODEL_API_KEY")
+        or ""
+    ).strip())
     has_baseten = bool((
         os.getenv("BASETEN_API_KEY")
         or os.getenv("BaseTen_API")

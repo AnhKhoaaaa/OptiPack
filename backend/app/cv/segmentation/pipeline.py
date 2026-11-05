@@ -27,6 +27,7 @@ class PairSegmentation:
     top_items: List[Dict[str, Any]]
     oblique_items: List[Dict[str, Any]]
     warnings: List[str]
+    sam_status: str = "skipped"
 
 
 class SegmentationPipeline:
@@ -77,9 +78,14 @@ class SegmentationPipeline:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (7, 7), 0)
 
+        valid_pts = blurred[blurred > 30]
+        med = int(np.median(valid_pts)) if valid_pts.size > 0 else 128
+        diff = cv2.absdiff(blurred, med)
+        _, thresh_diff = cv2.threshold(diff, 22, 255, cv2.THRESH_BINARY)
+
         _, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         adapt = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 41, 10)
-        fg = cv2.bitwise_or(otsu, adapt)
+        fg = cv2.bitwise_or(cv2.bitwise_or(otsu, adapt), thresh_diff)
         fg[board_mask > 0] = 0
 
         margin_x = int(w * 0.025)
@@ -170,14 +176,16 @@ class SegmentationPipeline:
                         oblique_image, K, D, calibration.oblique_pose, False
                     )
                     try:
-                        top = fut_top.result(timeout=15.0)
+                        top = fut_top.result(timeout=35.0)
                     except Exception as exc_top:
-                        warnings.append(f"sam-3.1 top view unavailable ({exc_top}); falling back to local YOLOE segmenter")
+                        exc_desc = f"{type(exc_top).__name__}: {exc_top}" if str(exc_top) else type(exc_top).__name__
+                        warnings.append(f"sam-3.1 top view unavailable ({exc_desc}); falling back to local YOLOE segmenter")
                         top = []
                     try:
-                        oblique = fut_ob.result(timeout=15.0)
+                        oblique = fut_ob.result(timeout=35.0)
                     except Exception as exc_ob:
-                        warnings.append(f"sam-3.1 oblique view unavailable ({exc_ob}); falling back to local YOLOE segmenter")
+                        exc_desc = f"{type(exc_ob).__name__}: {exc_ob}" if str(exc_ob) else type(exc_ob).__name__
+                        warnings.append(f"sam-3.1 oblique view unavailable ({exc_desc}); falling back to local YOLOE segmenter")
                         oblique = []
 
                 if not top:
@@ -233,4 +241,5 @@ class SegmentationPipeline:
                 item["crop_path"] = str(path)
                 item["crop_url"] = f"/static/crops/{path.name}"
 
-        return PairSegmentation(top_items=top, oblique_items=oblique, warnings=warnings)
+        sam_status = "success" if (top and isinstance(self._primary, SAM31Segmenter)) else ("fallback" if isinstance(self._primary, SAM31Segmenter) else "skipped")
+        return PairSegmentation(top_items=top, oblique_items=oblique, warnings=warnings, sam_status=sam_status)
