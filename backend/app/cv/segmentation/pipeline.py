@@ -1,6 +1,6 @@
-"""Two-view segmentation / crop facade using Meta SAM 3.1 & YOLOE fallback.
+"""Two-view segmentation / crop facade using Meta SAM 3.1, YOLOE, & Classical Contour fallback.
 
-ROI discovery uses autonomous model predictions, never preannotated bounding boxes.
+ROI discovery uses autonomous predictions, never preannotated bounding boxes.
 Requires a live PairCalibration from the ArUco facade.
 """
 from __future__ import annotations
@@ -30,9 +30,12 @@ class PairSegmentation:
 
 
 class SegmentationPipeline:
-    """SAM 3.1 (Async Parallel) -> Workspace filter -> Parallax -> RGB crops.
+    """SAM 3.1 (Async Parallel) -> Local YOLOE -> Autonomous Classical Contours -> Parallax -> RGB crops.
 
-    Falls back automatically to local YOLOESegmenter if SAM 3.1 is unavailable.
+    Provides multi-tier resilience:
+    1. Meta SAM 3.1 Frontier Segmenter (Meta Model API, zero server GPU memory).
+    2. Local YOLOE (if ultralytics & torch are available).
+    3. Classical OpenCV Contour Segmentation (zero heavy dependencies, pure CPU, failsafe).
     """
 
     def __init__(
@@ -52,6 +55,83 @@ class SegmentationPipeline:
     @property
     def segmenter(self) -> Any:
         return self._primary
+
+    @staticmethod
+    def _detect_classical_contours(
+        image: np.ndarray,
+        K: np.ndarray,
+        D: np.ndarray,
+        pose: Dict[str, Any],
+        min_area_px: int = 1000,
+    ) -> List[Dict[str, Any]]:
+        """Lightweight OpenCV contour proposal fallback (zero heavy dependencies)."""
+        h, w = image.shape[:2]
+        board_poly, markers = YOLOESegmenter.get_aruco_exclusion_polygons(K, D, pose)
+        board_mask = np.zeros((h, w), np.uint8)
+        if board_poly is not None and len(board_poly) > 0:
+            cv2.fillPoly(board_mask, [np.rint(board_poly).astype(np.int32)], 255)
+        for poly in markers:
+            cv2.fillPoly(board_mask, [np.rint(poly).astype(np.int32)], 255)
+        board_mask = cv2.dilate(board_mask, np.ones((35, 35), np.uint8))
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+
+        _, otsu = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        adapt = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 41, 10)
+        fg = cv2.bitwise_or(otsu, adapt)
+        fg[board_mask > 0] = 0
+
+        margin_x = int(w * 0.025)
+        margin_y = int(h * 0.025)
+        fg[:margin_y, :] = 0
+        fg[-margin_y:, :] = 0
+        fg[:, :margin_x] = 0
+        fg[:, -margin_x:] = 0
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (9, 9))
+        closed = cv2.morphologyEx(fg, cv2.MORPH_CLOSE, kernel, iterations=2)
+        opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)), iterations=1)
+
+        contours, _ = cv2.findContours(opened, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        found = []
+        for c in contours:
+            area = cv2.contourArea(c)
+            if area < min_area_px or area > 0.40 * h * w:
+                continue
+            x, y, bw, bh = cv2.boundingRect(c)
+            mask = np.zeros((h, w), dtype=np.uint8)
+            cv2.drawContours(mask, [c], -1, 255, -1)
+            found.append({
+                "bbox": [x, y, x + bw, y + bh],
+                "mask": mask,
+                "contour": c.reshape(-1, 2).astype(float),
+                "area_px": int(area),
+                "center": [x + bw / 2, y + bh / 2],
+                "confidence": 0.70,
+                "class_name": "item",
+                "source": "classical_opencv",
+            })
+        return found
+
+    def _run_fallback(
+        self,
+        image: np.ndarray,
+        K: np.ndarray,
+        D: np.ndarray,
+        pose: Dict[str, Any],
+        warnings: List[str],
+        view_name: str,
+    ) -> List[Dict[str, Any]]:
+        """Attempt YOLOE fallback; gracefully fall through to classical OpenCV segmentation if unavailable."""
+        try:
+            res = self._fallback.detect_and_segment(image, K, D, pose)
+            if res:
+                return res
+            warnings.append(f"Local YOLOE segmenter returned empty candidates for {view_name}; using classical contour fallback")
+        except Exception as exc:
+            warnings.append(f"Local YOLOE segmenter unavailable ({exc}) for {view_name}; using classical contour fallback")
+        return self._detect_classical_contours(image, K, D, pose)
 
     def run(
         self,
@@ -98,16 +178,16 @@ class SegmentationPipeline:
 
                 if not top:
                     warnings.append("sam-3.1 returned empty top candidates; falling back to local YOLOE segmenter for top view")
-                    top = self._fallback.detect_and_segment(top_image, K, D, calibration.top_pose)
+                    top = self._run_fallback(top_image, K, D, calibration.top_pose, warnings, "top view")
                 if not oblique:
                     warnings.append("sam-3.1 returned empty oblique candidates; falling back to local YOLOE segmenter for oblique view")
-                    oblique = self._fallback.detect_and_segment(oblique_image, K, D, calibration.oblique_pose)
+                    oblique = self._run_fallback(oblique_image, K, D, calibration.oblique_pose, warnings, "oblique view")
             except Exception as exc:
                 warnings.append(f"sam-3.1 unavailable ({exc}); falling back to local YOLOE segmenter")
                 if not top:
-                    top = self._fallback.detect_and_segment(top_image, K, D, calibration.top_pose)
+                    top = self._run_fallback(top_image, K, D, calibration.top_pose, warnings, "top view")
                 if not oblique:
-                    oblique = self._fallback.detect_and_segment(oblique_image, K, D, calibration.oblique_pose)
+                    oblique = self._run_fallback(oblique_image, K, D, calibration.oblique_pose, warnings, "oblique view")
         else:
             top = self._primary.detect_and_segment(top_image, K, D, calibration.top_pose)
             oblique = self._primary.detect_and_segment(oblique_image, K, D, calibration.oblique_pose)

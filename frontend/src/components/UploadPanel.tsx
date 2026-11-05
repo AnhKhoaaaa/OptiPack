@@ -576,6 +576,10 @@ export const UploadPanel: React.FC<UploadPanelProps> = ({
                 <strong>
                   {analysis.calibration?.status === "calibrated"
                     ? "No Packable Items Detected"
+                    : (analysis.global_warnings?.[0]?.toLowerCase().includes("cv inference") ||
+                       analysis.global_warnings?.[0]?.toLowerCase().includes("model_api_key") ||
+                       analysis.global_warnings?.[0]?.toLowerCase().includes("yoloe"))
+                    ? "CV Model Inference Notice"
                     : "Calibration Board Not Detected"}
                 </strong>
                 <p className="muted text-xs" style={{ maxWidth: 340, textAlign: "center", lineHeight: 1.4 }}>
