@@ -1,6 +1,10 @@
 # OptiPack — E-Commerce Multi-Item 3D Cartonization & Packing Assistant
 
-OptiPack is a rapid-turnaround hackathon MVP designed for e-commerce multi-item fulfillment cartonization:
+> 🌐 **Live Web Application (Vercel):** [https://opti-pack-ten.vercel.app](https://opti-pack-ten.vercel.app)  
+> ⚡ **Backend Cloud API (Render):** [https://optipack-backend.onrender.com](https://optipack-backend.onrender.com) (`/health`, `/docs`)  
+> 📦 **Final Submission Release:** `v1.0.0`
+
+OptiPack is an end-to-end multi-item 3D fulfillment cartonization assistant:
 Given an order of multiple distinct items captured at a controlled packing bench, OptiPack:
 1. Detects and measures items in 3D millimeters with explicit uncertainty quantification (**Computer Vision & Metrology**).
 2. Extracts packaging and handling semantics via the **Meta Model API** (`muse-spark-1.3`).
@@ -168,6 +172,8 @@ Before full integration, each team member runs and iterates on their Phase 0 fea
    - Health check: `http://localhost:8000/health`
 
 ### Frontend Setup (Node.js 18+)
+
+> 🚀 **Live Demo on Vercel:** [https://opti-pack-ten.vercel.app](https://opti-pack-ten.vercel.app) (Connected to production backend API).
 
 1. Navigate to the frontend directory:
    ```bash
