@@ -4,6 +4,7 @@ Main entrypoint for the OptiPack backend server.
 Runs on port 8000 by default and serves REST endpoints under /api/v1.
 """
 
+import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,8 +67,20 @@ async def api_v1_status():
 
 @app.get("/health", tags=["System"])
 async def health_check():
-    """Health check endpoint confirming API status."""
-    return {"status": "ok", "app": "OptiPack", "contract_version": "1.0.0"}
+    """Health check endpoint confirming API status and AI configuration."""
+    has_meta = bool(os.getenv("MODEL_API_KEY", "").strip())
+    has_baseten = bool((
+        os.getenv("BASETEN_API_KEY")
+        or os.getenv("BaseTen_API")
+        or os.getenv("BASETEN_API", "")
+    ).strip())
+    return {
+        "status": "ok",
+        "app": "OptiPack",
+        "contract_version": "1.0.0",
+        "meta_api_configured": has_meta,
+        "baseten_api_configured": has_baseten,
+    }
 
 
 if __name__ == "__main__":
